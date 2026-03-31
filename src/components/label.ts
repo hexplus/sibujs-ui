@@ -1,5 +1,5 @@
 import { label as labelTag, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface LabelProps extends BaseProps {
@@ -16,7 +16,7 @@ export function Label(
 	return labelTag({
 		"data-slot": "label",
 		for: htmlFor,
-		class: cn(
+		class: cnReactive(
 			"flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
 			className,
 		),

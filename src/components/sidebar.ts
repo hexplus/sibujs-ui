@@ -12,7 +12,7 @@ import {
 	ul,
 } from "sibujs";
 import { PanelLeftIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Separator } from "./separator";
@@ -73,7 +73,7 @@ export function SidebarProvider(
 
 	const el = div({
 		"data-slot": "sidebar-wrapper",
-		class: cn(
+		class: cnReactive(
 			"group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar",
 			className,
 		),
@@ -347,7 +347,7 @@ export function SidebarTrigger(
 		"data-sidebar": "trigger",
 		variant: "ghost",
 		size: "icon",
-		class: cn("size-7", className),
+		class: cnReactive("size-7", className),
 		nodes: [
 			PanelLeftIcon({ class: "size-4" }),
 			span({ class: "sr-only", nodes: "Toggle Sidebar" }),
@@ -387,7 +387,7 @@ export function SidebarRail(
 		"aria-label": "Toggle Sidebar",
 		title: "Toggle Sidebar",
 		tabindex: "-1",
-		class: cn(
+		class: cnReactive(
 			"absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
 			"in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
 			"[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
@@ -421,7 +421,7 @@ export function SidebarInset(
 	const { class: className, nodes, ...rest } = props;
 	return mainTag({
 		"data-slot": "sidebar-inset",
-		class: cn(
+		class: cnReactive(
 			"relative flex w-full flex-1 flex-col bg-background",
 			"md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
 			className,
@@ -442,7 +442,7 @@ export function SidebarInput(
 	return Input({
 		"data-slot": "sidebar-input",
 		"data-sidebar": "input",
-		class: cn("h-8 w-full bg-background shadow-none", className),
+		class: cnReactive("h-8 w-full bg-background shadow-none", className),
 		...rest,
 	}) as HTMLElement;
 }
@@ -458,7 +458,7 @@ export function SidebarHeader(
 	return div({
 		"data-slot": "sidebar-header",
 		"data-sidebar": "header",
-		class: cn("flex flex-col gap-2 p-2", className),
+		class: cnReactive("flex flex-col gap-2 p-2", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -475,7 +475,7 @@ export function SidebarFooter(
 	return div({
 		"data-slot": "sidebar-footer",
 		"data-sidebar": "footer",
-		class: cn("flex flex-col gap-2 p-2", className),
+		class: cnReactive("flex flex-col gap-2 p-2", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -492,7 +492,7 @@ export function SidebarSeparator(
 	return Separator({
 		"data-slot": "sidebar-separator",
 		"data-sidebar": "separator",
-		class: cn("mx-2 w-auto bg-sidebar-border", className),
+		class: cnReactive("mx-2 w-auto bg-sidebar-border", className),
 		...rest,
 	}) as HTMLElement;
 }
@@ -508,7 +508,7 @@ export function SidebarContent(
 	return div({
 		"data-slot": "sidebar-content",
 		"data-sidebar": "content",
-		class: cn(
+		class: cnReactive(
 			"flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
 			className,
 		),
@@ -528,7 +528,7 @@ export function SidebarGroup(
 	return div({
 		"data-slot": "sidebar-group",
 		"data-sidebar": "group",
-		class: cn("relative flex w-full min-w-0 flex-col p-2", className),
+		class: cnReactive("relative flex w-full min-w-0 flex-col p-2", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -545,7 +545,7 @@ export function SidebarGroupLabel(
 	return div({
 		"data-slot": "sidebar-group-label",
 		"data-sidebar": "group-label",
-		class: cn(
+		class: cnReactive(
 			"flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
 			"group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
 			className,
@@ -567,7 +567,7 @@ export function SidebarGroupAction(
 		"data-slot": "sidebar-group-action",
 		"data-sidebar": "group-action",
 		type: "button",
-		class: cn(
+		class: cnReactive(
 			"absolute top-3.5 right-3 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
 			"after:absolute after:-inset-2 md:after:hidden",
 			"group-data-[collapsible=icon]:hidden",
@@ -590,7 +590,7 @@ export function SidebarGroupContent(
 	return div({
 		"data-slot": "sidebar-group-content",
 		"data-sidebar": "group-content",
-		class: cn("w-full text-sm", className),
+		class: cnReactive("w-full text-sm", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -607,7 +607,7 @@ export function SidebarMenu(
 	return ul({
 		"data-slot": "sidebar-menu",
 		"data-sidebar": "menu",
-		class: cn("flex w-full min-w-0 flex-col gap-1", className),
+		class: cnReactive("flex w-full min-w-0 flex-col gap-1", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -624,7 +624,7 @@ export function SidebarMenuItem(
 	return li({
 		"data-slot": "sidebar-menu-item",
 		"data-sidebar": "menu-item",
-		class: cn("group/menu-item relative", className),
+		class: cnReactive("group/menu-item relative", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -744,7 +744,7 @@ export function SidebarMenuAction(
 		"data-slot": "sidebar-menu-action",
 		"data-sidebar": "menu-action",
 		type: "button",
-		class: cn(
+		class: cnReactive(
 			"absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform peer-hover/menu-button:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
 			"after:absolute after:-inset-2 md:after:hidden",
 			"peer-data-[size=sm]/menu-button:top-1",
@@ -772,7 +772,7 @@ export function SidebarMenuBadge(
 	return div({
 		"data-slot": "sidebar-menu-badge",
 		"data-sidebar": "menu-badge",
-		class: cn(
+		class: cnReactive(
 			"pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium text-sidebar-foreground tabular-nums select-none",
 			"peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
 			"peer-data-[size=sm]/menu-button:top-1",
@@ -823,7 +823,7 @@ export function SidebarMenuSkeleton(
 	return div({
 		"data-slot": "sidebar-menu-skeleton",
 		"data-sidebar": "menu-skeleton",
-		class: cn("flex h-8 items-center gap-2 rounded-md px-2", className),
+		class: cnReactive("flex h-8 items-center gap-2 rounded-md px-2", className),
 		nodes: skeletonNodes,
 		...rest,
 	}) as HTMLElement;
@@ -840,7 +840,7 @@ export function SidebarMenuSub(
 	return ul({
 		"data-slot": "sidebar-menu-sub",
 		"data-sidebar": "menu-sub",
-		class: cn(
+		class: cnReactive(
 			"mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5",
 			"group-data-[collapsible=icon]:hidden",
 			className,
@@ -861,7 +861,7 @@ export function SidebarMenuSubItem(
 	return li({
 		"data-slot": "sidebar-menu-sub-item",
 		"data-sidebar": "menu-sub-item",
-		class: cn("group/menu-sub-item relative", className),
+		class: cnReactive("group/menu-sub-item relative", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -896,7 +896,7 @@ export function SidebarMenuSubButton(
 		"data-sidebar": "menu-sub-button",
 		"data-size": size,
 		"data-active": isActive ? "true" : "false",
-		class: cn(
+		class: cnReactive(
 			"flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
 			"data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
 			size === "sm" && "text-xs",

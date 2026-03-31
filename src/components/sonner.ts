@@ -14,7 +14,7 @@ import {
 	TriangleAlertIcon,
 	XIcon,
 } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 // Toast state management
@@ -247,7 +247,7 @@ export function Toaster(
 
 	const container = div({
 		"data-slot": "toaster",
-		class: cn(
+		class: cnReactive(
 			"toaster group fixed z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4 sm:max-w-[420px]",
 			positionClasses[position],
 			className,

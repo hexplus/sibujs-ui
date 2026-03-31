@@ -9,7 +9,7 @@ import {
 	span,
 } from "sibujs";
 import { XIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -156,7 +156,7 @@ export function SheetContent(
 		"data-slot": "sheet-content",
 		role: "dialog",
 		"aria-modal": "true",
-		class: cn(
+		class: cnReactive(
 			"fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
 			sideClasses[side],
 			className,
@@ -230,7 +230,7 @@ export function SheetHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "sheet-header",
-		class: cn("flex flex-col gap-1.5 p-4", className),
+		class: cnReactive("flex flex-col gap-1.5 p-4", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -244,7 +244,7 @@ export function SheetFooter(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "sheet-footer",
-		class: cn("mt-auto flex flex-col gap-2 p-4", className),
+		class: cnReactive("mt-auto flex flex-col gap-2 p-4", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -258,7 +258,7 @@ export function SheetTitle(
 	const { class: className, nodes, ...rest } = props;
 	return h2({
 		"data-slot": "sheet-title",
-		class: cn("font-semibold text-foreground", className),
+		class: cnReactive("font-semibold text-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -272,7 +272,7 @@ export function SheetDescription(
 	const { class: className, nodes, ...rest } = props;
 	return p({
 		"data-slot": "sheet-description",
-		class: cn("text-sm text-muted-foreground", className),
+		class: cnReactive("text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

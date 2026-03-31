@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, fieldset, legend, type NodeChildren, p, span } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { Label } from "./label";
 import { Separator } from "./separator";
 import { type BaseProps, normalizeArgs } from "./types";
@@ -13,7 +13,7 @@ export function FieldSet(
 	const { class: className, nodes, ...rest } = props;
 	return fieldset({
 		"data-slot": "field-set",
-		class: cn(
+		class: cnReactive(
 			"flex flex-col gap-6",
 			"has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3",
 			className,
@@ -36,7 +36,7 @@ export function FieldLegend(
 	return legend({
 		"data-slot": "field-legend",
 		"data-variant": variant,
-		class: cn(
+		class: cnReactive(
 			"mb-3 font-medium",
 			"data-[variant=legend]:text-base",
 			"data-[variant=label]:text-sm",
@@ -55,7 +55,7 @@ export function FieldGroup(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "field-group",
-		class: cn(
+		class: cnReactive(
 			"group/field-group @container/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
 			className,
 		),
@@ -114,7 +114,7 @@ export function Field(
 		"data-orientation": orientation,
 		"data-invalid": invalid ? "true" : undefined,
 		"data-disabled": disabled ? "true" : undefined,
-		class: cn(fieldVariants({ orientation, className })),
+		class: cnReactive(fieldVariants({ orientation, className })),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -128,7 +128,7 @@ export function FieldContent(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "field-content",
-		class: cn(
+		class: cnReactive(
 			"group/field-content flex flex-1 flex-col gap-1.5 leading-snug",
 			className,
 		),
@@ -150,7 +150,7 @@ export function FieldLabel(
 	return Label({
 		"data-slot": "field-label",
 		for: htmlFor,
-		class: cn(
+		class: cnReactive(
 			"group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
 			"has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4",
 			"has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5 dark:has-data-[state=checked]:bg-primary/10",
@@ -169,7 +169,7 @@ export function FieldTitle(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "field-label",
-		class: cn(
+		class: cnReactive(
 			"flex w-fit items-center gap-2 text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50",
 			className,
 		),
@@ -186,7 +186,7 @@ export function FieldDescription(
 	const { class: className, nodes, ...rest } = props;
 	return p({
 		"data-slot": "field-description",
-		class: cn(
+		class: cnReactive(
 			"text-sm leading-normal font-normal text-muted-foreground group-has-[[data-orientation=horizontal]]/field:text-balance",
 			"last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5",
 			"[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
@@ -221,7 +221,7 @@ export function FieldSeparator(
 	return div({
 		"data-slot": "field-separator",
 		"data-content": hasContent ? "true" : undefined,
-		class: cn(
+		class: cnReactive(
 			"relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
 			className,
 		),
@@ -271,7 +271,7 @@ export function FieldError(
 	return div({
 		"data-slot": "field-error",
 		role: "alert",
-		class: cn("text-sm font-normal text-destructive", className),
+		class: cnReactive("text-sm font-normal text-destructive", className),
 		nodes: content,
 		...rest,
 	}) as HTMLElement;

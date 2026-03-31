@@ -1,5 +1,5 @@
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export function Skeleton(
@@ -11,7 +11,7 @@ export function Skeleton(
 
 	return div({
 		"data-slot": "skeleton",
-		class: cn("animate-pulse rounded-md bg-accent", className),
+		class: cnReactive("animate-pulse rounded-md bg-accent", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

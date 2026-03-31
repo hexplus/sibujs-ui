@@ -1,5 +1,5 @@
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface ProgressProps extends BaseProps {
@@ -22,7 +22,7 @@ export function Progress(
 		"aria-valuemin": "0",
 		"aria-valuemax": String(max),
 		"aria-valuenow": () => String(getValue()),
-		class: cn(
+		class: cnReactive(
 			"relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
 			className,
 		),

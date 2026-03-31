@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Separator } from "./separator";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -40,7 +40,7 @@ export function ButtonGroup(
 		"data-slot": "button-group",
 		"data-orientation": orientation,
 		role: "group",
-		class: cn(buttonGroupVariants({ orientation, className })),
+		class: cnReactive(buttonGroupVariants({ orientation, className })),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -77,7 +77,7 @@ export function ButtonGroupSeparator(
 	return Separator({
 		"data-slot": "button-group-separator",
 		orientation,
-		class: cn(
+		class: cnReactive(
 			"relative m-0! self-stretch bg-input data-[orientation=vertical]:h-auto",
 			className,
 		),

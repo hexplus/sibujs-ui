@@ -1,5 +1,5 @@
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 // ── ScrollArea ───────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ export function ScrollArea(
 	// Root
 	const root = div({
 		"data-slot": "scroll-area",
-		class: cn("relative", className),
+		class: cnReactive("relative", className),
 		nodes: [styleEl, viewport, vBar, hBar, corner],
 		...rest,
 	}) as HTMLElement;
@@ -308,7 +308,7 @@ export function ScrollBar(
 	return div({
 		"data-slot": "scroll-area-scrollbar",
 		"data-orientation": orientation,
-		class: cn(
+		class: cnReactive(
 			"flex touch-none p-px transition-colors select-none",
 			orientation === "vertical" &&
 				"h-full w-2.5 border-l border-l-transparent",

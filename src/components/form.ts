@@ -1,5 +1,5 @@
 import { div, type NodeChildren, p } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { Label } from "./label";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -19,7 +19,7 @@ export function FormItem(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "form-item",
-		class: cn("grid gap-2", className),
+		class: cnReactive("grid gap-2", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -40,7 +40,7 @@ export function FormLabel(
 		"data-slot": "form-label",
 		"data-error": error ? "true" : undefined,
 		for: htmlFor,
-		class: cn("data-[error=true]:text-destructive", className),
+		class: cnReactive("data-[error=true]:text-destructive", className),
 		nodes,
 		...rest,
 	});
@@ -54,7 +54,7 @@ export function FormDescription(
 	const { class: className, nodes, ...rest } = props;
 	return p({
 		"data-slot": "form-description",
-		class: cn("text-sm text-muted-foreground", className),
+		class: cnReactive("text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -75,7 +75,7 @@ export function FormMessage(
 
 	return p({
 		"data-slot": "form-message",
-		class: cn("text-sm text-destructive", className),
+		class: cnReactive("text-sm text-destructive", className),
 		nodes: content,
 		...rest,
 	}) as HTMLElement;

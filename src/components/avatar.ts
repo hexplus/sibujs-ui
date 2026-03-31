@@ -1,5 +1,5 @@
 import { div, img, type NodeChildren, span } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface AvatarProps extends BaseProps {
@@ -15,7 +15,7 @@ export function Avatar(
 	return div({
 		"data-slot": "avatar",
 		"data-size": size,
-		class: cn(
+		class: cnReactive(
 			"group/avatar relative flex size-8 shrink-0 overflow-hidden rounded-full select-none data-[size=lg]:size-10 data-[size=sm]:size-6",
 			className,
 		),
@@ -40,7 +40,7 @@ export function AvatarImage(
 		"data-slot": "avatar-image",
 		src,
 		alt,
-		class: cn("aspect-square size-full", className),
+		class: cnReactive("aspect-square size-full", className),
 		...rest,
 	}) as HTMLImageElement;
 
@@ -60,7 +60,7 @@ export function AvatarFallback(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "avatar-fallback",
-		class: cn(
+		class: cnReactive(
 			"flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
 			className,
 		),
@@ -77,7 +77,7 @@ export function AvatarBadge(
 	const { class: className, nodes, ...rest } = props;
 	return span({
 		"data-slot": "avatar-badge",
-		class: cn(
+		class: cnReactive(
 			"absolute right-0 bottom-0 z-10 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background select-none",
 			"group-data-[size=sm]/avatar:size-2 group-data-[size=sm]/avatar:[&>svg]:hidden",
 			"group-data-[size=default]/avatar:size-2.5 group-data-[size=default]/avatar:[&>svg]:size-2",
@@ -97,7 +97,7 @@ export function AvatarGroup(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "avatar-group",
-		class: cn(
+		class: cnReactive(
 			"group/avatar-group flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background",
 			className,
 		),
@@ -114,7 +114,7 @@ export function AvatarGroupCount(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "avatar-group-count",
-		class: cn(
+		class: cnReactive(
 			"relative flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground ring-2 ring-background group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3",
 			className,
 		),

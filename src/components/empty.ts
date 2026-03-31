@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export function Empty(
@@ -11,7 +11,7 @@ export function Empty(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "empty",
-		class: cn(
+		class: cnReactive(
 			"flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12",
 			className,
 		),
@@ -28,7 +28,7 @@ export function EmptyHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "empty-header",
-		class: cn(
+		class: cnReactive(
 			"flex max-w-sm flex-col items-center gap-2 text-center",
 			className,
 		),
@@ -65,7 +65,7 @@ export function EmptyMedia(
 	return div({
 		"data-slot": "empty-icon",
 		"data-variant": variant,
-		class: cn(emptyMediaVariants({ variant, className })),
+		class: cnReactive(emptyMediaVariants({ variant, className })),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -79,7 +79,7 @@ export function EmptyTitle(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "empty-title",
-		class: cn("text-lg font-medium tracking-tight", className),
+		class: cnReactive("text-lg font-medium tracking-tight", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -93,7 +93,7 @@ export function EmptyDescription(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "empty-description",
-		class: cn(
+		class: cnReactive(
 			"text-sm/relaxed text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
 			className,
 		),
@@ -110,7 +110,7 @@ export function EmptyContent(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "empty-content",
-		class: cn(
+		class: cnReactive(
 			"flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance",
 			className,
 		),

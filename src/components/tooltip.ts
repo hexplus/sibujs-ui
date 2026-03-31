@@ -1,5 +1,5 @@
 import { div, effect, type NodeChildren, signal, span } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -154,7 +154,7 @@ export function TooltipContent(
 		"data-slot": "tooltip-content",
 		"data-side": side,
 		role: "tooltip",
-		class: cn(
+		class: cnReactive(
 			"z-50 w-max whitespace-nowrap animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
 			className,
 		),

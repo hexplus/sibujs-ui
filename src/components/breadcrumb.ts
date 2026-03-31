@@ -1,6 +1,6 @@
 import { a, li, type NodeChildren, nav, ol, span } from "sibujs";
 import { ChevronRightIcon, MoreHorizontalIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export function Breadcrumb(
@@ -25,7 +25,7 @@ export function BreadcrumbList(
 	const { class: className, nodes, ...rest } = props;
 	return ol({
 		"data-slot": "breadcrumb-list",
-		class: cn(
+		class: cnReactive(
 			"flex flex-wrap items-center gap-1.5 text-sm break-words text-muted-foreground sm:gap-2.5",
 			className,
 		),
@@ -42,7 +42,7 @@ export function BreadcrumbItem(
 	const { class: className, nodes, ...rest } = props;
 	return li({
 		"data-slot": "breadcrumb-item",
-		class: cn("inline-flex items-center gap-1.5", className),
+		class: cnReactive("inline-flex items-center gap-1.5", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -61,7 +61,7 @@ export function BreadcrumbLink(
 	return a({
 		"data-slot": "breadcrumb-link",
 		href,
-		class: cn("transition-colors hover:text-foreground", className),
+		class: cnReactive("transition-colors hover:text-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -78,7 +78,7 @@ export function BreadcrumbPage(
 		role: "link",
 		"aria-disabled": "true",
 		"aria-current": "page",
-		class: cn("font-normal text-foreground", className),
+		class: cnReactive("font-normal text-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -94,7 +94,7 @@ export function BreadcrumbSeparator(
 		"data-slot": "breadcrumb-separator",
 		role: "presentation",
 		"aria-hidden": "true",
-		class: cn("[&>svg]:size-3.5", className),
+		class: cnReactive("[&>svg]:size-3.5", className),
 		nodes: nodes ?? [ChevronRightIcon()],
 		...rest,
 	}) as HTMLElement;
@@ -110,7 +110,7 @@ export function BreadcrumbEllipsis(
 		"data-slot": "breadcrumb-ellipsis",
 		role: "presentation",
 		"aria-hidden": "true",
-		class: cn("flex size-9 items-center justify-center", className),
+		class: cnReactive("flex size-9 items-center justify-center", className),
 		nodes: [
 			MoreHorizontalIcon({ class: "size-4" }),
 			span({ class: "sr-only", nodes: "More" }),

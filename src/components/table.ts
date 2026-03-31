@@ -10,7 +10,7 @@ import {
 	thead,
 	tr,
 } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export function Table(
@@ -26,7 +26,7 @@ export function Table(
 		nodes: [
 			tableTag({
 				"data-slot": "table",
-				class: cn("w-full caption-bottom text-sm", className),
+				class: cnReactive("w-full caption-bottom text-sm", className),
 				nodes,
 				...rest,
 			}),
@@ -42,7 +42,7 @@ export function TableHeader(
 	const { class: className, nodes, ...rest } = props;
 	return thead({
 		"data-slot": "table-header",
-		class: cn("[&_tr]:border-b", className),
+		class: cnReactive("[&_tr]:border-b", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -56,7 +56,7 @@ export function TableBody(
 	const { class: className, nodes, ...rest } = props;
 	return tbody({
 		"data-slot": "table-body",
-		class: cn("[&_tr:last-child]:border-0", className),
+		class: cnReactive("[&_tr:last-child]:border-0", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -70,7 +70,7 @@ export function TableFooter(
 	const { class: className, nodes, ...rest } = props;
 	return tfoot({
 		"data-slot": "table-footer",
-		class: cn(
+		class: cnReactive(
 			"border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
 			className,
 		),
@@ -87,7 +87,7 @@ export function TableRow(
 	const { class: className, nodes, ...rest } = props;
 	return tr({
 		"data-slot": "table-row",
-		class: cn(
+		class: cnReactive(
 			"border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
 			className,
 		),
@@ -138,7 +138,7 @@ export function TableCaption(
 	const { class: className, nodes, ...rest } = props;
 	return caption({
 		"data-slot": "table-caption",
-		class: cn("mt-4 text-sm text-muted-foreground", className),
+		class: cnReactive("mt-4 text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

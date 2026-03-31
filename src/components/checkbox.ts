@@ -6,7 +6,7 @@ import {
 	span,
 } from "sibujs";
 import { CheckIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface CheckboxProps extends BaseProps {
@@ -52,7 +52,7 @@ export function Checkbox(
 		"data-state": () => (isChecked() ? "checked" : "unchecked"),
 		disabled,
 		"aria-required": required ? "true" : undefined,
-		class: cn(
+		class: cnReactive(
 			"peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs transition-shadow outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
 			className,
 		),

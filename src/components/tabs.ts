@@ -6,7 +6,7 @@ import {
 	type NodeChildren,
 	signal,
 } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -42,7 +42,7 @@ export function Tabs(
 	const el = div({
 		"data-slot": "tabs",
 		"data-orientation": orientation,
-		class: cn(
+		class: cnReactive(
 			"group/tabs flex gap-2 data-[orientation=horizontal]:flex-col",
 			className,
 		),
@@ -175,7 +175,7 @@ export function TabsContent(
 		"data-slot": "tabs-content",
 		"data-value": value,
 		role: "tabpanel",
-		class: cn("flex-1 outline-none", className),
+		class: cnReactive("flex-1 outline-none", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

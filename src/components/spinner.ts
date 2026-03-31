@@ -11,7 +11,7 @@ export function Spinner(
 	const { class: className } = props;
 
 	const svg = Loader2Icon({
-		class: cn("size-4 animate-spin", className),
+		class: cn("size-4 animate-spin", className as string),
 	});
 	svg.setAttribute("role", "status");
 	svg.setAttribute("aria-label", "Loading");

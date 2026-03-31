@@ -8,7 +8,7 @@ import {
 	signal,
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -43,7 +43,7 @@ export function NavigationMenu(
 	const el = div({
 		"data-slot": "navigation-menu",
 		"data-viewport": viewport,
-		class: cn(
+		class: cnReactive(
 			"group/navigation-menu relative flex max-w-max flex-1 items-center justify-center",
 			className,
 		),
@@ -89,7 +89,7 @@ export function NavigationMenuList(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "navigation-menu-list",
-		class: cn(
+		class: cnReactive(
 			"group flex flex-1 list-none items-center justify-center gap-1",
 			className,
 		),
@@ -115,7 +115,7 @@ export function NavigationMenuItem(
 	const el = div({
 		"data-slot": "navigation-menu-item",
 		"data-value": itemId,
-		class: cn("relative", className),
+		class: cnReactive("relative", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -192,7 +192,7 @@ export function NavigationMenuContent(
 	const content = div({
 		"data-slot": "navigation-menu-content",
 		style: "display: none",
-		class: cn(
+		class: cnReactive(
 			"absolute top-full left-0 z-50 mt-1.5 w-auto overflow-hidden rounded-md border bg-popover p-2 pr-2.5 text-popover-foreground shadow data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
 			className,
 		),
@@ -276,7 +276,7 @@ export function NavigationMenuViewport(
 	const { class: className, nodes, ...rest } = props;
 	const viewport = div({
 		"data-slot": "navigation-menu-viewport",
-		class: cn(
+		class: cnReactive(
 			"origin-top-center relative mt-1.5 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:zoom-in-90",
 			className,
 		),
@@ -300,7 +300,7 @@ export function NavigationMenuIndicator(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "navigation-menu-indicator",
-		class: cn(
+		class: cnReactive(
 			"top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:animate-in data-[state=visible]:fade-in",
 			className,
 		),

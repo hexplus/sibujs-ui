@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { button as buttonTag, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export const buttonVariants = cva(
@@ -61,7 +61,7 @@ export function Button(
 		"data-slot": "button",
 		"data-variant": variant,
 		"data-size": size,
-		class: cn(buttonVariants({ variant, size, className })),
+		class: cnReactive(buttonVariants({ variant, size, className })),
 		nodes,
 		...rest,
 	}) as HTMLElement;

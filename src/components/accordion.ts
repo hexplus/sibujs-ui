@@ -7,7 +7,7 @@ import {
 	signal,
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -138,7 +138,7 @@ export function AccordionItem(
 	const el = div({
 		"data-slot": "accordion-item",
 		"data-value": value,
-		class: cn("border-b last:border-b-0", className),
+		class: cnReactive("border-b last:border-b-0", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -190,7 +190,7 @@ export function AccordionTrigger(
 	const btn = buttonTag({
 		"data-slot": "accordion-trigger",
 		type: "button",
-		class: cn(
+		class: cnReactive(
 			"flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
 			className,
 		),
@@ -268,7 +268,7 @@ export function AccordionContent(
 
 	// Completely exact ShadCN implementation
 	const inner = div({
-		class: cn("pt-0 pb-4", className),
+		class: cnReactive("pt-0 pb-4", className),
 		nodes,
 	}) as HTMLElement;
 

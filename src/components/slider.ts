@@ -1,5 +1,5 @@
 import { div, effect, type NodeChildren, signal } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface SliderProps extends BaseProps {
@@ -71,7 +71,7 @@ export function Slider(
 		"data-slot": "slider",
 		"data-orientation": orientation,
 		"data-disabled": disabled ? "" : undefined,
-		class: cn(
+		class: cnReactive(
 			"relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50",
 			orientation === "vertical" ? "h-full min-h-44 w-auto flex-col" : "",
 			className,

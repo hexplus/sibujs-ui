@@ -9,7 +9,7 @@ import {
 	span,
 } from "sibujs";
 import { XIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import {
 	type BaseProps,
@@ -245,7 +245,10 @@ export function DialogHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "dialog-header",
-		class: cn("flex flex-col gap-2 text-center sm:text-left", className),
+		class: cnReactive(
+			"flex flex-col gap-2 text-center sm:text-left",
+			className,
+		),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -274,7 +277,7 @@ export function DialogFooter(
 
 	return div({
 		"data-slot": "dialog-footer",
-		class: cn(
+		class: cnReactive(
 			"flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
 			className,
 		),
@@ -292,7 +295,7 @@ export function DialogTitle(
 
 	const el = h2({
 		"data-slot": "dialog-title",
-		class: cn("text-lg leading-none font-semibold", className),
+		class: cnReactive("text-lg leading-none font-semibold", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -318,7 +321,7 @@ export function DialogDescription(
 
 	const el = p({
 		"data-slot": "dialog-description",
-		class: cn("text-sm text-muted-foreground", className),
+		class: cnReactive("text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

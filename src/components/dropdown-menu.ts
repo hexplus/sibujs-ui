@@ -7,7 +7,7 @@ import {
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -339,7 +339,10 @@ export function DropdownMenuLabel(
 	return div({
 		"data-slot": "dropdown-menu-label",
 		"data-inset": inset,
-		class: cn("px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", className),
+		class: cnReactive(
+			"px-2 py-1.5 text-sm font-medium data-[inset]:pl-8",
+			className,
+		),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -354,7 +357,7 @@ export function DropdownMenuSeparator(
 	return div({
 		"data-slot": "dropdown-menu-separator",
 		role: "separator",
-		class: cn("-mx-1 my-1 h-px bg-border", className),
+		class: cnReactive("-mx-1 my-1 h-px bg-border", className),
 		...rest,
 	}) as HTMLElement;
 }
@@ -367,7 +370,7 @@ export function DropdownMenuShortcut(
 	const { class: className, nodes, ...rest } = props;
 	return span({
 		"data-slot": "dropdown-menu-shortcut",
-		class: cn(
+		class: cnReactive(
 			"ml-auto text-xs tracking-widest text-muted-foreground",
 			className,
 		),
@@ -573,7 +576,7 @@ export function DropdownMenuSubContent(
 
 	const content = div({
 		"data-slot": "dropdown-menu-sub-content",
-		class: cn(
+		class: cnReactive(
 			"z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 			className,
 		),

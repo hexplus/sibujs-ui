@@ -6,7 +6,7 @@ import {
 	show,
 	signal,
 } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -108,7 +108,7 @@ export function CollapsibleContent(
 
 	const wrapper = div({
 		"data-slot": "collapsible-content",
-		class: cn(className),
+		class: cnReactive(className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

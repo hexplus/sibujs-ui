@@ -7,7 +7,7 @@ import {
 	span,
 } from "sibujs";
 import { CircleIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -47,7 +47,7 @@ export function RadioGroup(
 		role: "radiogroup",
 		"aria-required": required ? "true" : undefined,
 		"data-disabled": disabled ? "true" : undefined,
-		class: cn("grid gap-3", className),
+		class: cnReactive("grid gap-3", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -88,7 +88,7 @@ export function RadioGroupItem(
 		type: "button",
 		role: "radio",
 		disabled,
-		class: cn(
+		class: cnReactive(
 			"aspect-square size-4 shrink-0 rounded-full border border-input text-primary shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40",
 			className,
 		),

@@ -1,5 +1,5 @@
 import { kbd as kbdTag, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export function Kbd(
@@ -31,7 +31,7 @@ export function KbdGroup(
 
 	return kbdTag({
 		"data-slot": "kbd-group",
-		class: cn("inline-flex items-center gap-1", className),
+		class: cnReactive("inline-flex items-center gap-1", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

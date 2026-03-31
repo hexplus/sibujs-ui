@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren, span } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Textarea } from "./textarea";
@@ -15,7 +15,7 @@ export function InputGroup(
 	return div({
 		"data-slot": "input-group",
 		role: "group",
-		class: cn(
+		class: cnReactive(
 			"group/input-group relative flex w-full items-center rounded-md border border-input shadow-xs transition-[color,box-shadow] outline-none dark:bg-input/30",
 			"h-9 min-w-0 has-[>textarea]:h-auto",
 			"has-[>[data-align=inline-start]]:[&>input]:pl-2",
@@ -165,7 +165,7 @@ export function InputGroupInput(
 	const { class: className, ...rest } = props;
 	return Input({
 		"data-slot": "input-group-control",
-		class: cn(
+		class: cnReactive(
 			"flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent",
 			className,
 		),
@@ -181,7 +181,7 @@ export function InputGroupTextarea(
 	const { class: className, ...rest } = props;
 	return Textarea({
 		"data-slot": "input-group-control",
-		class: cn(
+		class: cnReactive(
 			"flex-1 resize-none rounded-none border-0 bg-transparent py-3 shadow-none focus-visible:ring-0 dark:bg-transparent",
 			className,
 		),

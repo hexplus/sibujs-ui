@@ -6,7 +6,7 @@ import {
 	p,
 	signal,
 } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -137,7 +137,7 @@ export function PopoverContent(
 			...(align === "start" ? { left: "0" } : {}),
 			...(align === "end" ? { right: "0" } : {}),
 		} as Record<string, string>,
-		class: cn(
+		class: cnReactive(
 			"z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-hidden data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 			className,
 		),
@@ -201,7 +201,7 @@ export function PopoverHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "popover-header",
-		class: cn("flex flex-col gap-1 text-sm", className),
+		class: cnReactive("flex flex-col gap-1 text-sm", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -215,7 +215,7 @@ export function PopoverTitle(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "popover-title",
-		class: cn("font-medium", className),
+		class: cnReactive("font-medium", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -242,7 +242,7 @@ export function PopoverDescription(
 	const { class: className, nodes, ...rest } = props;
 	return p({
 		"data-slot": "popover-description",
-		class: cn("text-muted-foreground", className),
+		class: cnReactive("text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

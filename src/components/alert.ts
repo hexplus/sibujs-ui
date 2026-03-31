@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export const alertVariants = cva(
@@ -48,7 +48,7 @@ export function AlertTitle(
 
 	return div({
 		"data-slot": "alert-title",
-		class: cn(
+		class: cnReactive(
 			"col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
 			className,
 		),
@@ -66,7 +66,7 @@ export function AlertDescription(
 
 	return div({
 		"data-slot": "alert-description",
-		class: cn(
+		class: cnReactive(
 			"col-start-2 grid justify-items-start gap-1 text-sm text-muted-foreground [&_p]:leading-relaxed",
 			className,
 		),

@@ -7,7 +7,7 @@ import {
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -274,7 +274,7 @@ export function SelectContent(
 	const content = div({
 		"data-slot": "select-content",
 		role: "listbox",
-		class: cn(
+		class: cnReactive(
 			"relative z-50 max-h-60 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 			position === "popper"
 				? "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1"
@@ -350,7 +350,7 @@ export function SelectLabel(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "select-label",
-		class: cn("px-2 py-1.5 text-xs text-muted-foreground", className),
+		class: cnReactive("px-2 py-1.5 text-xs text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -449,7 +449,10 @@ export function SelectSeparator(
 	const { class: className, ...rest } = props;
 	return div({
 		"data-slot": "select-separator",
-		class: cn("pointer-events-none -mx-1 my-1 h-px bg-border", className),
+		class: cnReactive(
+			"pointer-events-none -mx-1 my-1 h-px bg-border",
+			className,
+		),
 		...rest,
 	}) as HTMLElement;
 }
@@ -466,7 +469,7 @@ export function SelectValue(
 	const { class: className, placeholder, nodes, ...rest } = props;
 	const el = span({
 		"data-slot": "select-value",
-		class: cn("line-clamp-1 flex items-center gap-2", className),
+		class: cnReactive("line-clamp-1 flex items-center gap-2", className),
 		nodes: nodes ?? (placeholder ? placeholder : undefined),
 		...rest,
 	}) as HTMLElement;
@@ -503,7 +506,7 @@ export function SelectScrollUpButton(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "select-scroll-up-button",
-		class: cn(
+		class: cnReactive(
 			"flex cursor-default items-center justify-center py-1",
 			className,
 		),
@@ -520,7 +523,7 @@ export function SelectScrollDownButton(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "select-scroll-down-button",
-		class: cn(
+		class: cnReactive(
 			"flex cursor-default items-center justify-center py-1",
 			className,
 		),

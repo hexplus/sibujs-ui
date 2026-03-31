@@ -4,7 +4,7 @@ import {
 	ChevronRightIcon,
 	MoreHorizontalIcon,
 } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { buttonVariants } from "./button";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -18,7 +18,7 @@ export function Pagination(
 		role: "navigation",
 		"aria-label": "pagination",
 		"data-slot": "pagination",
-		class: cn("mx-auto flex w-full justify-center", className),
+		class: cnReactive("mx-auto flex w-full justify-center", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -32,7 +32,7 @@ export function PaginationContent(
 	const { class: className, nodes, ...rest } = props;
 	return ul({
 		"data-slot": "pagination-content",
-		class: cn("flex flex-row items-center gap-1", className),
+		class: cnReactive("flex flex-row items-center gap-1", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -93,7 +93,7 @@ export function PaginationPrevious(
 	return PaginationLink({
 		"aria-label": "Go to previous page",
 		size: "default",
-		class: cn("gap-1 px-2.5 sm:pl-2.5", className),
+		class: cnReactive("gap-1 px-2.5 sm:pl-2.5", className),
 		nodes: nodes ?? [
 			ChevronLeftIcon(),
 			span({ class: "hidden sm:block", nodes: "Previous" }),
@@ -111,7 +111,7 @@ export function PaginationNext(
 	return PaginationLink({
 		"aria-label": "Go to next page",
 		size: "default",
-		class: cn("gap-1 px-2.5 sm:pr-2.5", className),
+		class: cnReactive("gap-1 px-2.5 sm:pr-2.5", className),
 		nodes: nodes ?? [
 			span({ class: "hidden sm:block", nodes: "Next" }),
 			ChevronRightIcon(),
@@ -129,7 +129,7 @@ export function PaginationEllipsis(
 	return span({
 		"aria-hidden": "true",
 		"data-slot": "pagination-ellipsis",
-		class: cn("flex size-9 items-center justify-center", className),
+		class: cnReactive("flex size-9 items-center justify-center", className),
 		nodes: [
 			MoreHorizontalIcon({ class: "size-4" }),
 			span({ class: "sr-only", nodes: "More pages" }),

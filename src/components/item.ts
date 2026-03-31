@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren, p } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { Separator } from "./separator";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -13,7 +13,7 @@ export function ItemGroup(
 	return div({
 		"data-slot": "item-group",
 		role: "list",
-		class: cn("group/item-group flex flex-col", className),
+		class: cnReactive("group/item-group flex flex-col", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -28,7 +28,7 @@ export function ItemSeparator(
 	return Separator({
 		"data-slot": "item-separator",
 		orientation: "horizontal",
-		class: cn("my-0", className),
+		class: cnReactive("my-0", className),
 		...rest,
 	});
 }
@@ -74,7 +74,7 @@ export function Item(
 		"data-slot": "item",
 		"data-variant": variant,
 		"data-size": size,
-		class: cn(itemVariants({ variant, size, className })),
+		class: cnReactive(itemVariants({ variant, size, className })),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -110,7 +110,7 @@ export function ItemMedia(
 	return div({
 		"data-slot": "item-media",
 		"data-variant": variant,
-		class: cn(itemMediaVariants({ variant, className })),
+		class: cnReactive(itemMediaVariants({ variant, className })),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -124,7 +124,7 @@ export function ItemContent(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "item-content",
-		class: cn(
+		class: cnReactive(
 			"flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none",
 			className,
 		),
@@ -141,7 +141,7 @@ export function ItemTitle(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "item-title",
-		class: cn(
+		class: cnReactive(
 			"flex w-fit items-center gap-2 text-sm font-medium leading-snug",
 			className,
 		),
@@ -158,7 +158,7 @@ export function ItemDescription(
 	const { class: className, nodes, ...rest } = props;
 	return p({
 		"data-slot": "item-description",
-		class: cn(
+		class: cnReactive(
 			"line-clamp-2 text-sm leading-normal font-normal text-balance text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
 			className,
 		),
@@ -175,7 +175,7 @@ export function ItemActions(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "item-actions",
-		class: cn("flex items-center gap-2", className),
+		class: cnReactive("flex items-center gap-2", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -189,7 +189,10 @@ export function ItemHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "item-header",
-		class: cn("flex basis-full items-center justify-between gap-2", className),
+		class: cnReactive(
+			"flex basis-full items-center justify-between gap-2",
+			className,
+		),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -203,7 +206,10 @@ export function ItemFooter(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "item-footer",
-		class: cn("flex basis-full items-center justify-between gap-2", className),
+		class: cnReactive(
+			"flex basis-full items-center justify-between gap-2",
+			className,
+		),
 		nodes,
 		...rest,
 	}) as HTMLElement;

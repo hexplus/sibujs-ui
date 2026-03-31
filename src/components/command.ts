@@ -6,7 +6,7 @@ import {
 	span,
 } from "sibujs";
 import { SearchIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	Dialog,
 	DialogContent,
@@ -60,7 +60,7 @@ export function Command(
 
 	const el = div({
 		"data-slot": "command",
-		class: cn(
+		class: cnReactive(
 			"flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
 			className,
 		),
@@ -176,7 +176,7 @@ export function CommandInput(
 		placeholder,
 		disabled,
 		value,
-		class: cn(
+		class: cnReactive(
 			"flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
 			className,
 		),
@@ -217,7 +217,7 @@ export function CommandList(
 	return div({
 		"data-slot": "command-list",
 		role: "listbox",
-		class: cn(
+		class: cnReactive(
 			"max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto",
 			className,
 		),
@@ -236,7 +236,7 @@ export function CommandEmpty(
 	const { class: className, nodes, ...rest } = props;
 	const el = div({
 		"data-slot": "command-empty",
-		class: cn("py-6 text-center text-sm", className),
+		class: cnReactive("py-6 text-center text-sm", className),
 		style: "display: none",
 		nodes,
 		...rest,
@@ -272,7 +272,7 @@ export function CommandGroup(
 	return div({
 		"data-slot": "command-group",
 		role: "group",
-		class: cn(
+		class: cnReactive(
 			"overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
 			className,
 		),
@@ -342,7 +342,7 @@ export function CommandShortcut(
 	const { class: className, nodes, ...rest } = props;
 	return span({
 		"data-slot": "command-shortcut",
-		class: cn(
+		class: cnReactive(
 			"ml-auto text-xs tracking-widest text-muted-foreground",
 			className,
 		),
@@ -362,7 +362,7 @@ export function CommandSeparator(
 	return div({
 		"data-slot": "command-separator",
 		role: "separator",
-		class: cn("-mx-1 h-px bg-border", className),
+		class: cnReactive("-mx-1 h-px bg-border", className),
 		...rest,
 	}) as HTMLElement;
 }

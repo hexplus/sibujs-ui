@@ -1,6 +1,6 @@
 import { div, effect, type NodeChildren, signal, span } from "sibujs";
 import { ArrowLeftIcon, ArrowRightIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
 import {
 	type BaseProps,
@@ -39,7 +39,7 @@ export function Carousel(
 		"data-orientation": orientation,
 		role: "region",
 		"aria-roledescription": "carousel",
-		class: cn("relative", className),
+		class: cnReactive("relative", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -152,7 +152,7 @@ export function CarouselContent(
 	}) as HTMLElement;
 
 	const content = div({
-		class: cn("flex", className),
+		class: cnReactive("flex", className),
 		style: {
 			scrollSnapType: "x mandatory",
 		} as Record<string, string>,
@@ -197,7 +197,7 @@ export function CarouselItem(
 		"data-slot": "carousel-item",
 		role: "group",
 		"aria-roledescription": "slide",
-		class: cn("min-w-0 shrink-0 grow-0 basis-full", className),
+		class: cnReactive("min-w-0 shrink-0 grow-0 basis-full", className),
 		style: { scrollSnapAlign: "start" },
 		nodes,
 		...rest,
@@ -241,7 +241,7 @@ export function CarouselPrevious(
 		"data-slot": "carousel-previous",
 		variant,
 		size,
-		class: cn("absolute size-8 rounded-full", className),
+		class: cnReactive("absolute size-8 rounded-full", className),
 		nodes: [
 			ArrowLeftIcon({ class: "size-4" }),
 			span({ class: "sr-only", nodes: "Previous slide" }) as Node,
@@ -312,7 +312,7 @@ export function CarouselNext(
 		"data-slot": "carousel-next",
 		variant,
 		size,
-		class: cn("absolute size-8 rounded-full", className),
+		class: cnReactive("absolute size-8 rounded-full", className),
 		nodes: [
 			ArrowRightIcon({ class: "size-4" }),
 			span({ class: "sr-only", nodes: "Next slide" }) as Node,

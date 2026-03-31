@@ -1,5 +1,5 @@
 import { div, type NodeChildren } from "sibujs";
-import { cn, cnReactive } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export function Card(
@@ -27,7 +27,7 @@ export function CardHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "card-header",
-		class: cn(
+		class: cnReactive(
 			"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
 			className,
 		),
@@ -44,7 +44,7 @@ export function CardTitle(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "card-title",
-		class: cn("leading-none font-semibold", className),
+		class: cnReactive("leading-none font-semibold", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -58,7 +58,7 @@ export function CardDescription(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "card-description",
-		class: cn("text-sm text-muted-foreground", className),
+		class: cnReactive("text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -72,7 +72,7 @@ export function CardAction(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "card-action",
-		class: cn(
+		class: cnReactive(
 			"col-start-2 row-span-2 row-start-1 self-start justify-self-end",
 			className,
 		),
@@ -89,7 +89,7 @@ export function CardContent(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "card-content",
-		class: cn("px-6", className),
+		class: cnReactive("px-6", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -103,7 +103,7 @@ export function CardFooter(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "card-footer",
-		class: cn("flex items-center px-6 [.border-t]:pt-6", className),
+		class: cnReactive("flex items-center px-6 [.border-t]:pt-6", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

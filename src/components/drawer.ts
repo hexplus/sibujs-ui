@@ -7,7 +7,7 @@ import {
 	p,
 	signal,
 } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -176,11 +176,13 @@ export function DrawerContent(
 		content.setAttribute("data-vaul-drawer-direction", dir);
 
 		// Apply full class string with direction-specific classes (same approach as Sheet)
-		content.className = cn(
+		const resolvedClass = cnReactive(
 			"group/drawer-content fixed z-50 flex h-auto flex-col bg-background data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
 			directionClasses[dir] || directionClasses.bottom,
 			className,
 		);
+		content.className =
+			typeof resolvedClass === "function" ? resolvedClass() : resolvedClass;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -223,7 +225,7 @@ export function DrawerHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "drawer-header",
-		class: cn(
+		class: cnReactive(
 			"flex flex-col gap-0.5 p-4 group-data-[vaul-drawer-direction=bottom]/drawer-content:text-center group-data-[vaul-drawer-direction=top]/drawer-content:text-center md:gap-1.5 md:text-left",
 			className,
 		),
@@ -240,7 +242,7 @@ export function DrawerFooter(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "drawer-footer",
-		class: cn("mt-auto flex flex-col gap-2 p-4", className),
+		class: cnReactive("mt-auto flex flex-col gap-2 p-4", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -254,7 +256,7 @@ export function DrawerTitle(
 	const { class: className, nodes, ...rest } = props;
 	return h2({
 		"data-slot": "drawer-title",
-		class: cn("font-semibold text-foreground", className),
+		class: cnReactive("font-semibold text-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -268,7 +270,7 @@ export function DrawerDescription(
 	const { class: className, nodes, ...rest } = props;
 	return p({
 		"data-slot": "drawer-description",
-		class: cn("text-sm text-muted-foreground", className),
+		class: cnReactive("text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

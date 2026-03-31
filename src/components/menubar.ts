@@ -7,7 +7,7 @@ import {
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -26,7 +26,7 @@ export function Menubar(
 	return div({
 		"data-slot": "menubar",
 		role: "menubar",
-		class: cn(
+		class: cnReactive(
 			"flex h-9 items-center gap-1 rounded-md border bg-background p-1 shadow-xs",
 			className,
 		),
@@ -106,7 +106,7 @@ export function MenubarTrigger(
 		"data-slot": "menubar-trigger",
 		type: "button",
 		role: "menuitem",
-		class: cn(
+		class: cnReactive(
 			"flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
 			className,
 		),
@@ -164,7 +164,7 @@ export function MenubarContent(
 	const content = div({
 		"data-slot": "menubar-content",
 		role: "menu",
-		class: cn(
+		class: cnReactive(
 			"z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 			className,
 		),
@@ -260,7 +260,10 @@ export function MenubarLabel(
 	return div({
 		"data-slot": "menubar-label",
 		"data-inset": inset,
-		class: cn("px-2 py-1.5 text-sm font-medium data-[inset]:pl-8", className),
+		class: cnReactive(
+			"px-2 py-1.5 text-sm font-medium data-[inset]:pl-8",
+			className,
+		),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -332,7 +335,7 @@ export function MenubarSeparator(
 	return div({
 		"data-slot": "menubar-separator",
 		role: "separator",
-		class: cn("-mx-1 my-1 h-px bg-border", className),
+		class: cnReactive("-mx-1 my-1 h-px bg-border", className),
 		...rest,
 	}) as HTMLElement;
 }
@@ -347,7 +350,7 @@ export function MenubarShortcut(
 	const { class: className, nodes, ...rest } = props;
 	return span({
 		"data-slot": "menubar-shortcut",
-		class: cn(
+		class: cnReactive(
 			"ml-auto text-xs tracking-widest text-muted-foreground",
 			className,
 		),
@@ -578,7 +581,7 @@ export function MenubarSubTrigger(
 	const el = div({
 		"data-slot": "menubar-sub-trigger",
 		"data-inset": inset,
-		class: cn(
+		class: cnReactive(
 			"flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none focus:bg-accent focus:text-accent-foreground data-[inset]:pl-8 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
 			className,
 		),
@@ -606,7 +609,7 @@ export function MenubarSubContent(
 	const content = div({
 		"data-slot": "menubar-sub-content",
 		role: "menu",
-		class: cn(
+		class: cnReactive(
 			"z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 			className,
 		),

@@ -8,7 +8,7 @@ import {
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, XIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import {
 	InputGroup,
@@ -64,7 +64,7 @@ export function Combobox(
 	const el = div({
 		"data-slot": "combobox",
 		"data-state": () => (isOpen() ? "open" : "closed"),
-		class: cn("relative", className),
+		class: cnReactive("relative", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -259,7 +259,7 @@ export function ComboboxValue(
 	const { class: className, nodes, ...rest } = props;
 	const el = span({
 		"data-slot": "combobox-value",
-		class: cn(className),
+		class: cnReactive(className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -335,7 +335,7 @@ export function ComboboxClear(
 		"data-slot": "combobox-clear",
 		variant: "ghost",
 		size: "icon-xs",
-		class: cn(className),
+		class: cnReactive(className),
 		nodes: [XIcon({ class: "pointer-events-none size-4" }) as unknown as Node],
 		on: {
 			...(on as Record<string, (ev: Event) => void>),
@@ -424,7 +424,7 @@ export function ComboboxInput(
 	const ariaInvalid = (rest as Record<string, unknown>)["aria-invalid"];
 
 	const wrapper = InputGroup({
-		class: cn("w-auto", className),
+		class: cnReactive("w-auto", className),
 		...(ariaInvalid ? { "aria-invalid": ariaInvalid } : {}),
 		nodes: [
 			inputEl,
@@ -722,7 +722,7 @@ export function ComboboxGroup(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "combobox-group",
-		class: cn(className),
+		class: cnReactive(className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -738,7 +738,7 @@ export function ComboboxLabel(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "combobox-label",
-		class: cn(
+		class: cnReactive(
 			"px-2 py-1.5 text-xs text-muted-foreground pointer-coarse:px-3 pointer-coarse:py-2 pointer-coarse:text-sm",
 			className,
 		),
@@ -757,7 +757,7 @@ export function ComboboxEmpty(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "combobox-empty",
-		class: cn(
+		class: cnReactive(
 			"hidden w-full justify-center py-2 text-center text-sm text-muted-foreground group-data-empty/combobox-content:flex",
 			className,
 		),
@@ -776,7 +776,7 @@ export function ComboboxSeparator(
 	const { class: className, ...rest } = props;
 	return div({
 		"data-slot": "combobox-separator",
-		class: cn("-mx-1 my-1 h-px bg-border", className),
+		class: cnReactive("-mx-1 my-1 h-px bg-border", className),
 		...rest,
 	}) as HTMLElement;
 }
@@ -791,7 +791,7 @@ export function ComboboxChips(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "combobox-chips",
-		class: cn(
+		class: cnReactive(
 			"flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent bg-clip-padding px-2.5 py-1.5 text-sm shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 has-aria-invalid:border-destructive has-aria-invalid:ring-[3px] has-aria-invalid:ring-destructive/20 has-data-[slot=combobox-chip]:px-1.5 dark:bg-input/30 dark:has-aria-invalid:border-destructive/50 dark:has-aria-invalid:ring-destructive/40",
 			className,
 		),
@@ -864,7 +864,7 @@ export function ComboboxChipsInput(
 		autocomplete: "nope",
 		"data-1p-ignore": "",
 		"data-lpignore": "true",
-		class: cn("min-w-16 flex-1 outline-none", className),
+		class: cnReactive("min-w-16 flex-1 outline-none", className),
 		...rest,
 	}) as HTMLElement;
 

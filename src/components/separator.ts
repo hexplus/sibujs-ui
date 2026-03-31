@@ -1,5 +1,5 @@
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface SeparatorProps extends BaseProps {
@@ -25,7 +25,7 @@ export function Separator(
 		role: decorative ? "none" : "separator",
 		"aria-orientation": decorative ? undefined : orientation,
 		"data-orientation": orientation,
-		class: cn(
+		class: cnReactive(
 			"shrink-0 bg-border",
 			orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
 			className,

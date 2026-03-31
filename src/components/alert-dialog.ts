@@ -7,7 +7,7 @@ import {
 	p,
 	signal,
 } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
 import {
 	type BaseProps,
@@ -178,7 +178,7 @@ export function AlertDialogHeader(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "alert-dialog-header",
-		class: cn(
+		class: cnReactive(
 			"grid grid-rows-[auto_1fr] place-items-center gap-1.5 text-center has-data-[slot=alert-dialog-media]:grid-rows-[auto_auto_1fr] has-data-[slot=alert-dialog-media]:gap-x-6 sm:group-data-[size=default]/alert-dialog-content:place-items-start sm:group-data-[size=default]/alert-dialog-content:text-left sm:group-data-[size=default]/alert-dialog-content:has-data-[slot=alert-dialog-media]:grid-rows-[auto_1fr]",
 			className,
 		),
@@ -195,7 +195,7 @@ export function AlertDialogFooter(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "alert-dialog-footer",
-		class: cn(
+		class: cnReactive(
 			"flex flex-col-reverse gap-2 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:flex-row sm:justify-end",
 			className,
 		),
@@ -212,7 +212,7 @@ export function AlertDialogTitle(
 	const { class: className, nodes, ...rest } = props;
 	return h2({
 		"data-slot": "alert-dialog-title",
-		class: cn(
+		class: cnReactive(
 			"text-lg font-semibold sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2",
 			className,
 		),
@@ -229,7 +229,7 @@ export function AlertDialogDescription(
 	const { class: className, nodes, ...rest } = props;
 	return p({
 		"data-slot": "alert-dialog-description",
-		class: cn("text-sm text-muted-foreground", className),
+		class: cnReactive("text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

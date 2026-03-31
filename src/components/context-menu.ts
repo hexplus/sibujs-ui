@@ -1,6 +1,6 @@
 import { div, effect, type NodeChildren, signal, span } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -372,7 +372,7 @@ export function ContextMenuLabel(
 	return div({
 		"data-slot": "context-menu-label",
 		"data-inset": inset,
-		class: cn(
+		class: cnReactive(
 			"px-2 py-1.5 text-sm font-medium text-foreground data-[inset]:pl-8",
 			className,
 		),
@@ -390,7 +390,7 @@ export function ContextMenuSeparator(
 	return div({
 		"data-slot": "context-menu-separator",
 		role: "separator",
-		class: cn("-mx-1 my-1 h-px bg-border", className),
+		class: cnReactive("-mx-1 my-1 h-px bg-border", className),
 		...rest,
 	}) as HTMLElement;
 }
@@ -403,7 +403,7 @@ export function ContextMenuShortcut(
 	const { class: className, nodes, ...rest } = props;
 	return span({
 		"data-slot": "context-menu-shortcut",
-		class: cn(
+		class: cnReactive(
 			"ml-auto text-xs tracking-widest text-muted-foreground",
 			className,
 		),
