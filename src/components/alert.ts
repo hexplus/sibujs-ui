@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren } from "sibujs";
-import { cn, cnReactive } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export const alertVariants = cva(

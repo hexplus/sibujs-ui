@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { button as buttonTag, type NodeChildren, signal } from "sibujs";
-import { cn, cnReactive } from "../lib/utils";
+import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export const toggleVariants = cva(
