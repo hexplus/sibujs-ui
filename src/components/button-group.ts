@@ -40,7 +40,7 @@ export function ButtonGroup(
 		"data-slot": "button-group",
 		"data-orientation": orientation,
 		role: "group",
-		class: cnReactive(buttonGroupVariants({ orientation, className })),
+		class: cnReactive(buttonGroupVariants({ orientation }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

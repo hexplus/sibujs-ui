@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { type NodeChildren, span } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export const badgeVariants = cva(
@@ -39,7 +39,7 @@ export function Badge(
 	return span({
 		"data-slot": "badge",
 		"data-variant": variant,
-		class: cn(badgeVariants({ variant }), className),
+		class: cnReactive(badgeVariants({ variant }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

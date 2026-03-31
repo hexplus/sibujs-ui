@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren, span } from "sibujs";
-import { cn, cnReactive } from "../lib/utils";
+import { cn, cnReactive, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Textarea } from "./textarea";
@@ -74,7 +74,7 @@ export function InputGroupAddon(
 		role: "group",
 		"data-slot": "input-group-addon",
 		"data-align": align,
-		class: cn(inputGroupAddonVariants({ align }), className),
+		class: cnReactive(inputGroupAddonVariants({ align }), className),
 		nodes,
 		on: {
 			...on,
@@ -136,7 +136,7 @@ export function InputGroupButton(
 		type,
 		"data-size": size,
 		variant,
-		class: cn(inputGroupButtonVariants({ size }), className),
+		class: cnReactive(inputGroupButtonVariants({ size }), className),
 		...rest,
 	});
 }

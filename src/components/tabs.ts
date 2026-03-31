@@ -6,7 +6,7 @@ import {
 	type NodeChildren,
 	signal,
 } from "sibujs";
-import { cn, cnReactive } from "../lib/utils";
+import { cn, cnReactive, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
@@ -93,7 +93,7 @@ export function TabsList(
 		"data-slot": "tabs-list",
 		"data-variant": variant,
 		role: "tablist",
-		class: cn(tabsListVariants({ variant }), className),
+		class: cnReactive(tabsListVariants({ variant }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

@@ -61,7 +61,7 @@ export function Button(
 		"data-slot": "button",
 		"data-variant": variant,
 		"data-size": size,
-		class: cnReactive(buttonVariants({ variant, size, className })),
+		class: cnReactive(buttonVariants({ variant, size }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

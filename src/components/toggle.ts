@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { button as buttonTag, type NodeChildren, signal } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export const toggleVariants = cva(
@@ -58,7 +58,7 @@ export function Toggle(
 		type: "button",
 		"aria-pressed": () => String(isPressed()),
 		"data-state": () => (isPressed() ? "on" : "off"),
-		class: () => cn(toggleVariants({ variant, size }), className),
+		class: () => cnReactive(toggleVariants({ variant, size }), className),
 		nodes,
 		on: {
 			...on,

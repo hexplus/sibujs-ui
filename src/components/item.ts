@@ -74,7 +74,7 @@ export function Item(
 		"data-slot": "item",
 		"data-variant": variant,
 		"data-size": size,
-		class: cnReactive(itemVariants({ variant, size, className })),
+		class: cnReactive(itemVariants({ variant, size }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
@@ -110,7 +110,7 @@ export function ItemMedia(
 	return div({
 		"data-slot": "item-media",
 		"data-variant": variant,
-		class: cnReactive(itemMediaVariants({ variant, className })),
+		class: cnReactive(itemMediaVariants({ variant }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

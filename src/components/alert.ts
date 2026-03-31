@@ -33,7 +33,7 @@ export function Alert(
 	return div({
 		"data-slot": "alert",
 		role: "alert",
-		class: cn(alertVariants({ variant }), className),
+		class: cnReactive(alertVariants({ variant }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

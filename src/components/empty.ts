@@ -65,7 +65,7 @@ export function EmptyMedia(
 	return div({
 		"data-slot": "empty-icon",
 		"data-variant": variant,
-		class: cnReactive(emptyMediaVariants({ variant, className })),
+		class: cnReactive(emptyMediaVariants({ variant }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;

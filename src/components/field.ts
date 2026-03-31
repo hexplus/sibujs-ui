@@ -114,7 +114,7 @@ export function Field(
 		"data-orientation": orientation,
 		"data-invalid": invalid ? "true" : undefined,
 		"data-disabled": disabled ? "true" : undefined,
-		class: cnReactive(fieldVariants({ orientation, className })),
+		class: cnReactive(fieldVariants({ orientation }), className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
