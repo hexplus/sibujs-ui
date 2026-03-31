@@ -1,6 +1,6 @@
 # sibujs-ui
 
-A complete UI component library for [SibuJS](https://github.com/hexplus/sibujs). 56 Tailwind-styled, signal-driven components with zero React or virtual DOM dependencies.
+A complete UI component library for [SibuJS](https://github.com/hexplus/sibujs). 56 Tailwind-styled, signal-driven components with zero Virtual DOM dependencies.
 
 ## Features
 
