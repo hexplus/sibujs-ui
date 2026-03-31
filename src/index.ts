@@ -5,7 +5,7 @@ export { type BaseProps, normalizeArgs, toNodes } from "./components/types";
 
 // Icons (1694 lucide icons + aliases)
 export * from "./icons";
-export { cn } from "./lib/utils";
+export { cn, cnReactive } from "./lib/utils";
 
 // --- Components ---
 

@@ -12,7 +12,7 @@ import type { NodeChildren } from "sibujs";
  * - arbitrary `data-*` and HTML attributes via spread
  */
 export interface BaseProps {
-	class?: string;
+	class?: string | (() => string);
 	nodes?: NodeChildren;
 	on?: Record<string, (ev: Event) => void>;
 	style?:

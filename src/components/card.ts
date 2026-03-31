@@ -1,5 +1,5 @@
 import { div, type NodeChildren } from "sibujs";
-import { cn } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export function Card(
@@ -10,7 +10,7 @@ export function Card(
 	const { class: className, nodes, ...rest } = props;
 	return div({
 		"data-slot": "card",
-		class: cn(
+		class: cnReactive(
 			"flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
 			className,
 		),
