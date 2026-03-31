@@ -1,0 +1,25 @@
+/**
+ * sibujs-ui orange color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/orange.css";
+ */
+:root {
+	--primary: oklch(0.646 0.222 41.116);
+	--primary-foreground: oklch(0.98 0.016 73.684);
+	--chart-1: oklch(0.837 0.128 66.29);
+	--chart-2: oklch(0.702 0.183 55.093);
+	--chart-3: oklch(0.646 0.222 41.116);
+	--chart-4: oklch(0.553 0.195 38.402);
+	--chart-5: oklch(0.47 0.157 37.304);
+	--sidebar-primary: oklch(0.646 0.222 41.116);
+	--sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+	--sidebar-ring: oklch(0.837 0.128 66.29);
+}
+
+.dark {
+	--primary: oklch(0.702 0.183 55.093);
+	--primary-foreground: oklch(0.98 0.016 73.684);
+	--sidebar-primary: oklch(0.702 0.183 55.093);
+	--sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+	--sidebar-ring: oklch(0.285 0.086 36.272);
+}

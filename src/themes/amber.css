@@ -1,0 +1,25 @@
+/**
+ * sibujs-ui amber color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/amber.css";
+ */
+:root {
+	--primary: oklch(0.666 0.179 58.318);
+	--primary-foreground: oklch(0.985 0.016 84.429);
+	--chart-1: oklch(0.871 0.15 84.429);
+	--chart-2: oklch(0.769 0.188 70.08);
+	--chart-3: oklch(0.666 0.179 58.318);
+	--chart-4: oklch(0.555 0.163 48.998);
+	--chart-5: oklch(0.473 0.137 46.201);
+	--sidebar-primary: oklch(0.666 0.179 58.318);
+	--sidebar-primary-foreground: oklch(0.985 0.016 84.429);
+	--sidebar-ring: oklch(0.871 0.15 84.429);
+}
+
+.dark {
+	--primary: oklch(0.769 0.188 70.08);
+	--primary-foreground: oklch(0.985 0.016 84.429);
+	--sidebar-primary: oklch(0.769 0.188 70.08);
+	--sidebar-primary-foreground: oklch(0.985 0.016 84.429);
+	--sidebar-ring: oklch(0.279 0.077 45.635);
+}

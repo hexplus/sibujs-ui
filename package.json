@@ -1,0 +1,67 @@
+{
+  "name": "sibujs-ui",
+  "version": "1.0.0",
+  "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
+  "keywords": [
+    "sibujs",
+    "ui",
+    "components",
+    "tailwind",
+    "shadcn"
+  ],
+  "homepage": "https://github.com/hexplus/sibujs-ui#readme",
+  "bugs": {
+    "url": "https://github.com/hexplus/sibujs-ui/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hexplus/sibujs-ui.git"
+  },
+  "license": "MIT",
+  "author": "hexplus (https://github.com/hexplus)",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src/themes",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./themes/*": "./src/themes/*"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist",
+    "lint": "biome check --max-diagnostics=500 src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "test": "vitest",
+    "publish:npm": "node publish.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "sibujs": ">=1.0.0"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.7",
+    "@types/node": "^25.5.0",
+    "lucide": "^1.7.0",
+    "sibujs": "^1.0.6",
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.3"
+  }
+}

@@ -1,0 +1,25 @@
+/**
+ * sibujs-ui purple color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/purple.css";
+ */
+:root {
+	--primary: oklch(0.558 0.288 302.321);
+	--primary-foreground: oklch(0.977 0.014 308.299);
+	--chart-1: oklch(0.774 0.16 304.748);
+	--chart-2: oklch(0.627 0.265 303.9);
+	--chart-3: oklch(0.558 0.288 302.321);
+	--chart-4: oklch(0.496 0.265 301.924);
+	--chart-5: oklch(0.438 0.218 303.724);
+	--sidebar-primary: oklch(0.558 0.288 302.321);
+	--sidebar-primary-foreground: oklch(0.977 0.014 308.299);
+	--sidebar-ring: oklch(0.774 0.16 304.748);
+}
+
+.dark {
+	--primary: oklch(0.627 0.265 303.9);
+	--primary-foreground: oklch(0.977 0.014 308.299);
+	--sidebar-primary: oklch(0.627 0.265 303.9);
+	--sidebar-primary-foreground: oklch(0.977 0.014 308.299);
+	--sidebar-ring: oklch(0.291 0.149 302.717);
+}

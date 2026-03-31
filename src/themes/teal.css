@@ -1,0 +1,25 @@
+/**
+ * sibujs-ui teal color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/teal.css";
+ */
+:root {
+	--primary: oklch(0.541 0.107 176.664);
+	--primary-foreground: oklch(0.982 0.019 180.717);
+	--chart-1: oklch(0.756 0.115 184.295);
+	--chart-2: oklch(0.627 0.12 175.064);
+	--chart-3: oklch(0.541 0.107 176.664);
+	--chart-4: oklch(0.467 0.095 176.664);
+	--chart-5: oklch(0.398 0.07 179.264);
+	--sidebar-primary: oklch(0.541 0.107 176.664);
+	--sidebar-primary-foreground: oklch(0.982 0.019 180.717);
+	--sidebar-ring: oklch(0.756 0.115 184.295);
+}
+
+.dark {
+	--primary: oklch(0.627 0.12 175.064);
+	--primary-foreground: oklch(0.982 0.019 180.717);
+	--sidebar-primary: oklch(0.627 0.12 175.064);
+	--sidebar-primary-foreground: oklch(0.982 0.019 180.717);
+	--sidebar-ring: oklch(0.277 0.046 178.528);
+}

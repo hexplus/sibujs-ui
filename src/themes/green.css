@@ -1,0 +1,28 @@
+/**
+ * sibujs-ui green color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/green.css";
+ *
+ * Note: Primary uses lime shades for better contrast;
+ * chart colors use green shades.
+ */
+:root {
+	--primary: oklch(0.532 0.157 131.589);
+	--primary-foreground: oklch(0.986 0.031 120.757);
+	--chart-1: oklch(0.793 0.15 164.295);
+	--chart-2: oklch(0.6 0.118 184.704);
+	--chart-3: oklch(0.508 0.118 165.612);
+	--chart-4: oklch(0.467 0.108 165.612);
+	--chart-5: oklch(0.398 0.07 227.392);
+	--sidebar-primary: oklch(0.532 0.157 131.589);
+	--sidebar-primary-foreground: oklch(0.986 0.031 120.757);
+	--sidebar-ring: oklch(0.841 0.238 128.85);
+}
+
+.dark {
+	--primary: oklch(0.532 0.157 131.589);
+	--primary-foreground: oklch(0.986 0.031 120.757);
+	--sidebar-primary: oklch(0.609 0.205 131.589);
+	--sidebar-primary-foreground: oklch(0.986 0.031 120.757);
+	--sidebar-ring: oklch(0.274 0.072 132.109);
+}

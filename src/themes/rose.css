@@ -1,0 +1,25 @@
+/**
+ * sibujs-ui rose color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/rose.css";
+ */
+:root {
+	--primary: oklch(0.586 0.253 17.585);
+	--primary-foreground: oklch(0.969 0.015 12.422);
+	--chart-1: oklch(0.81 0.117 11.638);
+	--chart-2: oklch(0.645 0.246 16.439);
+	--chart-3: oklch(0.586 0.253 17.585);
+	--chart-4: oklch(0.514 0.222 16.935);
+	--chart-5: oklch(0.455 0.188 13.697);
+	--sidebar-primary: oklch(0.586 0.253 17.585);
+	--sidebar-primary-foreground: oklch(0.969 0.015 12.422);
+	--sidebar-ring: oklch(0.812 0.117 11.638);
+}
+
+.dark {
+	--primary: oklch(0.645 0.246 16.439);
+	--primary-foreground: oklch(0.969 0.015 12.422);
+	--sidebar-primary: oklch(0.645 0.246 16.439);
+	--sidebar-primary-foreground: oklch(0.969 0.015 12.422);
+	--sidebar-ring: oklch(0.271 0.105 12.094);
+}

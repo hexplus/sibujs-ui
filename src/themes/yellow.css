@@ -1,0 +1,25 @@
+/**
+ * sibujs-ui yellow color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/yellow.css";
+ */
+:root {
+	--primary: oklch(0.905 0.182 98.111);
+	--primary-foreground: oklch(0.344 0.096 66.442);
+	--chart-1: oklch(0.905 0.182 98.111);
+	--chart-2: oklch(0.828 0.189 84.429);
+	--chart-3: oklch(0.681 0.162 75.834);
+	--chart-4: oklch(0.554 0.135 66.442);
+	--chart-5: oklch(0.476 0.114 61.907);
+	--sidebar-primary: oklch(0.681 0.162 75.834);
+	--sidebar-primary-foreground: oklch(0.987 0.015 95.78);
+	--sidebar-ring: oklch(0.905 0.182 98.111);
+}
+
+.dark {
+	--primary: oklch(0.828 0.189 84.429);
+	--primary-foreground: oklch(0.344 0.096 66.442);
+	--sidebar-primary: oklch(0.828 0.189 84.429);
+	--sidebar-primary-foreground: oklch(0.987 0.015 95.78);
+	--sidebar-ring: oklch(0.274 0.074 58.09);
+}

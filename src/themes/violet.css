@@ -1,0 +1,25 @@
+/**
+ * sibujs-ui violet color theme.
+ * Import after base.css and default.css:
+ *   @import "sibujs-ui/themes/violet.css";
+ */
+:root {
+	--primary: oklch(0.541 0.281 293.009);
+	--primary-foreground: oklch(0.98 0.016 293.756);
+	--chart-1: oklch(0.786 0.147 293.756);
+	--chart-2: oklch(0.606 0.25 292.717);
+	--chart-3: oklch(0.541 0.281 293.009);
+	--chart-4: oklch(0.491 0.27 292.581);
+	--chart-5: oklch(0.431 0.232 293.756);
+	--sidebar-primary: oklch(0.541 0.281 293.009);
+	--sidebar-primary-foreground: oklch(0.98 0.016 293.756);
+	--sidebar-ring: oklch(0.786 0.147 293.756);
+}
+
+.dark {
+	--primary: oklch(0.606 0.25 292.717);
+	--primary-foreground: oklch(0.98 0.016 293.756);
+	--sidebar-primary: oklch(0.606 0.25 292.717);
+	--sidebar-primary-foreground: oklch(0.98 0.016 293.756);
+	--sidebar-ring: oklch(0.283 0.141 291.089);
+}

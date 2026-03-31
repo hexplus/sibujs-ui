@@ -1,0 +1,26 @@
+import { label as labelTag, type NodeChildren } from "sibujs";
+import { cn } from "../lib/utils";
+import { type BaseProps, normalizeArgs } from "./types";
+
+export interface LabelProps extends BaseProps {
+	for?: string;
+}
+
+export function Label(
+	first?: LabelProps | NodeChildren,
+	second?: NodeChildren,
+): HTMLElement {
+	const props = normalizeArgs<LabelProps>(first, second);
+	const { class: className, for: htmlFor, nodes, ...rest } = props;
+
+	return labelTag({
+		"data-slot": "label",
+		for: htmlFor,
+		class: cn(
+			"flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+			className,
+		),
+		nodes,
+		...rest,
+	}) as HTMLElement;
+}
