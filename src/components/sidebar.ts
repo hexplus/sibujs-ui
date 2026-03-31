@@ -12,7 +12,7 @@ import {
 	ul,
 } from "sibujs";
 import { PanelLeftIcon } from "../icons";
-import { cn, cnReactive, cnReactive } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Separator } from "./separator";

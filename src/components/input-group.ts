@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { div, type NodeChildren, span } from "sibujs";
-import { cn, cnReactive, cnReactive } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Textarea } from "./textarea";

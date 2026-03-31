@@ -6,7 +6,7 @@ import {
 	type NodeChildren,
 	signal,
 } from "sibujs";
-import { cn, cnReactive, cnReactive } from "../lib/utils";
+import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
