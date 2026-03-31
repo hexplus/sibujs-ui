@@ -58,7 +58,7 @@ export function Toggle(
 		type: "button",
 		"aria-pressed": () => String(isPressed()),
 		"data-state": () => (isPressed() ? "on" : "off"),
-		class: () => cnReactive(toggleVariants({ variant, size }), className),
+		class: cnReactive(toggleVariants({ variant, size }), className),
 		nodes,
 		on: {
 			...on,
