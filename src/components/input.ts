@@ -80,7 +80,7 @@ export function Input(
 		"data-slot": "input-number",
 		class: cnReactive(
 			"flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow] has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-[3px] has-[input:focus-visible]:ring-ring/50 has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 dark:bg-input/30",
-			"has-[input:aria-invalid]:border-destructive has-[input:aria-invalid]:ring-destructive/20 dark:has-[input:aria-invalid]:ring-destructive/40",
+			"has-[input[aria-invalid=true]]:border-destructive has-[input[aria-invalid=true]]:ring-destructive/20 dark:has-[input[aria-invalid=true]]:ring-destructive/40",
 			className,
 		),
 		nodes: [
