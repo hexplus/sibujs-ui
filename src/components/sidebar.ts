@@ -242,6 +242,12 @@ export function Sidebar(
 
 	// Mobile sidebar (Sheet) — created eagerly so SheetContent's
 	// microtask can set up before any open/close calls.
+	// Instead of cloneNode (which loses event listeners and reactive bindings),
+	// we move the actual `inner` element between desktop and mobile containers.
+	const mobileInnerHost = div({
+		class: "flex h-full w-full flex-col",
+	}) as HTMLElement;
+
 	const mobileSheet = Sheet({
 		onOpenChange: (open: boolean) => {
 			// Sync back to provider (set up in queueMicrotask below)
@@ -268,10 +274,7 @@ export function Sidebar(
 							}),
 						],
 					}),
-					div({
-						class: "flex h-full w-full flex-col",
-						nodes: inner.cloneNode(true) as Node,
-					}),
+					mobileInnerHost,
 				],
 			}),
 		],
@@ -308,9 +311,13 @@ export function Sidebar(
 			effect(() => {
 				const mobileOpen = ctx.openMobile();
 				if (mobileOpen && !mobileSheetCtx?.isOpen()) {
+					// Move inner content to mobile sheet
+					mobileInnerHost.appendChild(inner);
 					mobileSheetCtx?.open();
 				} else if (!mobileOpen && mobileSheetCtx?.isOpen()) {
 					mobileSheetCtx?.close();
+					// Move inner content back to desktop container
+					containerEl.appendChild(inner);
 				}
 			});
 		}
