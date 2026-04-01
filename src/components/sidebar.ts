@@ -240,15 +240,45 @@ export function Sidebar(
 		nodes: [gapEl, containerEl],
 	}) as HTMLElement;
 
-	// Mobile sidebar (Sheet)
-	const _mobileSheet = (() => {
-		const sheetEl = Sheet({}) as HTMLElement;
-		return sheetEl;
-	})();
+	// Mobile sidebar (Sheet) — created eagerly so SheetContent's
+	// microtask can set up before any open/close calls.
+	const mobileSheet = Sheet({
+		onOpenChange: (open: boolean) => {
+			// Sync back to provider (set up in queueMicrotask below)
+			mobileOnOpenChange?.(open);
+		},
+		nodes: [
+			SheetContent({
+				"data-sidebar": "sidebar",
+				"data-slot": "sidebar",
+				"data-mobile": "true",
+				class:
+					"w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+				style: {
+					"--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+				} as Record<string, string>,
+				side,
+				nodes: [
+					SheetHeader({
+						class: "sr-only",
+						nodes: [
+							SheetTitle({ nodes: "Sidebar" }),
+							SheetDescription({
+								nodes: "Displays the mobile sidebar.",
+							}),
+						],
+					}),
+					div({
+						class: "flex h-full w-full flex-col",
+						nodes: inner.cloneNode(true) as Node,
+					}),
+				],
+			}),
+		],
+	}) as HTMLElement;
 
-	// Wrapper that holds both desktop and mobile
-	const wrapper = document.createDocumentFragment();
-	wrapper.appendChild(sidebarEl);
+	const mobileSheetCtx = (mobileSheet as ElementWithContext).__sheet;
+	let mobileOnOpenChange: ((open: boolean) => void) | null = null;
 
 	// Bind reactive state after mount
 	queueMicrotask(() => {
@@ -256,6 +286,12 @@ export function Sidebar(
 		if (!providerEl) return;
 		const ctx = (providerEl as ElementWithContext).__sidebar;
 		if (!ctx) return;
+
+		// Wire up the onOpenChange callback
+		mobileOnOpenChange = (open: boolean) => ctx.setOpenMobile(open);
+
+		// Insert mobile sheet into DOM (before desktop sidebar)
+		sidebarEl.parentElement?.insertBefore(mobileSheet, sidebarEl);
 
 		// Desktop: reactive data-state and data-collapsible
 		effect(() => {
@@ -267,67 +303,17 @@ export function Sidebar(
 			);
 		});
 
-		// Mobile: render Sheet when on mobile
-		let mobileEl: HTMLElement | null = null;
-
-		effect(() => {
-			const mobile = ctx.isMobile();
-			const mobileOpen = ctx.openMobile();
-
-			if (mobile && !mobileEl) {
-				// Create mobile sheet
-				mobileEl = Sheet({
-					open: mobileOpen,
-					onOpenChange: (open: boolean) => ctx.setOpenMobile(open),
-					nodes: [
-						SheetContent({
-							"data-sidebar": "sidebar",
-							"data-slot": "sidebar",
-							"data-mobile": "true",
-							class:
-								"w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
-							style: {
-								"--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-							} as Record<string, string>,
-							side,
-							nodes: [
-								SheetHeader({
-									class: "sr-only",
-									nodes: [
-										SheetTitle({ nodes: "Sidebar" }),
-										SheetDescription({
-											nodes: "Displays the mobile sidebar.",
-										}),
-									],
-								}),
-								div({
-									class: "flex h-full w-full flex-col",
-									nodes: inner.cloneNode(true) as Node,
-								}),
-							],
-						}),
-					],
-				}) as HTMLElement;
-				sidebarEl.parentElement?.insertBefore(mobileEl, sidebarEl);
-			}
-
-			if (mobileEl) {
-				// Update sheet open state
-				const sheetCtx = (mobileEl as ElementWithContext).__dialog;
-				if (sheetCtx) {
-					if (mobileOpen && !sheetCtx.isOpen?.()) {
-						sheetCtx.open?.();
-					} else if (!mobileOpen && sheetCtx.isOpen?.()) {
-						sheetCtx.close?.();
-					}
+		// Mobile: sync sheet open state with provider's openMobile signal
+		if (mobileSheetCtx) {
+			effect(() => {
+				const mobileOpen = ctx.openMobile();
+				if (mobileOpen && !mobileSheetCtx?.isOpen()) {
+					mobileSheetCtx?.open();
+				} else if (!mobileOpen && mobileSheetCtx?.isOpen()) {
+					mobileSheetCtx?.close();
 				}
-			}
-
-			if (!mobile && mobileEl) {
-				mobileEl.remove();
-				mobileEl = null;
-			}
-		});
+			});
+		}
 	});
 
 	return sidebarEl;
