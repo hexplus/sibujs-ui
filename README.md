@@ -105,6 +105,10 @@ ComponentName({
 }): HTMLElement
 ```
 
+## Acknowledgements
+
+The component design, styling, and variant system are inspired by [shadcn/ui](https://ui.shadcn.com/). This is an independent implementation for SibuJS — no React, Radix, or shadcn code is used. All components are built from scratch using SibuJS signals, tag factories, and direct DOM manipulation.
+
 ## License
 
 MIT
