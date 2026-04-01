@@ -167,7 +167,7 @@ export function SheetContent(
 
 	const container = div({
 		"data-slot": "sheet-portal",
-		style: "display: contents",
+		style: "display: none",
 		nodes: [overlay, content],
 	}) as HTMLElement;
 

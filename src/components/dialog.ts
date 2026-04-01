@@ -176,7 +176,7 @@ export function DialogContent(
 	// Container that portals overlay + content
 	const container = div({
 		"data-slot": "dialog-portal",
-		style: "display: contents",
+		style: "display: none",
 		nodes: [overlay, content],
 	}) as HTMLElement;
 

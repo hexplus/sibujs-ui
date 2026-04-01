@@ -117,7 +117,7 @@ export function AlertDialogContent(
 
 	const container = div({
 		"data-slot": "alert-dialog-portal",
-		style: "display: contents",
+		style: "display: none",
 		nodes: [overlay, content],
 	}) as HTMLElement;
 
