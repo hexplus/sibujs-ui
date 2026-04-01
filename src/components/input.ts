@@ -43,7 +43,12 @@ export function Input(
 			type,
 			disabled,
 			"data-slot": "input",
-			class: cnReactive(BASE_INPUT_CLASS, FOCUS_CLASS, INVALID_CLASS, className),
+			class: cnReactive(
+				BASE_INPUT_CLASS,
+				FOCUS_CLASS,
+				INVALID_CLASS,
+				className,
+			),
 			...rest,
 		}) as HTMLElement;
 	}
@@ -99,9 +104,7 @@ export function Input(
 						"aria-label": "Decrease",
 						class: `${stepBtnClass} w-6 rounded-br-[calc(var(--radius)-1px)]`,
 						on: { click: () => step(-1) },
-						nodes: [
-							ChevronDownIcon({ class: "size-3" }) as unknown as Node,
-						],
+						nodes: [ChevronDownIcon({ class: "size-3" }) as unknown as Node],
 					}),
 				],
 			}),
