@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.11] — 2026-04-04
+
+### Fixed
+
+- **Slider `value` prop is reactive** — The implementation now handles the `() => number[]` getter that the type signature already accepted. Passing a signal getter reactively syncs the slider values via `effect()`, aligning with the pattern used in Select.
+
+---
+
 ## [1.0.10] — 2026-04-03
 
 ### Fixed
