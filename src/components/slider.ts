@@ -36,6 +36,12 @@ export function Slider(
 	const initial = resolvedControlled ?? defaultValue ?? [min];
 	const [values, setValues] = signal<number[]>(initial);
 
+	if (typeof controlledValue === "function") {
+		effect(() => {
+			setValues(controlledValue());
+		});
+	}
+
 	const range = div({
 		"data-slot": "slider-range",
 		class: cn(
