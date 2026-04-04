@@ -25,9 +25,13 @@ export const badgeVariants = cva(
 	},
 );
 
-export interface BadgeProps
-	extends BaseProps,
-		VariantProps<typeof badgeVariants> {}
+export type BadgeVariant = NonNullable<
+	VariantProps<typeof badgeVariants>["variant"]
+>;
+
+export interface BadgeProps extends BaseProps {
+	variant?: BadgeVariant | (() => BadgeVariant);
+}
 
 export function Badge(
 	first?: BadgeProps | NodeChildren,
@@ -35,6 +39,16 @@ export function Badge(
 ): HTMLElement {
 	const props = normalizeArgs<BadgeProps>(first, second);
 	const { class: className, variant = "default", nodes, ...rest } = props;
+
+	if (typeof variant === "function") {
+		return span({
+			"data-slot": "badge",
+			"data-variant": variant,
+			class: cnReactive(() => badgeVariants({ variant: variant() }), className),
+			nodes,
+			...rest,
+		}) as HTMLElement;
+	}
 
 	return span({
 		"data-slot": "badge",

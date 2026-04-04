@@ -3,7 +3,7 @@ import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface SliderProps extends BaseProps {
-	value?: number[];
+	value?: number[] | (() => number[]);
 	defaultValue?: number[];
 	min?: number;
 	max?: number;
@@ -31,7 +31,9 @@ export function Slider(
 		...rest
 	} = props;
 
-	const initial = controlledValue ?? defaultValue ?? [min];
+	const resolvedControlled =
+		typeof controlledValue === "function" ? controlledValue() : controlledValue;
+	const initial = resolvedControlled ?? defaultValue ?? [min];
 	const [values, setValues] = signal<number[]>(initial);
 
 	const range = div({

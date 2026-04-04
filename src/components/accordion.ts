@@ -20,7 +20,7 @@ let accordionIdCounter = 0;
 export interface AccordionProps extends BaseProps {
 	type?: "single" | "multiple";
 	defaultValue?: string | string[];
-	value?: string | string[];
+	value?: string | string[] | (() => string | string[]);
 	onValueChange?: (value: string | string[]) => void;
 	collapsible?: boolean;
 }
@@ -42,8 +42,10 @@ export function Accordion(
 		...rest
 	} = props;
 
+	const resolvedControlled =
+		typeof controlledValue === "function" ? controlledValue() : controlledValue;
 	const initial =
-		controlledValue ?? defaultValue ?? (type === "multiple" ? [] : "");
+		resolvedControlled ?? defaultValue ?? (type === "multiple" ? [] : "");
 	const [value, setValue] = signal<string | string[]>(initial);
 
 	const el = div({

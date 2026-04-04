@@ -15,7 +15,7 @@ import {
 } from "./types";
 
 export interface RadioGroupProps extends BaseProps {
-	value?: string;
+	value?: string | (() => string);
 	defaultValue?: string;
 	onValueChange?: (value: string) => void;
 	name?: string;

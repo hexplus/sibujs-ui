@@ -16,7 +16,7 @@ import {
 } from "./types";
 
 export interface SelectProps extends BaseProps {
-	value?: string;
+	value?: string | (() => string);
 	defaultValue?: string;
 	onValueChange?: (value: string) => void;
 	disabled?: boolean;
@@ -41,6 +41,7 @@ export function Select(
 	const [value, setValue] = signal(controlledValue ?? defaultValue);
 	const [isOpen, setIsOpen] = signal(false);
 	const [displayText, setDisplayText] = signal("");
+	const [displayNode, setDisplayNode] = signal<Node | null>(null);
 	const [highlightedIndex, setHighlightedIndex] = signal(-1);
 
 	const el = div({
@@ -73,10 +74,13 @@ export function Select(
 		value,
 		isOpen,
 		displayText,
+		displayNode,
 		setDisplayText,
-		select: (v: string, text: string) => {
+		setDisplayNode,
+		select: (v: string, text: string, node?: Node) => {
 			if (controlledValue === undefined) setValue(v);
 			setDisplayText(text);
+			setDisplayNode(node ?? null);
 			onValueChange?.(v);
 			setIsOpen(false);
 			setHighlightedIndex(-1);
@@ -232,9 +236,15 @@ export function SelectTrigger(
 		if (!valueEl) return;
 
 		effect(() => {
+			const node = ctx.displayNode();
 			const text = ctx.displayText();
 			const open = ctx.isOpen();
-			if (text) {
+
+			if (node) {
+				valueEl.textContent = "";
+				valueEl.appendChild(node.cloneNode(true));
+				el.removeAttribute("data-placeholder");
+			} else if (text) {
 				valueEl.textContent = text;
 				el.removeAttribute("data-placeholder");
 			} else {
@@ -398,8 +408,12 @@ export function SelectItem(
 		if (disabled) return;
 		const selectEl = el.closest("[data-slot=select]");
 		if (selectEl) {
-			const text = el.querySelector("span:last-child")?.textContent ?? "";
-			(selectEl as ElementWithContext).__select?.select(itemValue, text);
+			const contentSpan = el.querySelector("span:last-child");
+			const text = contentSpan?.textContent ?? "";
+			const clone = contentSpan
+				? (contentSpan.cloneNode(true) as Node)
+				: undefined;
+			(selectEl as ElementWithContext).__select?.select(itemValue, text, clone);
 		}
 		(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 	});
@@ -431,8 +445,14 @@ export function SelectItem(
 			if (isSelected) {
 				indicator.appendChild(CheckIcon({ class: "size-4" }));
 				if (!ctx.displayText()) {
-					const text = el.querySelector("span:last-child")?.textContent ?? "";
-					if (text) ctx.setDisplayText(text);
+					const contentSpan = el.querySelector("span:last-child");
+					const text = contentSpan?.textContent ?? "";
+					if (text) {
+						ctx.setDisplayText(text);
+						ctx.setDisplayNode(
+							contentSpan ? (contentSpan.cloneNode(true) as Node) : null,
+						);
+					}
 				}
 			}
 		});
@@ -474,7 +494,7 @@ export function SelectValue(
 		...rest,
 	}) as HTMLElement;
 
-	// Sync display text reactively
+	// Sync display reactively — prefer cloned node tree, fall back to text
 	queueMicrotask(() => {
 		const selectEl = el.closest("[data-slot=select]");
 		if (!selectEl) return;
@@ -482,14 +502,19 @@ export function SelectValue(
 		if (!ctx) return;
 
 		effect(() => {
+			const node = ctx.displayNode();
 			const text = ctx.displayText();
-			if (text) {
+			const trigger = el.closest("[data-slot=select-trigger]");
+
+			if (node) {
+				el.textContent = "";
+				el.appendChild(node.cloneNode(true));
+				trigger?.removeAttribute("data-placeholder");
+			} else if (text) {
 				el.textContent = text;
-				const trigger = el.closest("[data-slot=select-trigger]");
 				trigger?.removeAttribute("data-placeholder");
 			} else if (placeholder) {
 				el.textContent = placeholder;
-				const trigger = el.closest("[data-slot=select-trigger]");
 				trigger?.setAttribute("data-placeholder", "");
 			}
 		});
