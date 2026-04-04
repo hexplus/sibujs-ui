@@ -14,7 +14,7 @@ import {
 } from "./types";
 
 export interface CollapsibleProps extends BaseProps {
-	open?: boolean;
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	disabled?: boolean;

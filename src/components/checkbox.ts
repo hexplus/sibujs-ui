@@ -10,7 +10,7 @@ import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface CheckboxProps extends BaseProps {
-	checked?: boolean;
+	checked?: boolean | (() => boolean);
 	defaultChecked?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
 	disabled?: boolean;

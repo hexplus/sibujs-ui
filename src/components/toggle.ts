@@ -28,7 +28,7 @@ export const toggleVariants = cva(
 export interface ToggleProps
 	extends BaseProps,
 		VariantProps<typeof toggleVariants> {
-	pressed?: boolean;
+	pressed?: boolean | (() => boolean);
 	defaultPressed?: boolean;
 	onPressedChange?: (pressed: boolean) => void;
 	disabled?: boolean;

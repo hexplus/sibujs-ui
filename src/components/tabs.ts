@@ -15,7 +15,7 @@ import {
 
 export interface TabsProps extends BaseProps {
 	defaultValue?: string;
-	value?: string;
+	value?: string | (() => string);
 	onValueChange?: (value: string) => void;
 	orientation?: "horizontal" | "vertical";
 }

@@ -5,7 +5,7 @@ import { type BaseProps, normalizeArgs } from "./types";
 export interface TextareaProps extends BaseProps {
 	placeholder?: string;
 	disabled?: boolean;
-	value?: string;
+	value?: string | (() => string);
 	name?: string;
 	id?: string;
 	required?: boolean;

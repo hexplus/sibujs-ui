@@ -12,7 +12,7 @@ export interface InputProps extends BaseProps {
 	type?: string;
 	placeholder?: string;
 	disabled?: boolean;
-	value?: string;
+	value?: string | (() => string);
 	name?: string;
 	id?: string;
 	required?: boolean;
