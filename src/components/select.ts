@@ -38,7 +38,17 @@ export function Select(
 		...rest
 	} = props;
 
-	const [value, setValue] = signal(controlledValue ?? defaultValue);
+	const isControlled = controlledValue !== undefined;
+	const resolvedValue =
+		typeof controlledValue === "function" ? controlledValue() : controlledValue;
+	const [value, setValue] = signal(resolvedValue ?? defaultValue);
+
+	// Sync from reactive getter when value is a function
+	if (typeof controlledValue === "function") {
+		effect(() => {
+			setValue(controlledValue());
+		});
+	}
 	const [isOpen, setIsOpen] = signal(false);
 	const [displayText, setDisplayText] = signal("");
 	const [displayNode, setDisplayNode] = signal<Node | null>(null);
@@ -78,7 +88,7 @@ export function Select(
 		setDisplayText,
 		setDisplayNode,
 		select: (v: string, text: string, node?: Node) => {
-			if (controlledValue === undefined) setValue(v);
+			if (!isControlled) setValue(v);
 			setDisplayText(text);
 			setDisplayNode(node ?? null);
 			onValueChange?.(v);

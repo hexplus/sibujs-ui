@@ -16,7 +16,7 @@ import {
 } from "./types";
 
 export interface AlertDialogProps extends BaseProps {
-	open?: boolean;
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
@@ -31,30 +31,46 @@ export function AlertDialog(
 		defaultOpen = false,
 		onOpenChange,
 		nodes,
+		onElement: userOnElement,
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const isControlled = controlledOpen !== undefined;
+	const resolvedOpen =
+		typeof controlledOpen === "function" ? controlledOpen() : controlledOpen;
+	const [isOpen, setIsOpen] = signal(resolvedOpen ?? defaultOpen);
+
+	const alertDialogApi = {
+		isOpen,
+		open: () => {
+			if (!isControlled) setIsOpen(true);
+			onOpenChange?.(true);
+		},
+		close: () => {
+			if (!isControlled) setIsOpen(false);
+			onOpenChange?.(false);
+		},
+	};
+
+	// Sync from reactive getter when open is a function
+	if (typeof controlledOpen === "function") {
+		effect(() => {
+			setIsOpen(controlledOpen());
+		});
+	}
 
 	const el = div({
 		"data-slot": "alert-dialog",
 		"data-state": () => (isOpen() ? "open" : "closed"),
 		style: "display: contents",
 		nodes,
+		onElement: (el: HTMLElement) => {
+			(el as ElementWithContext).__alertDialog = alertDialogApi;
+			if (typeof userOnElement === "function")
+				(userOnElement as (el: HTMLElement) => void)(el);
+		},
 		...rest,
 	}) as HTMLElement;
-
-	(el as ElementWithContext).__alertDialog = {
-		isOpen,
-		open: () => {
-			if (controlledOpen === undefined) setIsOpen(true);
-			onOpenChange?.(true);
-		},
-		close: () => {
-			if (controlledOpen === undefined) setIsOpen(false);
-			onOpenChange?.(false);
-		},
-	};
 
 	return el as HTMLElement;
 }

@@ -149,55 +149,100 @@ export function DropdownMenuContent(
 			"z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 			className,
 		),
-		style: {
-			position: "absolute",
-			...(side === "bottom" ? { top: `calc(100% + ${sideOffset}px)` } : {}),
-			...(side === "top" ? { bottom: `calc(100% + ${sideOffset}px)` } : {}),
-			...(side === "left" ? { right: `calc(100% + ${sideOffset}px)` } : {}),
-			...(side === "right" ? { left: `calc(100% + ${sideOffset}px)` } : {}),
-			...(align === "start" ? { left: "0" } : {}),
-			...(align === "center"
-				? { left: "50%", transform: "translateX(-50%)" }
-				: {}),
-			...(align === "end" ? { right: "0" } : {}),
-		} as Record<string, string>,
+		style: { position: "fixed", zIndex: "50" },
 		nodes,
 		...rest,
 	}) as HTMLElement;
 
+	// Store menuEl reference to survive portaling to body
+	let menuEl: HTMLElement | null = null;
+
 	const handleOutsideClick = (ev: MouseEvent) => {
-		const menuEl = content.closest("[data-slot=dropdown-menu]");
-		if (menuEl && !menuEl.contains(ev.target as Node)) {
+		if (
+			menuEl &&
+			!menuEl.contains(ev.target as Node) &&
+			!content.contains(ev.target as Node)
+		) {
 			(menuEl as ElementWithContext).__dropdown?.close();
 		}
 	};
 
 	const handleKeydown = (ev: KeyboardEvent) => {
 		if (ev.key === "Escape") {
-			const menuEl = content.closest("[data-slot=dropdown-menu]");
 			if (menuEl) (menuEl as ElementWithContext).__dropdown?.close();
 		}
 	};
 
 	queueMicrotask(() => {
-		const menuEl = content.closest("[data-slot=dropdown-menu]");
-		if (menuEl) {
-			const ctx = (menuEl as ElementWithContext).__dropdown;
-			if (ctx) {
-				effect(() => {
-					const open = ctx.isOpen();
-					content.style.display = open ? "" : "none";
-					content.setAttribute("data-state", open ? "open" : "closed");
-					if (open) {
-						document.addEventListener("mousedown", handleOutsideClick);
-						document.addEventListener("keydown", handleKeydown);
-					} else {
-						document.removeEventListener("mousedown", handleOutsideClick);
-						document.removeEventListener("keydown", handleKeydown);
+		menuEl = content.closest("[data-slot=dropdown-menu]") as HTMLElement | null;
+		if (!menuEl) return;
+		const ctx = (menuEl as ElementWithContext).__dropdown;
+		if (!ctx) return;
+
+		// Store root reference so portaled items can find the menu
+		(content as ElementWithContext).__dropdownRoot = menuEl;
+
+		// Portal to body to avoid overflow clipping
+		document.body.appendChild(content);
+
+		effect(() => {
+			const open = ctx.isOpen();
+			content.setAttribute("data-state", open ? "open" : "closed");
+			if (open) {
+				content.style.display = "";
+				// Position relative to trigger
+				const trigger = menuEl?.querySelector(
+					"[data-slot=dropdown-menu-trigger]",
+				);
+				if (trigger) {
+					const rect = trigger.getBoundingClientRect();
+					const contentRect = content.getBoundingClientRect();
+
+					let top = 0;
+					let left = 0;
+
+					switch (side) {
+						case "bottom":
+							top = rect.bottom + sideOffset;
+							break;
+						case "top":
+							top = rect.top - sideOffset - contentRect.height;
+							break;
+						case "right":
+							left = rect.right + sideOffset;
+							top = rect.top;
+							break;
+						case "left":
+							left = rect.left - sideOffset - contentRect.width;
+							top = rect.top;
+							break;
 					}
-				});
+
+					if (side === "bottom" || side === "top") {
+						switch (align) {
+							case "start":
+								left = rect.left;
+								break;
+							case "center":
+								left = rect.left + (rect.width - contentRect.width) / 2;
+								break;
+							case "end":
+								left = rect.right - contentRect.width;
+								break;
+						}
+					}
+
+					content.style.top = `${top}px`;
+					content.style.left = `${left}px`;
+				}
+				document.addEventListener("mousedown", handleOutsideClick);
+				document.addEventListener("keydown", handleKeydown);
+			} else {
+				content.style.display = "none";
+				document.removeEventListener("mousedown", handleOutsideClick);
+				document.removeEventListener("keydown", handleKeydown);
 			}
-		}
+		});
 	});
 
 	return content as HTMLElement;
@@ -262,6 +307,11 @@ export function DropdownMenuItem(
 					(
 						item.closest(
 							"[data-slot=dropdown-menu-sub-content]",
+						) as ElementWithContext
+					)?.__dropdownRoot ??
+					(
+						item.closest(
+							"[data-slot=dropdown-menu-content]",
 						) as ElementWithContext
 					)?.__dropdownRoot;
 				if (menuEl) (menuEl as ElementWithContext).__dropdown?.close();
@@ -447,9 +497,19 @@ export function DropdownMenuRadioItem(
 				);
 				if (groupEl)
 					(groupEl as ElementWithContext).__radioGroup?.setValue(val);
-				const menuEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=dropdown-menu]",
-				);
+				const item = ev.currentTarget as HTMLElement;
+				const menuEl =
+					item.closest("[data-slot=dropdown-menu]") ??
+					(
+						item.closest(
+							"[data-slot=dropdown-menu-sub-content]",
+						) as ElementWithContext
+					)?.__dropdownRoot ??
+					(
+						item.closest(
+							"[data-slot=dropdown-menu-content]",
+						) as ElementWithContext
+					)?.__dropdownRoot;
 				if (menuEl) (menuEl as ElementWithContext).__dropdown?.close();
 				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 			},

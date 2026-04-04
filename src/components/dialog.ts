@@ -22,7 +22,7 @@ import {
 let dialogIdCounter = 0;
 
 export interface DialogProps extends BaseProps {
-	open?: boolean;
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
@@ -37,35 +37,51 @@ export function Dialog(
 		defaultOpen = false,
 		onOpenChange,
 		nodes,
+		onElement: userOnElement,
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const isControlled = controlledOpen !== undefined;
+	const resolvedOpen =
+		typeof controlledOpen === "function" ? controlledOpen() : controlledOpen;
+	const [isOpen, setIsOpen] = signal(resolvedOpen ?? defaultOpen);
+
+	const dialogApi = {
+		isOpen,
+		open: () => {
+			if (!isControlled) setIsOpen(true);
+			onOpenChange?.(true);
+		},
+		close: () => {
+			if (!isControlled) setIsOpen(false);
+			onOpenChange?.(false);
+		},
+		toggle: () => {
+			const next = !isOpen();
+			if (!isControlled) setIsOpen(next);
+			onOpenChange?.(next);
+		},
+	};
+
+	// Sync from reactive getter when open is a function
+	if (typeof controlledOpen === "function") {
+		effect(() => {
+			setIsOpen(controlledOpen());
+		});
+	}
 
 	const el = div({
 		"data-slot": "dialog",
 		"data-state": () => (isOpen() ? "open" : "closed"),
 		style: "display: contents",
 		nodes,
+		onElement: (el: HTMLElement) => {
+			(el as ElementWithContext).__dialog = dialogApi;
+			if (typeof userOnElement === "function")
+				(userOnElement as (el: HTMLElement) => void)(el);
+		},
 		...rest,
 	}) as HTMLElement;
-
-	(el as ElementWithContext).__dialog = {
-		isOpen,
-		open: () => {
-			if (controlledOpen === undefined) setIsOpen(true);
-			onOpenChange?.(true);
-		},
-		close: () => {
-			if (controlledOpen === undefined) setIsOpen(false);
-			onOpenChange?.(false);
-		},
-		toggle: () => {
-			const next = !isOpen();
-			if (controlledOpen === undefined) setIsOpen(next);
-			onOpenChange?.(next);
-		},
-	};
 
 	return el as HTMLElement;
 }
