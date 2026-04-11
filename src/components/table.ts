@@ -20,10 +20,12 @@ export function Table(
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
 
-	return div({
-		"data-slot": "table-container",
-		class: "relative w-full overflow-x-auto",
-		nodes: [
+	return div(
+		{
+			"data-slot": "table-container",
+			class: "relative w-full overflow-x-auto",
+		},
+		[
 			tableTag({
 				"data-slot": "table",
 				class: cnReactive("w-full caption-bottom text-sm", className),
@@ -31,7 +33,7 @@ export function Table(
 				...rest,
 			}),
 		],
-	}) as HTMLElement;
+	) as HTMLElement;
 }
 
 export function TableHeader(

@@ -90,14 +90,16 @@ export function BreadcrumbSeparator(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return li({
-		"data-slot": "breadcrumb-separator",
-		role: "presentation",
-		"aria-hidden": "true",
-		class: cnReactive("[&>svg]:size-3.5", className),
-		nodes: nodes ?? [ChevronRightIcon()],
-		...rest,
-	}) as HTMLElement;
+	return li(
+		{
+			"data-slot": "breadcrumb-separator",
+			role: "presentation",
+			"aria-hidden": "true",
+			class: cnReactive("[&>svg]:size-3.5", className),
+			...rest,
+		},
+		nodes ?? [ChevronRightIcon()],
+	) as HTMLElement;
 }
 
 export function BreadcrumbEllipsis(
@@ -106,15 +108,22 @@ export function BreadcrumbEllipsis(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, ...rest } = props;
-	return span({
-		"data-slot": "breadcrumb-ellipsis",
-		role: "presentation",
-		"aria-hidden": "true",
-		class: cnReactive("flex size-9 items-center justify-center", className),
-		nodes: [
+	return span(
+		{
+			"data-slot": "breadcrumb-ellipsis",
+			role: "presentation",
+			"aria-hidden": "true",
+			class: cnReactive("flex size-9 items-center justify-center", className),
+			...rest,
+		},
+		[
 			MoreHorizontalIcon({ class: "size-4" }),
-			span({ class: "sr-only", nodes: "More" }),
+			span(
+				{
+					class: "sr-only",
+				},
+				"More",
+			),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }

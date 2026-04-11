@@ -305,29 +305,31 @@ export function ComboboxTrigger(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, on, ...rest } = props;
-	const el = buttonTag({
-		"data-slot": "combobox-trigger",
-		type: "button",
-		class: cn("[&_svg:not([class*='size-'])]:size-4", className),
-		nodes: [
+	const el = buttonTag(
+		{
+			"data-slot": "combobox-trigger",
+			type: "button",
+			class: cn("[&_svg:not([class*='size-'])]:size-4", className),
+			on: {
+				...(on as Record<string, (ev: Event) => void>),
+				click: (ev: Event) => {
+					const comboEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=combobox]",
+					);
+					if (comboEl) (comboEl as ElementWithContext).__combobox?.toggle();
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
+			},
+			...rest,
+		},
+		[
 			...toNodes(nodes),
 			ChevronDownIcon({
 				"data-slot": "combobox-trigger-icon",
 				class: "pointer-events-none size-4 text-muted-foreground",
 			}) as unknown as Node,
 		],
-		on: {
-			...(on as Record<string, (ev: Event) => void>),
-			click: (ev: Event) => {
-				const comboEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=combobox]",
-				);
-				if (comboEl) (comboEl as ElementWithContext).__combobox?.toggle();
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
-			},
-		},
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 	return el;
 }
 
@@ -339,24 +341,26 @@ export function ComboboxClear(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, on, ...rest } = props;
-	return InputGroupButton({
-		"data-slot": "combobox-clear",
-		variant: "ghost",
-		size: "icon-xs",
-		class: cnReactive(className),
-		nodes: [XIcon({ class: "pointer-events-none size-4" }) as unknown as Node],
-		on: {
-			...(on as Record<string, (ev: Event) => void>),
-			click: (ev: Event) => {
-				const comboEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=combobox]",
-				);
-				if (comboEl) (comboEl as ElementWithContext).__combobox?.clear();
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+	return InputGroupButton(
+		{
+			"data-slot": "combobox-clear",
+			variant: "ghost",
+			size: "icon-xs",
+			class: cnReactive(className),
+			on: {
+				...(on as Record<string, (ev: Event) => void>),
+				click: (ev: Event) => {
+					const comboEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=combobox]",
+					);
+					if (comboEl) (comboEl as ElementWithContext).__combobox?.clear();
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
 			},
+			...rest,
 		},
-		...rest,
-	}) as HTMLElement;
+		[XIcon({ class: "pointer-events-none size-4" }) as unknown as Node],
+	) as HTMLElement;
 }
 
 // ── ComboboxInput ────────────────────────────────────────────────────────────
@@ -400,20 +404,22 @@ export function ComboboxInput(
 	const addonChildren: Node[] = [];
 
 	if (showTrigger) {
-		const triggerBtn = InputGroupButton({
-			size: "icon-xs",
-			variant: "ghost",
-			"data-slot": "input-group-button",
-			class:
-				"group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent",
-			disabled,
-			nodes: [
+		const triggerBtn = InputGroupButton(
+			{
+				size: "icon-xs",
+				variant: "ghost",
+				"data-slot": "input-group-button",
+				class:
+					"group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent",
+				disabled,
+			},
+			[
 				ChevronDownIcon({
 					"data-slot": "combobox-trigger-icon",
 					class: "pointer-events-none size-4 text-muted-foreground",
 				}) as unknown as Node,
 			],
-		}) as HTMLElement;
+		) as HTMLElement;
 		addonChildren.push(triggerBtn);
 
 		// Trigger click toggles combobox
@@ -431,18 +437,22 @@ export function ComboboxInput(
 	// Forward aria-invalid to InputGroup wrapper so border styling applies
 	const ariaInvalid = (rest as Record<string, unknown>)["aria-invalid"];
 
-	const wrapper = InputGroup({
-		class: cnReactive("w-auto", className),
-		...(ariaInvalid ? { "aria-invalid": ariaInvalid } : {}),
-		nodes: [
+	const wrapper = InputGroup(
+		{
+			class: cnReactive("w-auto", className),
+			...(ariaInvalid ? { "aria-invalid": ariaInvalid } : {}),
+		},
+		[
 			inputEl,
-			InputGroupAddon({
-				align: "inline-end",
-				nodes: addonChildren,
-			}),
+			InputGroupAddon(
+				{
+					align: "inline-end",
+				},
+				addonChildren,
+			),
 			...toNodes(nodes),
 		],
-	}) as HTMLElement;
+	) as HTMLElement;
 
 	// Wire input events to combobox context
 	queueMicrotask(() => {
@@ -660,19 +670,21 @@ export function ComboboxItem(
 			"pointer-events-none absolute right-2 flex size-4 items-center justify-center",
 	}) as HTMLElement;
 
-	const el = div({
-		"data-slot": "combobox-item",
-		"data-value": value,
-		"data-disabled": disabled ? "" : undefined,
-		"data-hidden": "false",
-		role: "option",
-		class: cn(
-			"relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-			className,
-		),
-		nodes: [...toNodes(nodes), indicator],
-		...rest,
-	}) as HTMLElement;
+	const el = div(
+		{
+			"data-slot": "combobox-item",
+			"data-value": value,
+			"data-disabled": disabled ? "" : undefined,
+			"data-hidden": "false",
+			role: "option",
+			class: cn(
+				"relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				className,
+			),
+			...rest,
+		},
+		[...toNodes(nodes), indicator],
+	) as HTMLElement;
 
 	// Event listeners (attached directly for reliable binding)
 	el.addEventListener("click", (ev: Event) => {
@@ -825,37 +837,39 @@ export function ComboboxChip(
 	const chipNodes = [...toNodes(nodes)];
 
 	if (showRemove) {
-		const removeBtn = Button({
-			variant: "ghost",
-			size: "icon-xs",
-			"data-slot": "combobox-chip-remove",
-			class: "-ml-1 opacity-50 hover:opacity-100",
-			nodes: [
-				XIcon({ class: "pointer-events-none size-3" }) as unknown as Node,
-			],
-			on: {
-				click: (ev: Event) => {
-					ev.stopPropagation();
-					const comboEl = (ev.currentTarget as HTMLElement).closest(
-						"[data-slot=combobox]",
-					);
-					if (comboEl)
-						(comboEl as ElementWithContext).__combobox?.removeChip(value);
+		const removeBtn = Button(
+			{
+				variant: "ghost",
+				size: "icon-xs",
+				"data-slot": "combobox-chip-remove",
+				class: "-ml-1 opacity-50 hover:opacity-100",
+				on: {
+					click: (ev: Event) => {
+						ev.stopPropagation();
+						const comboEl = (ev.currentTarget as HTMLElement).closest(
+							"[data-slot=combobox]",
+						);
+						if (comboEl)
+							(comboEl as ElementWithContext).__combobox?.removeChip(value);
+					},
 				},
 			},
-		}) as Node;
+			[XIcon({ class: "pointer-events-none size-3" }) as unknown as Node],
+		) as Node;
 		chipNodes.push(removeBtn);
 	}
 
-	return div({
-		"data-slot": "combobox-chip",
-		class: cn(
-			"flex h-[calc(--spacing(5.5))] w-fit items-center justify-center gap-1 rounded-sm bg-muted px-1.5 text-xs font-medium whitespace-nowrap text-foreground has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50 has-data-[slot=combobox-chip-remove]:pr-0",
-			className,
-		),
-		nodes: chipNodes,
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "combobox-chip",
+			class: cn(
+				"flex h-[calc(--spacing(5.5))] w-fit items-center justify-center gap-1 rounded-sm bg-muted px-1.5 text-xs font-medium whitespace-nowrap text-foreground has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50 has-data-[slot=combobox-chip-remove]:pr-0",
+				className,
+			),
+			...rest,
+		},
+		chipNodes,
+	) as HTMLElement;
 }
 
 // ── ComboboxChipsInput ───────────────────────────────────────────────────────

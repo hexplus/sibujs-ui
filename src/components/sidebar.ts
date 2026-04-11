@@ -230,31 +230,35 @@ export function Sidebar(
 	}) as HTMLElement;
 
 	// Container (fixed)
-	const containerEl = div({
-		"data-slot": "sidebar-container",
-		class: cn(
-			"fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
-			side === "left"
-				? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-				: "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-			variant === "floating" || variant === "inset"
-				? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-				: "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
-			className,
-		),
-		nodes: [inner],
-		...rest,
-	}) as HTMLElement;
+	const containerEl = div(
+		{
+			"data-slot": "sidebar-container",
+			class: cn(
+				"fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+				side === "left"
+					? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
+					: "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+				variant === "floating" || variant === "inset"
+					? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
+					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+				className,
+			),
+			...rest,
+		},
+		[inner],
+	) as HTMLElement;
 
 	// Desktop sidebar wrapper
-	const sidebarEl = div({
-		"data-slot": "sidebar",
-		"data-side": side,
-		"data-variant": variant,
-		"data-collapsible": "",
-		class: "group peer hidden text-sidebar-foreground md:block",
-		nodes: [gapEl, containerEl],
-	}) as HTMLElement;
+	const sidebarEl = div(
+		{
+			"data-slot": "sidebar",
+			"data-side": side,
+			"data-variant": variant,
+			"data-collapsible": "",
+			class: "group peer hidden text-sidebar-foreground md:block",
+		},
+		[gapEl, containerEl],
+	) as HTMLElement;
 
 	// Mobile sidebar (Sheet) — created eagerly so SheetContent's
 	// microtask can set up before any open/close calls.
@@ -264,37 +268,41 @@ export function Sidebar(
 		class: "flex h-full w-full flex-col",
 	}) as HTMLElement;
 
-	const mobileSheet = Sheet({
-		onOpenChange: (open: boolean) => {
-			// Sync back to provider (set up in queueMicrotask below)
-			mobileOnOpenChange?.(open);
+	const mobileSheet = Sheet(
+		{
+			onOpenChange: (open: boolean) => {
+				// Sync back to provider (set up in queueMicrotask below)
+				mobileOnOpenChange?.(open);
+			},
 		},
-		nodes: [
-			SheetContent({
-				"data-sidebar": "sidebar",
-				"data-slot": "sidebar",
-				"data-mobile": "true",
-				class:
-					"w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
-				style: {
-					"--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-				} as Record<string, string>,
-				side,
-				nodes: [
-					SheetHeader({
-						class: "sr-only",
-						nodes: [
-							SheetTitle({ nodes: "Sidebar" }),
-							SheetDescription({
-								nodes: "Displays the mobile sidebar.",
-							}),
+		[
+			SheetContent(
+				{
+					"data-sidebar": "sidebar",
+					"data-slot": "sidebar",
+					"data-mobile": "true",
+					class:
+						"w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+					style: {
+						"--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+					} as Record<string, string>,
+					side,
+				},
+				[
+					SheetHeader(
+						{
+							class: "sr-only",
+						},
+						[
+							SheetTitle("Sidebar"),
+							SheetDescription("Displays the mobile sidebar."),
 						],
-					}),
+					),
 					mobileInnerHost,
 				],
-			}),
+			),
 		],
-	}) as HTMLElement;
+	) as HTMLElement;
 
 	const mobileSheetCtx = (mobileSheet as ElementWithContext).__sheet;
 	let mobileOnOpenChange: ((open: boolean) => void) | null = null;
@@ -351,34 +359,41 @@ export function SidebarTrigger(
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, on, ...rest } = props;
 
-	return Button({
-		"data-slot": "sidebar-trigger",
-		"data-sidebar": "trigger",
-		variant: "ghost",
-		size: "icon",
-		class: cnReactive("size-7", className),
-		nodes: [
+	return Button(
+		{
+			"data-slot": "sidebar-trigger",
+			"data-sidebar": "trigger",
+			variant: "ghost",
+			size: "icon",
+			class: cnReactive("size-7", className),
+			on: {
+				...(on as Record<string, (ev: Event) => void>),
+				click: (ev: Event) => {
+					const providerEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=sidebar-wrapper]",
+					);
+					if (providerEl)
+						(providerEl as ElementWithContext).__sidebar?.toggleSidebar();
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
+			},
+			...rest,
+		},
+		[
 			PanelLeftIcon({ class: "size-4" }),
-			span({ class: "sr-only", nodes: "Toggle Sidebar" }),
+			span(
+				{
+					class: "sr-only",
+				},
+				"Toggle Sidebar",
+			),
 			...((Array.isArray(nodes)
 				? nodes
 				: nodes != null
 					? [nodes]
 					: []) as Node[]),
 		],
-		on: {
-			...(on as Record<string, (ev: Event) => void>),
-			click: (ev: Event) => {
-				const providerEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=sidebar-wrapper]",
-				);
-				if (providerEl)
-					(providerEl as ElementWithContext).__sidebar?.toggleSidebar();
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
-			},
-		},
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }
 
 // ── SidebarRail ──────────────────────────────────────────────────────────────
@@ -701,19 +716,12 @@ export function SidebarMenuButton(
 	if (!tooltip) return btn;
 
 	// Wrap in Tooltip — only visible when sidebar is collapsed (not mobile)
-	const tooltipProps =
-		typeof tooltip === "string" ? { nodes: tooltip } : tooltip;
-
-	const tooltipEl = Tooltip({
-		nodes: [
-			TooltipTrigger({ nodes: [btn] }),
-			TooltipContent({
-				side: "right",
-				align: "center",
-				...tooltipProps,
-			}),
-		],
-	}) as HTMLElement;
+	const tooltipEl = Tooltip([
+		TooltipTrigger([btn]),
+		typeof tooltip === "string"
+			? TooltipContent({ side: "right", align: "center" }, tooltip)
+			: TooltipContent({ side: "right", align: "center", ...tooltip }),
+	]) as HTMLElement;
 
 	// Hide tooltip when sidebar is expanded
 	queueMicrotask(() => {
@@ -829,13 +837,18 @@ export function SidebarMenuSkeleton(
 		}) as Node,
 	);
 
-	return div({
-		"data-slot": "sidebar-menu-skeleton",
-		"data-sidebar": "menu-skeleton",
-		class: cnReactive("flex h-8 items-center gap-2 rounded-md px-2", className),
-		nodes: skeletonNodes,
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "sidebar-menu-skeleton",
+			"data-sidebar": "menu-skeleton",
+			class: cnReactive(
+				"flex h-8 items-center gap-2 rounded-md px-2",
+				className,
+			),
+			...rest,
+		},
+		skeletonNodes,
+	) as HTMLElement;
 }
 
 // ── SidebarMenuSub ───────────────────────────────────────────────────────────

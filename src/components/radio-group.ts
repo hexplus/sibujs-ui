@@ -85,31 +85,33 @@ export function RadioGroupItem(
 		class: "relative flex items-center justify-center",
 	});
 
-	const el = buttonTag({
-		"data-slot": "radio-group-item",
-		"data-value": itemValue,
-		type: "button",
-		role: "radio",
-		disabled,
-		class: cnReactive(
-			"aspect-square size-4 shrink-0 rounded-full border border-input text-primary shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40",
-			className,
-		),
-		nodes: [indicatorWrapper],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				if (disabled) return;
-				const groupEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=radio-group]",
-				);
-				if (groupEl)
-					(groupEl as ElementWithContext).__radioGroup?.select(itemValue);
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+	const el = buttonTag(
+		{
+			"data-slot": "radio-group-item",
+			"data-value": itemValue,
+			type: "button",
+			role: "radio",
+			disabled,
+			class: cnReactive(
+				"aspect-square size-4 shrink-0 rounded-full border border-input text-primary shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40",
+				className,
+			),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					if (disabled) return;
+					const groupEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=radio-group]",
+					);
+					if (groupEl)
+						(groupEl as ElementWithContext).__radioGroup?.select(itemValue);
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
 			},
+			...rest,
 		},
-		...rest,
-	}) as HTMLElement;
+		[indicatorWrapper],
+	) as HTMLElement;
 
 	// Bind checked state
 	queueMicrotask(() => {

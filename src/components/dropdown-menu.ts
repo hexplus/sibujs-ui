@@ -351,36 +351,40 @@ export function DropdownMenuCheckboxItem(
 	} = props;
 	const [isChecked, setIsChecked] = signal(checked);
 
-	return div({
-		"data-slot": "dropdown-menu-checkbox-item",
-		role: "menuitemcheckbox",
-		"aria-checked": () => String(isChecked()),
-		"data-disabled": disabled ? "" : undefined,
-		tabindex: disabled ? undefined : "0",
-		class: cn(
-			"relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-			className,
-		),
-		nodes: [
-			span({
-				class:
-					"pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
-				nodes: () => (isChecked() ? [CheckIcon({ class: "size-4" })] : []),
-			}),
+	return div(
+		{
+			"data-slot": "dropdown-menu-checkbox-item",
+			role: "menuitemcheckbox",
+			"aria-checked": () => String(isChecked()),
+			"data-disabled": disabled ? "" : undefined,
+			tabindex: disabled ? undefined : "0",
+			class: cn(
+				"relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				className,
+			),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					if (disabled) return;
+					const next = !isChecked();
+					setIsChecked(next);
+					onCheckedChange?.(next);
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
+			},
+			...rest,
+		},
+		[
+			span(
+				{
+					class:
+						"pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
+				},
+				() => (isChecked() ? [CheckIcon({ class: "size-4" })] : []),
+			),
 			...toNodes(nodes),
 		],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				if (disabled) return;
-				const next = !isChecked();
-				setIsChecked(next);
-				onCheckedChange?.(next);
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
-			},
-		},
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }
 
 export interface DropdownMenuLabelProps extends BaseProps {
@@ -485,44 +489,46 @@ export function DropdownMenuRadioItem(
 			"pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
 	});
 
-	const el = div({
-		"data-slot": "dropdown-menu-radio-item",
-		role: "menuitemradio",
-		"data-disabled": disabled ? "" : undefined,
-		tabindex: disabled ? undefined : "0",
-		class: cn(
-			"relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-			className,
-		),
-		nodes: [indicatorWrapper, ...toNodes(nodes)],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				if (disabled) return;
-				const groupEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=dropdown-menu-radio-group]",
-				);
-				if (groupEl)
-					(groupEl as ElementWithContext).__radioGroup?.setValue(val);
-				const item = ev.currentTarget as HTMLElement;
-				const menuEl =
-					item.closest("[data-slot=dropdown-menu]") ??
-					(
-						item.closest(
-							"[data-slot=dropdown-menu-sub-content]",
-						) as ElementWithContext
-					)?.__dropdownRoot ??
-					(
-						item.closest(
-							"[data-slot=dropdown-menu-content]",
-						) as ElementWithContext
-					)?.__dropdownRoot;
-				if (menuEl) (menuEl as ElementWithContext).__dropdown?.close();
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+	const el = div(
+		{
+			"data-slot": "dropdown-menu-radio-item",
+			role: "menuitemradio",
+			"data-disabled": disabled ? "" : undefined,
+			tabindex: disabled ? undefined : "0",
+			class: cn(
+				"relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				className,
+			),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					if (disabled) return;
+					const groupEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=dropdown-menu-radio-group]",
+					);
+					if (groupEl)
+						(groupEl as ElementWithContext).__radioGroup?.setValue(val);
+					const item = ev.currentTarget as HTMLElement;
+					const menuEl =
+						item.closest("[data-slot=dropdown-menu]") ??
+						(
+							item.closest(
+								"[data-slot=dropdown-menu-sub-content]",
+							) as ElementWithContext
+						)?.__dropdownRoot ??
+						(
+							item.closest(
+								"[data-slot=dropdown-menu-content]",
+							) as ElementWithContext
+						)?.__dropdownRoot;
+					if (menuEl) (menuEl as ElementWithContext).__dropdown?.close();
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
 			},
+			...rest,
 		},
-		...rest,
-	}) as HTMLElement;
+		[indicatorWrapper, ...toNodes(nodes)],
+	) as HTMLElement;
 
 	// Reactively show/hide radio indicator
 	queueMicrotask(() => {
@@ -612,26 +618,28 @@ export function DropdownMenuSubTrigger(
 ): HTMLElement {
 	const props = normalizeArgs<DropdownMenuSubTriggerProps>(first, second);
 	const { class: className, inset, nodes, on, ...rest } = props;
-	return div({
-		"data-slot": "dropdown-menu-sub-trigger",
-		"data-inset": inset,
-		class: cn(
-			"flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[inset]:pl-8 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
-			className,
-		),
-		nodes: [...toNodes(nodes), ChevronRightIcon({ class: "ml-auto size-4" })],
-		on: {
-			...on,
-			mouseenter: (ev: Event) => {
-				const subEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=dropdown-menu-sub]",
-				);
-				if (subEl) (subEl as ElementWithContext).__dropdownSub?.open();
-				(on as Record<string, (ev: Event) => void>)?.mouseenter?.(ev);
+	return div(
+		{
+			"data-slot": "dropdown-menu-sub-trigger",
+			"data-inset": inset,
+			class: cn(
+				"flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[inset]:pl-8 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+				className,
+			),
+			on: {
+				...on,
+				mouseenter: (ev: Event) => {
+					const subEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=dropdown-menu-sub]",
+					);
+					if (subEl) (subEl as ElementWithContext).__dropdownSub?.open();
+					(on as Record<string, (ev: Event) => void>)?.mouseenter?.(ev);
+				},
 			},
+			...rest,
 		},
-		...rest,
-	}) as HTMLElement;
+		[...toNodes(nodes), ChevronRightIcon({ class: "ml-auto size-4" })],
+	) as HTMLElement;
 }
 
 export function DropdownMenuSubContent(

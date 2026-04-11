@@ -72,10 +72,12 @@ export function FormMessage(
 	const content = error ?? nodes;
 	if (!content) return null as unknown as HTMLElement;
 
-	return p({
-		"data-slot": "form-message",
-		class: cnReactive("text-sm text-destructive", className),
-		nodes: content,
-		...rest,
-	}) as HTMLElement;
+	return p(
+		{
+			"data-slot": "form-message",
+			class: cnReactive("text-sm text-destructive", className),
+			...rest,
+		},
+		content,
+	) as HTMLElement;
 }

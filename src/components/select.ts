@@ -209,17 +209,19 @@ export function SelectTrigger(
 		);
 	}
 
-	const el = buttonTag({
-		"data-slot": "select-trigger",
-		"data-size": size,
-		type: "button",
-		class: cn(
-			"flex w-fit items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
-			className,
-		),
-		nodes: [...childNodes, ChevronDownIcon({ class: "size-4 opacity-50" })],
-		...rest,
-	}) as HTMLElement;
+	const el = buttonTag(
+		{
+			"data-slot": "select-trigger",
+			"data-size": size,
+			type: "button",
+			class: cn(
+				"flex w-fit items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+				className,
+			),
+			...rest,
+		},
+		[...childNodes, ChevronDownIcon({ class: "size-4 opacity-50" })],
+	) as HTMLElement;
 
 	// Click handler
 	el.addEventListener("click", (ev: Event) => {
@@ -286,25 +288,27 @@ export function SelectContent(
 		nodes,
 	}) as HTMLElement;
 
-	const content = div({
-		"data-slot": "select-content",
-		role: "listbox",
-		class: cnReactive(
-			"relative z-50 max-h-60 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
-			position === "popper"
-				? "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1"
-				: "",
-			className,
-		),
-		style: {
-			position: "absolute",
-			top: "calc(100% + 4px)",
-			left: "0",
-			minWidth: "100%",
-		} as Record<string, string>,
-		nodes: [viewport],
-		...rest,
-	}) as HTMLElement;
+	const content = div(
+		{
+			"data-slot": "select-content",
+			role: "listbox",
+			class: cnReactive(
+				"relative z-50 max-h-60 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+				position === "popper"
+					? "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1"
+					: "",
+				className,
+			),
+			style: {
+				position: "absolute",
+				top: "calc(100% + 4px)",
+				left: "0",
+				minWidth: "100%",
+			} as Record<string, string>,
+			...rest,
+		},
+		[viewport],
+	) as HTMLElement;
 
 	const handleOutsideClick = (ev: MouseEvent) => {
 		const selectEl = content.closest("[data-slot=select]");
@@ -399,18 +403,20 @@ export function SelectItem(
 		class: "absolute right-2 flex size-3.5 items-center justify-center",
 	});
 
-	const el = div({
-		"data-slot": "select-item",
-		"data-value": itemValue,
-		"data-disabled": disabled ? "" : undefined,
-		role: "option",
-		class: cn(
-			"relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
-			className,
-		),
-		nodes: [indicator, span({ nodes })],
-		...rest,
-	}) as HTMLElement;
+	const el = div(
+		{
+			"data-slot": "select-item",
+			"data-value": itemValue,
+			"data-disabled": disabled ? "" : undefined,
+			role: "option",
+			class: cn(
+				"relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+				className,
+			),
+			...rest,
+		},
+		[indicator, span({ nodes })],
+	) as HTMLElement;
 
 	// Click to select
 	el.addEventListener("click", (ev: Event) => {
@@ -496,12 +502,14 @@ export function SelectValue(
 ): HTMLElement {
 	const props = normalizeArgs<SelectValueProps>(first, second);
 	const { class: className, placeholder, nodes, ...rest } = props;
-	const el = span({
-		"data-slot": "select-value",
-		class: cnReactive("line-clamp-1 flex items-center gap-2", className),
-		nodes: nodes ?? (placeholder ? placeholder : undefined),
-		...rest,
-	}) as HTMLElement;
+	const el = span(
+		{
+			"data-slot": "select-value",
+			class: cnReactive("line-clamp-1 flex items-center gap-2", className),
+			...rest,
+		},
+		nodes ?? (placeholder ? placeholder : undefined),
+	) as HTMLElement;
 
 	// Sync display reactively — prefer cloned node tree, fall back to text
 	queueMicrotask(() => {
@@ -538,15 +546,17 @@ export function SelectScrollUpButton(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return div({
-		"data-slot": "select-scroll-up-button",
-		class: cnReactive(
-			"flex cursor-default items-center justify-center py-1",
-			className,
-		),
-		nodes: nodes ?? [ChevronUpIcon({ class: "size-4" })],
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "select-scroll-up-button",
+			class: cnReactive(
+				"flex cursor-default items-center justify-center py-1",
+				className,
+			),
+			...rest,
+		},
+		nodes ?? [ChevronUpIcon({ class: "size-4" })],
+	) as HTMLElement;
 }
 
 export function SelectScrollDownButton(
@@ -555,13 +565,15 @@ export function SelectScrollDownButton(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return div({
-		"data-slot": "select-scroll-down-button",
-		class: cnReactive(
-			"flex cursor-default items-center justify-center py-1",
-			className,
-		),
-		nodes: nodes ?? [ChevronDownIcon({ class: "size-4" })],
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "select-scroll-down-button",
+			class: cnReactive(
+				"flex cursor-default items-center justify-center py-1",
+				className,
+			),
+			...rest,
+		},
+		nodes ?? [ChevronDownIcon({ class: "size-4" })],
+	) as HTMLElement;
 }

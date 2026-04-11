@@ -76,38 +76,46 @@ export function Input(
 	const stepBtnClass =
 		"flex h-1/2 items-center justify-center text-muted-foreground/80 hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50";
 
-	return div({
-		"data-slot": "input-number",
-		class: cnReactive(
-			"flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow] has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-[3px] has-[input:focus-visible]:ring-ring/50 has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 dark:bg-input/30",
-			"has-[input[aria-invalid=true]]:border-destructive has-[input[aria-invalid=true]]:ring-destructive/20 dark:has-[input[aria-invalid=true]]:ring-destructive/40",
-			className,
-		),
-		nodes: [
+	return div(
+		{
+			"data-slot": "input-number",
+			class: cnReactive(
+				"flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow] has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-[3px] has-[input:focus-visible]:ring-ring/50 has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 dark:bg-input/30",
+				"has-[input[aria-invalid=true]]:border-destructive has-[input[aria-invalid=true]]:ring-destructive/20 dark:has-[input[aria-invalid=true]]:ring-destructive/40",
+				className,
+			),
+		},
+		[
 			inputEl,
-			div({
-				class: "flex h-full shrink-0 flex-col border-l border-input",
-				nodes: [
-					buttonTag({
-						type: "button",
-						tabindex: "-1",
-						disabled,
-						"aria-label": "Increase",
-						class: `${stepBtnClass} w-6 rounded-tr-[calc(var(--radius)-1px)] border-b border-input`,
-						on: { click: () => step(1) },
-						nodes: [ChevronUpIcon({ class: "size-3" }) as unknown as Node],
-					}),
-					buttonTag({
-						type: "button",
-						tabindex: "-1",
-						disabled,
-						"aria-label": "Decrease",
-						class: `${stepBtnClass} w-6 rounded-br-[calc(var(--radius)-1px)]`,
-						on: { click: () => step(-1) },
-						nodes: [ChevronDownIcon({ class: "size-3" }) as unknown as Node],
-					}),
+			div(
+				{
+					class: "flex h-full shrink-0 flex-col border-l border-input",
+				},
+				[
+					buttonTag(
+						{
+							type: "button",
+							tabindex: "-1",
+							disabled,
+							"aria-label": "Increase",
+							class: `${stepBtnClass} w-6 rounded-tr-[calc(var(--radius)-1px)] border-b border-input`,
+							on: { click: () => step(1) },
+						},
+						[ChevronUpIcon({ class: "size-3" }) as unknown as Node],
+					),
+					buttonTag(
+						{
+							type: "button",
+							tabindex: "-1",
+							disabled,
+							"aria-label": "Decrease",
+							class: `${stepBtnClass} w-6 rounded-br-[calc(var(--radius)-1px)]`,
+							on: { click: () => step(-1) },
+						},
+						[ChevronDownIcon({ class: "size-3" }) as unknown as Node],
+					),
 				],
-			}),
+			),
 		],
-	}) as HTMLElement;
+	) as HTMLElement;
 }

@@ -191,41 +191,44 @@ export function AccordionTrigger(
 	const triggerNodes = toNodes(nodes);
 	triggerNodes.push(chevron);
 
-	const btn = buttonTag({
-		"data-slot": "accordion-trigger",
-		type: "button",
-		class: cnReactive(
-			"flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
-			className,
-		),
-		nodes: triggerNodes,
-		on: {
-			...on,
-			click: (ev: Event) => {
-				const itemEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=accordion-item]",
-				);
-				const accordionEl = itemEl?.closest("[data-slot=accordion]");
-				if (accordionEl && itemEl) {
-					// Don't toggle if disabled matching Radix behavior
-					const isDisabled =
-						(itemEl as ElementWithContext).__accordionItemDisabled ||
-						(ev.currentTarget as HTMLButtonElement).disabled;
-					if (isDisabled) return;
-
-					const itemValue = itemEl.getAttribute("data-value") ?? "";
-					(accordionEl as ElementWithContext).__accordion?.toggle(itemValue);
-				}
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+	const btn = buttonTag(
+		{
+			"data-slot": "accordion-trigger",
+			type: "button",
+			class: cnReactive(
+				"flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
+				className,
+			),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					const itemEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=accordion-item]",
+					);
+					const accordionEl = itemEl?.closest("[data-slot=accordion]");
+					if (accordionEl && itemEl) {
+						// Don't toggle if disabled matching Radix behavior
+						const isDisabled =
+							(itemEl as ElementWithContext).__accordionItemDisabled ||
+							(ev.currentTarget as HTMLButtonElement).disabled;
+						if (isDisabled) return;
+						const itemValue = itemEl.getAttribute("data-value") ?? "";
+						(accordionEl as ElementWithContext).__accordion?.toggle(itemValue);
+					}
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
 			},
+			...rest,
 		},
-		...rest,
-	}) as HTMLButtonElement;
+		triggerNodes,
+	) as HTMLButtonElement;
 
-	const header = h3({
-		class: "flex",
-		nodes: [btn],
-	}) as HTMLElement;
+	const header = h3(
+		{
+			class: "flex",
+		},
+		[btn],
+	) as HTMLElement;
 
 	// Bind open state + ARIA reactively mimicking Radix trigger
 	queueMicrotask(() => {
@@ -276,13 +279,15 @@ export function AccordionContent(
 		nodes,
 	}) as HTMLElement;
 
-	const outer = div({
-		"data-slot": "accordion-content",
-		class:
-			"overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down",
-		nodes: [inner],
-		...rest,
-	}) as HTMLElement;
+	const outer = div(
+		{
+			"data-slot": "accordion-content",
+			class:
+				"overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down",
+			...rest,
+		},
+		[inner],
+	) as HTMLElement;
 
 	queueMicrotask(() => {
 		const itemEl = outer.closest("[data-slot=accordion-item]");

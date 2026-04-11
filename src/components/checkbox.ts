@@ -42,31 +42,33 @@ export function Checkbox(
 		class: "grid place-content-center text-current transition-none",
 	});
 
-	const el = buttonTag({
-		"data-slot": "checkbox",
-		type: "button",
-		role: "checkbox",
-		"aria-checked": () => String(isChecked()),
-		"data-state": () => (isChecked() ? "checked" : "unchecked"),
-		disabled,
-		"aria-required": required ? "true" : undefined,
-		class: cnReactive(
-			"peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs transition-shadow outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
-			className,
-		),
-		nodes: [indicator],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				if (disabled) return;
-				const next = !isChecked();
-				if (!isControlled) setIsChecked(next);
-				onCheckedChange?.(next);
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+	const el = buttonTag(
+		{
+			"data-slot": "checkbox",
+			type: "button",
+			role: "checkbox",
+			"aria-checked": () => String(isChecked()),
+			"data-state": () => (isChecked() ? "checked" : "unchecked"),
+			disabled,
+			"aria-required": required ? "true" : undefined,
+			class: cnReactive(
+				"peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs transition-shadow outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
+				className,
+			),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					if (disabled) return;
+					const next = !isChecked();
+					if (!isControlled) setIsChecked(next);
+					onCheckedChange?.(next);
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
 			},
+			...rest,
 		},
-		...rest,
-	}) as HTMLElement;
+		[indicator],
+	) as HTMLElement;
 
 	// Update indicator content reactively
 	effect(() => {
