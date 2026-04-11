@@ -183,11 +183,13 @@ export function CommandInput(
 		...rest,
 	}) as HTMLElement;
 
-	const wrapper = div({
-		"data-slot": "command-input-wrapper",
-		class: "flex h-9 items-center gap-2 border-b px-3",
-		nodes: [SearchIcon({ class: "size-4 shrink-0 opacity-50" }), inputEl],
-	}) as HTMLElement;
+	const wrapper = div(
+		{
+			"data-slot": "command-input-wrapper",
+			class: "flex h-9 items-center gap-2 border-b px-3",
+		},
+		[SearchIcon({ class: "size-4 shrink-0 opacity-50" }), inputEl],
+	) as HTMLElement;
 
 	// Wire to parent command
 	queueMicrotask(() => {
@@ -258,27 +260,31 @@ export function CommandGroup(
 	const { class: className, heading, nodes, ...rest } = props;
 
 	const headingEl = heading
-		? div({
-				"cmdk-group-heading": "",
-				"data-slot": "command-group-heading",
-				nodes: heading,
-			})
+		? div(
+				{
+					"cmdk-group-heading": "",
+					"data-slot": "command-group-heading",
+				},
+				heading,
+			)
 		: null;
 
 	const childNodes: Node[] = [];
 	if (headingEl) childNodes.push(headingEl as Node);
 	childNodes.push(...toNodes(nodes));
 
-	return div({
-		"data-slot": "command-group",
-		role: "group",
-		class: cnReactive(
-			"overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
-			className,
-		),
-		nodes: childNodes,
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "command-group",
+			role: "group",
+			class: cnReactive(
+				"overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+				className,
+			),
+			...rest,
+		},
+		childNodes,
+	) as HTMLElement;
 }
 
 // ── CommandItem ──────────────────────────────────────────────────────────────
@@ -392,21 +398,24 @@ export function CommandDialog(
 		...rest
 	} = props;
 
-	return Dialog({
-		open,
-		onOpenChange,
-		nodes: [
-			DialogContent({
-				class: "overflow-hidden p-0",
-				showCloseButton,
-				nodes: [
-					DialogHeader({
-						class: "sr-only",
-						nodes: [
-							DialogTitle({ nodes: title }),
-							DialogDescription({ nodes: description }),
-						],
-					}),
+	return Dialog(
+		{
+			open,
+			onOpenChange,
+		},
+		[
+			DialogContent(
+				{
+					class: "overflow-hidden p-0",
+					showCloseButton,
+				},
+				[
+					DialogHeader(
+						{
+							class: "sr-only",
+						},
+						[DialogTitle(title), DialogDescription(description)],
+					),
 					Command({
 						class:
 							"**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5",
@@ -414,7 +423,7 @@ export function CommandDialog(
 						...rest,
 					}),
 				],
-			}),
+			),
 		],
-	}) as HTMLElement;
+	) as HTMLElement;
 }

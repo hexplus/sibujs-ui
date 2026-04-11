@@ -199,55 +199,57 @@ export function TooltipContent(
 		),
 	}) as HTMLElement;
 
-	const content = div({
-		"data-slot": "tooltip-content",
-		"data-side": side,
-		// Seed `data-state="closed"` at creation so the closed-state CSS
-		// applies on the very first paint instead of one microtask later
-		// (prevents a FOUC flash of the tooltip when the parent mounts).
-		"data-state": "closed",
-		role: "tooltip",
-		class: cnReactive(
-			"z-50 w-max whitespace-nowrap animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-			className,
-		),
-		style: {
-			position: "absolute",
-			// Initial display matches data-state="closed"
-			display: "none",
-			pointerEvents: "none",
-			...(side === "top"
-				? {
-						bottom: `calc(100% + ${sideOffset}px)`,
-						left: "50%",
-						transform: "translateX(-50%)",
-					}
-				: {}),
-			...(side === "bottom"
-				? {
-						top: `calc(100% + ${sideOffset}px)`,
-						left: "50%",
-						transform: "translateX(-50%)",
-					}
-				: {}),
-			...(side === "left"
-				? {
-						right: `calc(100% + ${sideOffset}px)`,
-						top: "50%",
-						transform: "translateY(-50%)",
-					}
-				: {}),
-			...(side === "right"
-				? {
-						left: `calc(100% + ${sideOffset}px)`,
-						top: "50%",
-						transform: "translateY(-50%)",
-					}
-				: {}),
-		} as Record<string, string>,
-		nodes: [...toNodes(nodes), arrow],
-		...rest,
-	}) as HTMLElement;
+	const content = div(
+		{
+			"data-slot": "tooltip-content",
+			"data-side": side,
+			// Seed `data-state="closed"` at creation so the closed-state CSS
+			// applies on the very first paint instead of one microtask later
+			// (prevents a FOUC flash of the tooltip when the parent mounts).
+			"data-state": "closed",
+			role: "tooltip",
+			class: cnReactive(
+				"z-50 w-max whitespace-nowrap animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+				className,
+			),
+			style: {
+				position: "absolute",
+				// Initial display matches data-state="closed"
+				display: "none",
+				pointerEvents: "none",
+				...(side === "top"
+					? {
+							bottom: `calc(100% + ${sideOffset}px)`,
+							left: "50%",
+							transform: "translateX(-50%)",
+						}
+					: {}),
+				...(side === "bottom"
+					? {
+							top: `calc(100% + ${sideOffset}px)`,
+							left: "50%",
+							transform: "translateX(-50%)",
+						}
+					: {}),
+				...(side === "left"
+					? {
+							right: `calc(100% + ${sideOffset}px)`,
+							top: "50%",
+							transform: "translateY(-50%)",
+						}
+					: {}),
+				...(side === "right"
+					? {
+							left: `calc(100% + ${sideOffset}px)`,
+							top: "50%",
+							transform: "translateY(-50%)",
+						}
+					: {}),
+			} as Record<string, string>,
+			...rest,
+		},
+		[...toNodes(nodes), arrow],
+	) as HTMLElement;
 
 	queueMicrotask(() => {
 		const tooltipEl = content.closest("[data-slot=tooltip]");

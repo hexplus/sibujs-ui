@@ -90,16 +90,23 @@ export function PaginationPrevious(
 ): HTMLElement {
 	const props = normalizeArgs<PaginationLinkProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return PaginationLink({
-		"aria-label": "Go to previous page",
-		size: "default",
-		class: cnReactive("gap-1 px-2.5 sm:pl-2.5", className),
-		nodes: nodes ?? [
+	return PaginationLink(
+		{
+			"aria-label": "Go to previous page",
+			size: "default",
+			class: cnReactive("gap-1 px-2.5 sm:pl-2.5", className),
+			...rest,
+		},
+		nodes ?? [
 			ChevronLeftIcon(),
-			span({ class: "hidden sm:block", nodes: "Previous" }),
+			span(
+				{
+					class: "hidden sm:block",
+				},
+				"Previous",
+			),
 		],
-		...rest,
-	});
+	);
 }
 
 export function PaginationNext(
@@ -108,16 +115,23 @@ export function PaginationNext(
 ): HTMLElement {
 	const props = normalizeArgs<PaginationLinkProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return PaginationLink({
-		"aria-label": "Go to next page",
-		size: "default",
-		class: cnReactive("gap-1 px-2.5 sm:pr-2.5", className),
-		nodes: nodes ?? [
-			span({ class: "hidden sm:block", nodes: "Next" }),
+	return PaginationLink(
+		{
+			"aria-label": "Go to next page",
+			size: "default",
+			class: cnReactive("gap-1 px-2.5 sm:pr-2.5", className),
+			...rest,
+		},
+		nodes ?? [
+			span(
+				{
+					class: "hidden sm:block",
+				},
+				"Next",
+			),
 			ChevronRightIcon(),
 		],
-		...rest,
-	});
+	);
 }
 
 export function PaginationEllipsis(
@@ -126,14 +140,21 @@ export function PaginationEllipsis(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, ...rest } = props;
-	return span({
-		"aria-hidden": "true",
-		"data-slot": "pagination-ellipsis",
-		class: cnReactive("flex size-9 items-center justify-center", className),
-		nodes: [
+	return span(
+		{
+			"aria-hidden": "true",
+			"data-slot": "pagination-ellipsis",
+			class: cnReactive("flex size-9 items-center justify-center", className),
+			...rest,
+		},
+		[
 			MoreHorizontalIcon({ class: "size-4" }),
-			span({ class: "sr-only", nodes: "More pages" }),
+			span(
+				{
+					class: "sr-only",
+				},
+				"More pages",
+			),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }

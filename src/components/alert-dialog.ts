@@ -125,11 +125,13 @@ export function AlertDialogContent(
 		...rest,
 	}) as HTMLElement;
 
-	const container = div({
-		"data-slot": "alert-dialog-portal",
-		style: "display: none",
-		nodes: [overlay, content],
-	}) as HTMLElement;
+	const container = div(
+		{
+			"data-slot": "alert-dialog-portal",
+			style: "display: none",
+		},
+		[overlay, content],
+	) as HTMLElement;
 
 	const closeFn = () => {
 		const dialogEl = container.parentElement?.closest?.(

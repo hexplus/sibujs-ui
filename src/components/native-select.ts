@@ -67,12 +67,14 @@ export function NativeSelect(
 		"data-slot": "native-select-icon",
 	}) as unknown as HTMLElement;
 
-	return div({
-		"data-slot": "native-select-wrapper",
-		class:
-			"group/native-select relative w-fit has-[select:disabled]:opacity-50",
-		nodes: [selectEl, chevron],
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "native-select-wrapper",
+			class:
+				"group/native-select relative w-fit has-[select:disabled]:opacity-50",
+		},
+		[selectEl, chevron],
+	) as HTMLElement;
 }
 
 export interface NativeSelectOptionProps extends BaseProps {

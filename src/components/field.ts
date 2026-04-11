@@ -219,16 +219,18 @@ export function FieldSeparator(
 			}) as Node,
 		);
 	}
-	return div({
-		"data-slot": "field-separator",
-		"data-content": hasContent ? "true" : undefined,
-		class: cnReactive(
-			"relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
-			className,
-		),
-		nodes: children,
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "field-separator",
+			"data-content": hasContent ? "true" : undefined,
+			class: cnReactive(
+				"relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
+				className,
+			),
+			...rest,
+		},
+		children,
+	) as HTMLElement;
 }
 
 export interface FieldErrorProps extends BaseProps {
@@ -269,11 +271,13 @@ export function FieldError(
 		}
 	}
 
-	return div({
-		"data-slot": "field-error",
-		role: "alert",
-		class: cnReactive("text-sm font-normal text-destructive", className),
-		nodes: content,
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "field-error",
+			role: "alert",
+			class: cnReactive("text-sm font-normal text-destructive", className),
+			...rest,
+		},
+		content,
+	) as HTMLElement;
 }

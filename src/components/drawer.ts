@@ -141,19 +141,23 @@ export function DrawerContent(
 	}) as HTMLElement;
 
 	// Content starts without direction classes — they're added once we know the direction
-	const content = div({
-		"data-slot": "drawer-content",
-		role: "dialog",
-		"aria-modal": "true",
-		nodes: [handle, ...toNodes(nodes)],
-		...rest,
-	}) as HTMLElement;
+	const content = div(
+		{
+			"data-slot": "drawer-content",
+			role: "dialog",
+			"aria-modal": "true",
+			...rest,
+		},
+		[handle, ...toNodes(nodes)],
+	) as HTMLElement;
 
-	const container = div({
-		"data-slot": "drawer-portal",
-		style: "display: none",
-		nodes: [overlay, content],
-	}) as HTMLElement;
+	const container = div(
+		{
+			"data-slot": "drawer-portal",
+			style: "display: none",
+		},
+		[overlay, content],
+	) as HTMLElement;
 
 	const closeFn = () => {
 		const drawerEl = container.parentElement?.closest?.("[data-slot=drawer]");

@@ -6,6 +6,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-04-11
+
+### Changed — shorthand-only authoring internally
+
+Every component in `sibujs-ui` has been migrated to the positional shorthand form (`tag(children)`, `tag("className", children)`, `tag({ props }, children)`). The previous `{ class, nodes: [...] }` object form is gone from the package source — 132 call sites across 34 component files were rewritten in a single AST-driven pass so the internal style is uniform. This is purely an internal refactor: every public component API, prop name, className contract, and DOM output is unchanged, and no runtime behavior is affected.
+
+Why the minor bump: while consumers see no API change, the shorthand is now the canonical authoring style across the SibuJS ecosystem (documented that way in the framework docs and reference site), and aligning the UI package with that canonical form is the kind of cross-cutting source change that deserves a visible version marker rather than a silent patch.
+
+`normalizeArgs` continues to accept the legacy `{ nodes: ... }` prop form from user code, so existing consumer call sites keep working exactly as before — the change is in how the package's own components are *written*, not in what shapes they *accept*.
+
+---
+
 ## [1.0.12] — 2026-04-11
 
 ### Fixed — reactive controlled props

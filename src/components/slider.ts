@@ -51,15 +51,17 @@ export function Slider(
 		),
 	}) as HTMLElement;
 
-	const track = div({
-		"data-slot": "slider-track",
-		"data-orientation": orientation,
-		class: cn(
-			"relative grow overflow-hidden rounded-full bg-muted",
-			orientation === "horizontal" ? "h-1.5 w-full" : "h-full w-1.5",
-		),
-		nodes: [range],
-	}) as HTMLElement;
+	const track = div(
+		{
+			"data-slot": "slider-track",
+			"data-orientation": orientation,
+			class: cn(
+				"relative grow overflow-hidden rounded-full bg-muted",
+				orientation === "horizontal" ? "h-1.5 w-full" : "h-full w-1.5",
+			),
+		},
+		[range],
+	) as HTMLElement;
 
 	const thumbs: HTMLElement[] = initial.map(
 		(_, i) =>
@@ -76,18 +78,20 @@ export function Slider(
 			}) as HTMLElement,
 	);
 
-	const el = div({
-		"data-slot": "slider",
-		"data-orientation": orientation,
-		"data-disabled": disabled ? "" : undefined,
-		class: cnReactive(
-			"relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50",
-			orientation === "vertical" ? "h-full min-h-44 w-auto flex-col" : "",
-			className,
-		),
-		nodes: [track, ...thumbs],
-		...rest,
-	}) as HTMLElement;
+	const el = div(
+		{
+			"data-slot": "slider",
+			"data-orientation": orientation,
+			"data-disabled": disabled ? "" : undefined,
+			class: cnReactive(
+				"relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50",
+				orientation === "vertical" ? "h-full min-h-44 w-auto flex-col" : "",
+				className,
+			),
+			...rest,
+		},
+		[track, ...thumbs],
+	) as HTMLElement;
 
 	// Update range and thumb positions
 	effect(() => {

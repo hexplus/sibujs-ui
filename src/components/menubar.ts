@@ -388,36 +388,40 @@ export function MenubarCheckboxItem(
 	} = props;
 	const [isChecked, setIsChecked] = signal(checked);
 
-	return div({
-		"data-slot": "menubar-checkbox-item",
-		role: "menuitemcheckbox",
-		"aria-checked": () => String(isChecked()),
-		"data-disabled": disabled ? "" : undefined,
-		tabindex: disabled ? undefined : "0",
-		class: cn(
-			"relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-			className,
-		),
-		nodes: [
-			span({
-				class:
-					"pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
-				nodes: () => (isChecked() ? [CheckIcon({ class: "size-4" })] : []),
-			}),
+	return div(
+		{
+			"data-slot": "menubar-checkbox-item",
+			role: "menuitemcheckbox",
+			"aria-checked": () => String(isChecked()),
+			"data-disabled": disabled ? "" : undefined,
+			tabindex: disabled ? undefined : "0",
+			class: cn(
+				"relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				className,
+			),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					if (disabled) return;
+					const next = !isChecked();
+					setIsChecked(next);
+					onCheckedChange?.(next);
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
+			},
+			...rest,
+		},
+		[
+			span(
+				{
+					class:
+						"pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
+				},
+				() => (isChecked() ? [CheckIcon({ class: "size-4" })] : []),
+			),
 			...toNodes(nodes),
 		],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				if (disabled) return;
-				const next = !isChecked();
-				setIsChecked(next);
-				onCheckedChange?.(next);
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
-			},
-		},
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }
 
 // ── MenubarRadioGroup ────────────────────────────────────────────────────────
@@ -473,28 +477,32 @@ export function MenubarRadioItem(
 			"pointer-events-none absolute left-2 flex size-3.5 items-center justify-center",
 	});
 
-	const el = div({
-		"data-slot": "menubar-radio-item",
-		role: "menuitemradio",
-		"data-disabled": disabled ? "" : undefined,
-		tabindex: disabled ? undefined : "0",
-		class: cn(
-			"relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-			className,
-		),
-		nodes: [indicator, ...toNodes(nodes)],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				if (disabled) return;
-				const groupEl = el.closest("[data-slot=menubar-radio-group]");
-				if (groupEl)
-					(groupEl as ElementWithContext).__menubarRadioGroup?.setValue(value);
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+	const el = div(
+		{
+			"data-slot": "menubar-radio-item",
+			role: "menuitemradio",
+			"data-disabled": disabled ? "" : undefined,
+			tabindex: disabled ? undefined : "0",
+			class: cn(
+				"relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				className,
+			),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					if (disabled) return;
+					const groupEl = el.closest("[data-slot=menubar-radio-group]");
+					if (groupEl)
+						(groupEl as ElementWithContext).__menubarRadioGroup?.setValue(
+							value,
+						);
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
 			},
+			...rest,
 		},
-		...rest,
-	}) as HTMLElement;
+		[indicator, ...toNodes(nodes)],
+	) as HTMLElement;
 
 	queueMicrotask(() => {
 		const groupEl = el.closest("[data-slot=menubar-radio-group]");
@@ -583,16 +591,18 @@ export function MenubarSubTrigger(
 	const props = normalizeArgs<MenubarSubTriggerProps>(first, second);
 	const { class: className, inset, nodes, on, ...rest } = props;
 
-	const el = div({
-		"data-slot": "menubar-sub-trigger",
-		"data-inset": inset,
-		class: cnReactive(
-			"flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none focus:bg-accent focus:text-accent-foreground data-[inset]:pl-8 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
-			className,
-		),
-		nodes: [...toNodes(nodes), ChevronRightIcon({ class: "ml-auto h-4 w-4" })],
-		...rest,
-	}) as HTMLElement;
+	const el = div(
+		{
+			"data-slot": "menubar-sub-trigger",
+			"data-inset": inset,
+			class: cnReactive(
+				"flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none focus:bg-accent focus:text-accent-foreground data-[inset]:pl-8 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+				className,
+			),
+			...rest,
+		},
+		[...toNodes(nodes), ChevronRightIcon({ class: "ml-auto h-4 w-4" })],
+	) as HTMLElement;
 
 	el.addEventListener("mouseenter", () => {
 		const subEl = el.closest("[data-slot=menubar-sub]");

@@ -141,36 +141,47 @@ export function SheetContent(
 	};
 
 	const closeBtn = showCloseButton
-		? buttonTag({
-				"data-slot": "sheet-close",
-				type: "button",
-				class:
-					"absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary",
-				nodes: [
+		? buttonTag(
+				{
+					"data-slot": "sheet-close",
+					type: "button",
+					class:
+						"absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary",
+				},
+				[
 					XIcon({ class: "size-4" }),
-					span({ class: "sr-only", nodes: "Close" }),
+					span(
+						{
+							class: "sr-only",
+						},
+						"Close",
+					),
 				],
-			})
+			)
 		: null;
 
-	const content = div({
-		"data-slot": "sheet-content",
-		role: "dialog",
-		"aria-modal": "true",
-		class: cnReactive(
-			"fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
-			sideClasses[side],
-			className,
-		),
-		nodes: [...toNodes(nodes), ...(closeBtn ? [closeBtn as Node] : [])],
-		...rest,
-	}) as HTMLElement;
+	const content = div(
+		{
+			"data-slot": "sheet-content",
+			role: "dialog",
+			"aria-modal": "true",
+			class: cnReactive(
+				"fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
+				sideClasses[side],
+				className,
+			),
+			...rest,
+		},
+		[...toNodes(nodes), ...(closeBtn ? [closeBtn as Node] : [])],
+	) as HTMLElement;
 
-	const container = div({
-		"data-slot": "sheet-portal",
-		style: "display: none",
-		nodes: [overlay, content],
-	}) as HTMLElement;
+	const container = div(
+		{
+			"data-slot": "sheet-portal",
+			style: "display: none",
+		},
+		[overlay, content],
+	) as HTMLElement;
 
 	const closeFn = () => {
 		const sheetEl = container.parentElement?.closest?.("[data-slot=sheet]");

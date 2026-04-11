@@ -76,15 +76,18 @@ export function InputOTP(
 		setFocusedIndex(-1);
 	});
 
-	const container = div({
-		"data-slot": "input-otp",
-		"data-disabled": disabled ? "" : undefined,
-		class: cnReactive(
-			"group/input-otp relative flex items-center gap-2 has-disabled:opacity-50",
-			className,
-		),
-		style: "position: relative",
-		nodes: [
+	const container = div(
+		{
+			"data-slot": "input-otp",
+			"data-disabled": disabled ? "" : undefined,
+			class: cnReactive(
+				"group/input-otp relative flex items-center gap-2 has-disabled:opacity-50",
+				className,
+			),
+			style: "position: relative",
+			...rest,
+		},
+		[
 			hiddenInput as Node,
 			...(Array.isArray(nodes)
 				? (nodes as Node[])
@@ -94,8 +97,7 @@ export function InputOTP(
 						? [document.createTextNode(String(nodes))]
 						: []),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 
 	(container as ElementWithContext).__inputOtp = {
 		value: currentValue,
@@ -147,17 +149,19 @@ export function InputOTPSlot(
 		class: "pointer-events-none",
 	}) as HTMLElement;
 
-	const caret = div({
-		"data-slot": "input-otp-caret",
-		class:
-			"pointer-events-none absolute inset-0 flex items-center justify-center",
-		style: "display: none",
-		nodes: [
+	const caret = div(
+		{
+			"data-slot": "input-otp-caret",
+			class:
+				"pointer-events-none absolute inset-0 flex items-center justify-center",
+			style: "display: none",
+		},
+		[
 			div({
 				class: "h-4 w-px animate-caret-blink bg-foreground duration-1000",
 			}) as HTMLElement as Node,
 		],
-	}) as HTMLElement;
+	) as HTMLElement;
 
 	slotEl.appendChild(charDisplay);
 	slotEl.appendChild(caret);
@@ -199,10 +203,12 @@ export function InputOTPSeparator(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { ...rest } = props;
-	return div({
-		"data-slot": "input-otp-separator",
-		role: "separator",
-		nodes: [MinusIcon({}) as unknown as Node],
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "input-otp-separator",
+			role: "separator",
+			...rest,
+		},
+		[MinusIcon({}) as unknown as Node],
+	) as HTMLElement;
 }

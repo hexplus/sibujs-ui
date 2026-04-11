@@ -154,41 +154,55 @@ export function DialogContent(
 
 	// Create close button
 	const closeButtonEl = showCloseButton
-		? buttonTag({
-				"data-slot": "dialog-close",
-				type: "button",
-				class:
-					"absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-				nodes: [XIcon(), span({ class: "sr-only", nodes: "Close" })],
-			})
+		? buttonTag(
+				{
+					"data-slot": "dialog-close",
+					type: "button",
+					class:
+						"absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				},
+				[
+					XIcon(),
+					span(
+						{
+							class: "sr-only",
+						},
+						"Close",
+					),
+				],
+			)
 		: null;
 
 	const contentNodes = toNodes(nodes);
 	if (closeButtonEl) contentNodes.push(closeButtonEl as Node);
 
-	const content = div({
-		"data-slot": "dialog-content",
-		role: "dialog",
-		"aria-modal": "true",
-		"aria-labelledby": titleId,
-		"aria-describedby": descId,
-		class: cn(
-			"fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
-			className,
-		),
-		nodes: contentNodes,
-		...rest,
-	}) as HTMLElement;
+	const content = div(
+		{
+			"data-slot": "dialog-content",
+			role: "dialog",
+			"aria-modal": "true",
+			"aria-labelledby": titleId,
+			"aria-describedby": descId,
+			class: cn(
+				"fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
+				className,
+			),
+			...rest,
+		},
+		contentNodes,
+	) as HTMLElement;
 
 	// Store IDs for child components
 	(content as ElementWithContext).__dialogIds = { titleId, descId };
 
 	// Container that portals overlay + content
-	const container = div({
-		"data-slot": "dialog-portal",
-		style: "display: none",
-		nodes: [overlay, content],
-	}) as HTMLElement;
+	const container = div(
+		{
+			"data-slot": "dialog-portal",
+			style: "display: none",
+		},
+		[overlay, content],
+	) as HTMLElement;
 
 	// Wire close behavior
 	const closeFn = () => {
@@ -284,7 +298,12 @@ export function DialogFooter(
 
 	const footerNodes = toNodes(nodes);
 	if (showCloseButton) {
-		const closeBtn = Button({ variant: "outline", nodes: "Close" });
+		const closeBtn = Button(
+			{
+				variant: "outline",
+			},
+			"Close",
+		);
 		closeBtn.addEventListener("click", () => {
 			const contentEl = closeBtn.closest("[data-slot=dialog-content]");
 			if (contentEl) (contentEl as ElementWithContext).__dialogClose?.();
@@ -292,15 +311,17 @@ export function DialogFooter(
 		footerNodes.push(closeBtn as Node);
 	}
 
-	return div({
-		"data-slot": "dialog-footer",
-		class: cnReactive(
-			"flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
-			className,
-		),
-		nodes: footerNodes,
-		...rest,
-	}) as HTMLElement;
+	return div(
+		{
+			"data-slot": "dialog-footer",
+			class: cnReactive(
+				"flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+				className,
+			),
+			...rest,
+		},
+		footerNodes,
+	) as HTMLElement;
 }
 
 export function DialogTitle(

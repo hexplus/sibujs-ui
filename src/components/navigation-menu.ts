@@ -41,16 +41,18 @@ export function NavigationMenu(
 	const childNodes = toNodes(nodes);
 	if (viewport) childNodes.push(NavigationMenuViewport() as Node);
 
-	const el = div({
-		"data-slot": "navigation-menu",
-		"data-viewport": viewport,
-		class: cnReactive(
-			"group/navigation-menu relative flex max-w-max flex-1 items-center justify-center",
-			className,
-		),
-		nodes: childNodes,
-		...rest,
-	}) as HTMLElement;
+	const el = div(
+		{
+			"data-slot": "navigation-menu",
+			"data-viewport": viewport,
+			class: cnReactive(
+				"group/navigation-menu relative flex max-w-max flex-1 items-center justify-center",
+				className,
+			),
+			...rest,
+		},
+		childNodes,
+	) as HTMLElement;
 
 	(el as ElementWithContext).__navMenu = {
 		activeItem,
@@ -141,11 +143,14 @@ export function NavigationMenuTrigger(
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
 
-	const el = buttonTag({
-		"data-slot": "navigation-menu-trigger",
-		type: "button",
-		class: cn(navigationMenuTriggerStyle(), "group", className),
-		nodes: [
+	const el = buttonTag(
+		{
+			"data-slot": "navigation-menu-trigger",
+			type: "button",
+			class: cn(navigationMenuTriggerStyle(), "group", className),
+			...rest,
+		},
+		[
 			...toNodes(nodes),
 			ChevronDownIcon({
 				class:
@@ -153,8 +158,7 @@ export function NavigationMenuTrigger(
 				"aria-hidden": "true",
 			}),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 
 	el.addEventListener("click", () => {
 		const itemEl = el.closest("[data-slot=navigation-menu-item]");
@@ -292,10 +296,12 @@ export function NavigationMenuViewport(
 		...rest,
 	}) as HTMLElement;
 
-	return div({
-		class: "absolute top-full left-0 isolate z-50 flex justify-center",
-		nodes: [viewport],
-	}) as HTMLElement;
+	return div(
+		{
+			class: "absolute top-full left-0 isolate z-50 flex justify-center",
+		},
+		[viewport],
+	) as HTMLElement;
 }
 
 // ── NavigationMenuIndicator ──────────────────────────────────────────────────
@@ -306,19 +312,21 @@ export function NavigationMenuIndicator(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return div({
-		"data-slot": "navigation-menu-indicator",
-		class: cnReactive(
-			"top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:animate-in data-[state=visible]:fade-in",
-			className,
-		),
-		nodes: [
+	return div(
+		{
+			"data-slot": "navigation-menu-indicator",
+			class: cnReactive(
+				"top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:animate-in data-[state=visible]:fade-in",
+				className,
+			),
+			...rest,
+		},
+		[
 			div({
 				class:
 					"relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md",
 			}),
 			...toNodes(nodes),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }

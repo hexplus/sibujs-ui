@@ -99,11 +99,13 @@ function createToastElement(t: ToastData): HTMLElement {
 	const iconFactory = toastIcons[variant];
 	if (iconFactory) {
 		contentNodes.push(
-			div({
-				"data-slot": "toast-icon",
-				class: "shrink-0",
-				nodes: [iconFactory("size-4")],
-			}) as HTMLElement as Node,
+			div(
+				{
+					"data-slot": "toast-icon",
+					class: "shrink-0",
+				},
+				[iconFactory("size-4")],
+			) as HTMLElement as Node,
 		);
 	}
 
@@ -111,88 +113,102 @@ function createToastElement(t: ToastData): HTMLElement {
 
 	if (t.title) {
 		textNodes.push(
-			div({
-				"data-slot": "toast-title",
-				class: "text-sm font-semibold",
-				nodes: t.title,
-			}) as HTMLElement as Node,
+			div(
+				{
+					"data-slot": "toast-title",
+					class: "text-sm font-semibold",
+				},
+				t.title,
+			) as HTMLElement as Node,
 		);
 	}
 
 	if (t.description) {
 		textNodes.push(
-			p({
-				"data-slot": "toast-description",
-				class: "text-sm text-muted-foreground",
-				nodes: t.description,
-			}) as HTMLElement as Node,
+			p(
+				{
+					"data-slot": "toast-description",
+					class: "text-sm text-muted-foreground",
+				},
+				t.description,
+			) as HTMLElement as Node,
 		);
 	}
 
 	contentNodes.push(
-		div({
-			class: "flex flex-col gap-1",
-			nodes: textNodes,
-		}) as HTMLElement as Node,
+		div(
+			{
+				class: "flex flex-col gap-1",
+			},
+			textNodes,
+		) as HTMLElement as Node,
 	);
 
 	const rightNodes: Node[] = [];
 
 	if (t.action) {
-		const actionBtn = buttonTag({
-			"data-slot": "toast-action",
-			type: "button",
-			class:
-				"inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none disabled:opacity-50",
-			nodes: t.action.label,
-			on: {
-				click: () => {
-					t.action?.onClick();
-					removeToast(t.id);
+		const actionBtn = buttonTag(
+			{
+				"data-slot": "toast-action",
+				type: "button",
+				class:
+					"inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none disabled:opacity-50",
+				on: {
+					click: () => {
+						t.action?.onClick();
+						removeToast(t.id);
+					},
 				},
 			},
-		}) as HTMLElement;
+			t.action.label,
+		) as HTMLElement;
 		rightNodes.push(actionBtn as Node);
 	}
 
 	const toastNodes: Node[] = [
-		div({
-			class: "flex items-center gap-3",
-			nodes: contentNodes,
-		}) as HTMLElement as Node,
+		div(
+			{
+				class: "flex items-center gap-3",
+			},
+			contentNodes,
+		) as HTMLElement as Node,
 		...(rightNodes.length > 0 ? rightNodes : []),
 	];
 
 	// Add close button if configured
 	if (toasterConfig.closeButton) {
-		const closeBtn = buttonTag({
-			"data-slot": "toast-close",
-			type: "button",
-			class:
-				"absolute top-2 right-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-hidden focus:ring-2 group-hover:opacity-100",
-			nodes: [XIcon({ class: "size-4" })],
-			on: {
-				click: () => {
-					t.onDismiss?.();
-					removeToast(t.id);
+		const closeBtn = buttonTag(
+			{
+				"data-slot": "toast-close",
+				type: "button",
+				class:
+					"absolute top-2 right-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-hidden focus:ring-2 group-hover:opacity-100",
+				on: {
+					click: () => {
+						t.onDismiss?.();
+						removeToast(t.id);
+					},
 				},
 			},
-		}) as HTMLElement;
+			[XIcon({ class: "size-4" })],
+		) as HTMLElement;
 		toastNodes.push(closeBtn as Node);
 	}
 
 	const useRichColors = toasterConfig.richColors && variant in richColorClasses;
 
-	const toastEl = div({
-		"data-slot": "toast",
-		"data-variant": variant,
-		class: cn(
-			"group pointer-events-auto relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-[var(--border-radius)] border p-4 shadow-lg transition-all animate-in slide-in-from-bottom-full fade-in-80",
-			toasterConfig.closeButton && "pr-8",
-			useRichColors ? richColorClasses[variant] : variantClasses[variant],
-		),
-		nodes: toastNodes,
-	}) as HTMLElement;
+	const toastEl = div(
+		{
+			"data-slot": "toast",
+			"data-variant": variant,
+			class: cn(
+				"group pointer-events-auto relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-[var(--border-radius)] border p-4 shadow-lg transition-all animate-in slide-in-from-bottom-full fade-in-80",
+				toasterConfig.closeButton && "pr-8",
+				useRichColors ? richColorClasses[variant] : variantClasses[variant],
+			),
+		},
+		toastNodes,
+	) as HTMLElement;
 
 	// Auto-dismiss (loading toasts don't auto-dismiss by default)
 	const duration = t.duration ?? (variant === "loading" ? 0 : 4000);

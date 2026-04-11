@@ -12,23 +12,25 @@ export function AspectRatio(
 	const props = normalizeArgs<AspectRatioProps>(first, second);
 	const { ratio = 1, class: className, nodes, style, ...rest } = props;
 
-	return div({
-		"data-slot": "aspect-ratio",
-		class: className,
-		style: {
-			position: "relative",
-			width: "100%",
-			paddingBottom: `${(1 / ratio) * 100}%`,
-			...(typeof style === "object" && !Array.isArray(style)
-				? (style as Record<string, string | number>)
-				: {}),
+	return div(
+		{
+			"data-slot": "aspect-ratio",
+			class: className,
+			style: {
+				position: "relative",
+				width: "100%",
+				paddingBottom: `${(1 / ratio) * 100}%`,
+				...(typeof style === "object" && !Array.isArray(style)
+					? (style as Record<string, string | number>)
+					: {}),
+			},
+			...rest,
 		},
-		nodes: [
+		[
 			div({
 				style: { position: "absolute", inset: "0" },
 				nodes,
 			}),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }

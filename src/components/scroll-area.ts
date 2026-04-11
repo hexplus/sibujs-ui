@@ -47,14 +47,16 @@ export function ScrollArea(
 		style: "position:absolute;right:0;width:100%",
 	}) as HTMLElement;
 
-	const vBar = div({
-		"data-slot": "scroll-area-scrollbar",
-		"data-orientation": "vertical",
-		class:
-			"touch-none select-none transition-colors absolute top-0 right-0 h-full w-2.5 border-l border-l-transparent p-px",
-		style: "opacity:0;transition:opacity 200ms",
-		nodes: [vThumb],
-	}) as HTMLElement;
+	const vBar = div(
+		{
+			"data-slot": "scroll-area-scrollbar",
+			"data-orientation": "vertical",
+			class:
+				"touch-none select-none transition-colors absolute top-0 right-0 h-full w-2.5 border-l border-l-transparent p-px",
+			style: "opacity:0;transition:opacity 200ms",
+		},
+		[vThumb],
+	) as HTMLElement;
 
 	// Horizontal scrollbar
 	const hThumb = div({
@@ -63,14 +65,16 @@ export function ScrollArea(
 		style: "position:absolute;bottom:0;height:100%",
 	}) as HTMLElement;
 
-	const hBar = div({
-		"data-slot": "scroll-area-scrollbar",
-		"data-orientation": "horizontal",
-		class:
-			"touch-none select-none transition-colors absolute bottom-0 left-0 w-full h-2.5 border-t border-t-transparent p-px",
-		style: "opacity:0;transition:opacity 200ms",
-		nodes: [hThumb],
-	}) as HTMLElement;
+	const hBar = div(
+		{
+			"data-slot": "scroll-area-scrollbar",
+			"data-orientation": "horizontal",
+			class:
+				"touch-none select-none transition-colors absolute bottom-0 left-0 w-full h-2.5 border-t border-t-transparent p-px",
+			style: "opacity:0;transition:opacity 200ms",
+		},
+		[hThumb],
+	) as HTMLElement;
 
 	// Corner (when both scrollbars visible)
 	const corner = div({
@@ -79,12 +83,14 @@ export function ScrollArea(
 	}) as HTMLElement;
 
 	// Root
-	const root = div({
-		"data-slot": "scroll-area",
-		class: cnReactive("relative", className),
-		nodes: [styleEl, viewport, vBar, hBar, corner],
-		...rest,
-	}) as HTMLElement;
+	const root = div(
+		{
+			"data-slot": "scroll-area",
+			class: cnReactive("relative", className),
+			...rest,
+		},
+		[styleEl, viewport, vBar, hBar, corner],
+	) as HTMLElement;
 
 	// ── Scrollbar logic ──────────────────────────────────────────────────
 
@@ -309,23 +315,25 @@ export function ScrollBar(
 	const props = normalizeArgs<ScrollBarProps>(first, second);
 	const { class: className, orientation = "vertical", ...rest } = props;
 
-	return div({
-		"data-slot": "scroll-area-scrollbar",
-		"data-orientation": orientation,
-		class: cnReactive(
-			"flex touch-none p-px transition-colors select-none",
-			orientation === "vertical" &&
-				"h-full w-2.5 border-l border-l-transparent",
-			orientation === "horizontal" &&
-				"h-2.5 flex-col border-t border-t-transparent",
-			className,
-		),
-		nodes: [
+	return div(
+		{
+			"data-slot": "scroll-area-scrollbar",
+			"data-orientation": orientation,
+			class: cnReactive(
+				"flex touch-none p-px transition-colors select-none",
+				orientation === "vertical" &&
+					"h-full w-2.5 border-l border-l-transparent",
+				orientation === "horizontal" &&
+					"h-2.5 flex-col border-t border-t-transparent",
+				className,
+			),
+			...rest,
+		},
+		[
 			div({
 				"data-slot": "scroll-area-thumb",
 				class: "relative flex-1 rounded-full bg-border",
 			}),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }

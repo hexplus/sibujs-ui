@@ -16,17 +16,20 @@ export function Progress(
 
 	const getValue = typeof value === "function" ? value : () => value;
 
-	return div({
-		"data-slot": "progress",
-		role: "progressbar",
-		"aria-valuemin": "0",
-		"aria-valuemax": String(max),
-		"aria-valuenow": () => String(getValue()),
-		class: cnReactive(
-			"relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
-			className,
-		),
-		nodes: [
+	return div(
+		{
+			"data-slot": "progress",
+			role: "progressbar",
+			"aria-valuemin": "0",
+			"aria-valuemax": String(max),
+			"aria-valuenow": () => String(getValue()),
+			class: cnReactive(
+				"relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
+				className,
+			),
+			...rest,
+		},
+		[
 			div({
 				"data-slot": "progress-indicator",
 				class: "h-full w-full flex-1 bg-primary transition-all",
@@ -35,6 +38,5 @@ export function Progress(
 				},
 			}),
 		],
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 }

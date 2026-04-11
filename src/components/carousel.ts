@@ -237,33 +237,40 @@ export function CarouselPrevious(
 		...rest
 	} = props;
 
-	const el = Button({
-		"data-slot": "carousel-previous",
-		variant,
-		size,
-		class: cnReactive("absolute size-8 rounded-full", className),
-		nodes: [
+	const el = Button(
+		{
+			"data-slot": "carousel-previous",
+			variant,
+			size,
+			class: cnReactive("absolute size-8 rounded-full", className),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					const carouselEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=carousel]",
+					);
+					if (carouselEl)
+						(carouselEl as ElementWithContext).__carousel?.scrollPrev();
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
+			},
+			...rest,
+		},
+		[
 			ArrowLeftIcon({ class: "size-4" }),
-			span({ class: "sr-only", nodes: "Previous slide" }) as Node,
+			span(
+				{
+					class: "sr-only",
+				},
+				"Previous slide",
+			) as Node,
 			...((Array.isArray(nodes)
 				? nodes
 				: nodes != null
 					? [nodes]
 					: []) as Node[]),
 		],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				const carouselEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=carousel]",
-				);
-				if (carouselEl)
-					(carouselEl as ElementWithContext).__carousel?.scrollPrev();
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
-			},
-		},
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 
 	// Position based on orientation & bind disabled state
 	queueMicrotask(() => {
@@ -308,33 +315,40 @@ export function CarouselNext(
 		...rest
 	} = props;
 
-	const el = Button({
-		"data-slot": "carousel-next",
-		variant,
-		size,
-		class: cnReactive("absolute size-8 rounded-full", className),
-		nodes: [
+	const el = Button(
+		{
+			"data-slot": "carousel-next",
+			variant,
+			size,
+			class: cnReactive("absolute size-8 rounded-full", className),
+			on: {
+				...on,
+				click: (ev: Event) => {
+					const carouselEl = (ev.currentTarget as HTMLElement).closest(
+						"[data-slot=carousel]",
+					);
+					if (carouselEl)
+						(carouselEl as ElementWithContext).__carousel?.scrollNext();
+					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
+				},
+			},
+			...rest,
+		},
+		[
 			ArrowRightIcon({ class: "size-4" }),
-			span({ class: "sr-only", nodes: "Next slide" }) as Node,
+			span(
+				{
+					class: "sr-only",
+				},
+				"Next slide",
+			) as Node,
 			...((Array.isArray(nodes)
 				? nodes
 				: nodes != null
 					? [nodes]
 					: []) as Node[]),
 		],
-		on: {
-			...on,
-			click: (ev: Event) => {
-				const carouselEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=carousel]",
-				);
-				if (carouselEl)
-					(carouselEl as ElementWithContext).__carousel?.scrollNext();
-				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
-			},
-		},
-		...rest,
-	}) as HTMLElement;
+	) as HTMLElement;
 
 	// Position based on orientation & bind disabled state
 	queueMicrotask(() => {

@@ -139,9 +139,9 @@ export function Calendar(
 		currentValue: string,
 		onChange: (value: string) => void,
 	): { root: HTMLElement; update: (value: string) => void } {
-		const triggerLabel = span({
-			nodes: items.find((i) => i.value === currentValue)?.label ?? "",
-		}) as HTMLElement;
+		const triggerLabel = span(
+			items.find((i) => i.value === currentValue)?.label ?? "",
+		) as HTMLElement;
 		const listEl = div({
 			class:
 				"absolute left-0 top-full z-50 mt-1 max-h-48 min-w-full overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
@@ -164,19 +164,21 @@ export function Calendar(
 			listEl.innerHTML = "";
 			for (const item of items) {
 				const isActive = item.value === selected;
-				const option = div({
-					class: cn(
-						"relative flex cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground",
-						isActive && "bg-accent text-accent-foreground font-medium",
-					),
-					nodes: item.label,
-					on: {
-						click: () => {
-							onChange(item.value);
-							close();
+				const option = div(
+					{
+						class: cn(
+							"relative flex cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground",
+							isActive && "bg-accent text-accent-foreground font-medium",
+						),
+						on: {
+							click: () => {
+								onChange(item.value);
+								close();
+							},
 						},
 					},
-				}) as HTMLElement;
+					item.label,
+				) as HTMLElement;
 				listEl.appendChild(option);
 			}
 			// Scroll active into view
@@ -190,38 +192,42 @@ export function Calendar(
 			});
 		}
 
-		const trigger = buttonTag({
-			type: "button",
-			class:
-				"flex h-8 items-center gap-1 rounded-md pr-1 pl-2 text-sm select-none",
-			nodes: [
+		const trigger = buttonTag(
+			{
+				type: "button",
+				class:
+					"flex h-8 items-center gap-1 rounded-md pr-1 pl-2 text-sm select-none",
+				on: {
+					click: () => {
+						if (isOpen) {
+							close();
+						} else {
+							isOpen = true;
+							renderItems(
+								items.find((i) => i.label === triggerLabel.textContent)
+									?.value ?? currentValue,
+							);
+							listEl.style.display = "";
+							document.addEventListener("mousedown", outsideClick);
+						}
+					},
+				},
+			},
+			[
 				triggerLabel,
 				ChevronDownIcon({
 					class: "size-3.5 text-muted-foreground",
 				}) as unknown as Node,
 			],
-			on: {
-				click: () => {
-					if (isOpen) {
-						close();
-					} else {
-						isOpen = true;
-						renderItems(
-							items.find((i) => i.label === triggerLabel.textContent)?.value ??
-								currentValue,
-						);
-						listEl.style.display = "";
-						document.addEventListener("mousedown", outsideClick);
-					}
-				},
-			},
-		}) as HTMLElement;
+		) as HTMLElement;
 
-		const root = div({
-			class:
-				"relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50",
-			nodes: [trigger, listEl],
-		}) as HTMLElement;
+		const root = div(
+			{
+				class:
+					"relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50",
+			},
+			[trigger, listEl],
+		) as HTMLElement;
 
 		// Detach the outside-click listener if the dropdown is disposed while open
 		registerDisposer(root, () => {
@@ -264,12 +270,14 @@ export function Calendar(
 			},
 		);
 
-		const el = div({
-			"data-slot": "calendar-dropdowns",
-			class:
-				"flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium",
-			nodes: [monthDropdown.root, yearDropdown.root],
-		}) as HTMLElement;
+		const el = div(
+			{
+				"data-slot": "calendar-dropdowns",
+				class:
+					"flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium",
+			},
+			[monthDropdown.root, yearDropdown.root],
+		) as HTMLElement;
 
 		// Store update refs on element for updateDropdownCaption
 		(el as ElementWithCalendarDropdowns).__monthDropdown = monthDropdown;
@@ -306,12 +314,14 @@ export function Calendar(
 				"data-slot": "calendar-caption-label",
 				class: "text-sm font-medium select-none",
 			}) as HTMLElement;
-			captionEl = div({
-				"data-slot": "calendar-month-caption",
-				class:
-					"flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
-				nodes: [label],
-			}) as HTMLElement;
+			captionEl = div(
+				{
+					"data-slot": "calendar-month-caption",
+					class:
+						"flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
+				},
+				[label],
+			) as HTMLElement;
 		}
 
 		captionElements.push(captionEl);
@@ -320,10 +330,12 @@ export function Calendar(
 		gridContainers.push(grid);
 
 		monthPanels.push(
-			div({
-				class: "flex w-full flex-col gap-4",
-				nodes: [captionEl, grid],
-			}) as HTMLElement,
+			div(
+				{
+					class: "flex w-full flex-col gap-4",
+				},
+				[captionEl, grid],
+			) as HTMLElement,
 		);
 	}
 
@@ -377,19 +389,23 @@ export function Calendar(
 
 		// Weekday headers
 		container.appendChild(
-			div({
-				class: "flex",
-				nodes: WEEKDAYS.map(
+			div(
+				{
+					class: "flex",
+				},
+				WEEKDAYS.map(
 					(wd) =>
-						div({
-							class:
-								"flex-1 rounded-md text-[0.8rem] font-normal text-muted-foreground select-none",
-							style:
-								"display: flex; align-items: center; justify-content: center; width: var(--cell-size); height: var(--cell-size)",
-							nodes: wd,
-						}) as Node,
+						div(
+							{
+								class:
+									"flex-1 rounded-md text-[0.8rem] font-normal text-muted-foreground select-none",
+								style:
+									"display: flex; align-items: center; justify-content: center; width: var(--cell-size); height: var(--cell-size)",
+							},
+							wd,
+						) as Node,
 				),
-			}) as HTMLElement,
+			) as HTMLElement,
 		);
 
 		const cells: Node[] = [];
@@ -433,10 +449,12 @@ export function Calendar(
 
 		for (let i = 0; i < cells.length; i += 7) {
 			container.appendChild(
-				div({
-					class: "mt-2 flex w-full",
-					nodes: cells.slice(i, i + 7),
-				}) as HTMLElement,
+				div(
+					{
+						class: "mt-2 flex w-full",
+					},
+					cells.slice(i, i + 7),
+				) as HTMLElement,
 			);
 		}
 	}
@@ -464,64 +482,69 @@ export function Calendar(
 		const isTodayDate = isToday(date);
 		const dayDisabled = isDisabled?.(date) ?? false;
 
-		const btn = buttonTag({
-			"data-slot": "calendar-day",
-			type: "button",
-			disabled: dayDisabled,
-			"data-day": date.toLocaleDateString(),
-			"data-today": isTodayDate ? "" : undefined,
-			"data-selected": isSelected || isRangeEndpoint ? "true" : undefined,
-			"data-selected-single": isSelected ? "true" : "false",
-			"data-range-start": rangePos === "start" ? "true" : undefined,
-			"data-range-end": rangePos === "end" ? "true" : undefined,
-			"data-range-middle": isRangeMiddle ? "true" : undefined,
-			"data-outside": outside ? "" : undefined,
-			"data-disabled": dayDisabled ? "" : undefined,
-			class: cn(
-				buttonVariants({ variant: "ghost", size: "icon" }),
-				"flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal",
-				"data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground",
-				"data-[range-start=true]:rounded-md data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-start=true]:rounded-l-md data-[range-start=true]:rounded-r-none",
-				"data-[range-end=true]:rounded-md data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-end=true]:rounded-r-md data-[range-end=true]:rounded-l-none",
-				"data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-middle=true]:rounded-none",
-				"dark:hover:text-accent-foreground [&>span]:text-xs [&>span]:opacity-70",
-				"group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50",
-				isTodayDate &&
-					!isSelected &&
-					!isRangeSelected &&
-					"rounded-md bg-accent text-accent-foreground",
-				isTodayDate && isSelected && "data-[selected=true]:rounded-none",
-				outside && "text-muted-foreground aria-selected:text-muted-foreground",
-				dayDisabled && "text-muted-foreground opacity-50",
-			),
-			nodes: String(date.getDate()),
-			on: {
-				click: () => {
-					if (dayDisabled) return;
-					if (mode === "single") {
-						setSelectedDate(date);
-						(onSelect as ((d: Date) => void) | undefined)?.(date);
-					} else {
-						handleRangeClick(date);
-					}
-					renderGrids();
+		const btn = buttonTag(
+			{
+				"data-slot": "calendar-day",
+				type: "button",
+				disabled: dayDisabled,
+				"data-day": date.toLocaleDateString(),
+				"data-today": isTodayDate ? "" : undefined,
+				"data-selected": isSelected || isRangeEndpoint ? "true" : undefined,
+				"data-selected-single": isSelected ? "true" : "false",
+				"data-range-start": rangePos === "start" ? "true" : undefined,
+				"data-range-end": rangePos === "end" ? "true" : undefined,
+				"data-range-middle": isRangeMiddle ? "true" : undefined,
+				"data-outside": outside ? "" : undefined,
+				"data-disabled": dayDisabled ? "" : undefined,
+				class: cn(
+					buttonVariants({ variant: "ghost", size: "icon" }),
+					"flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal",
+					"data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground",
+					"data-[range-start=true]:rounded-md data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-start=true]:rounded-l-md data-[range-start=true]:rounded-r-none",
+					"data-[range-end=true]:rounded-md data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-end=true]:rounded-r-md data-[range-end=true]:rounded-l-none",
+					"data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-middle=true]:rounded-none",
+					"dark:hover:text-accent-foreground [&>span]:text-xs [&>span]:opacity-70",
+					"group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50",
+					isTodayDate &&
+						!isSelected &&
+						!isRangeSelected &&
+						"rounded-md bg-accent text-accent-foreground",
+					isTodayDate && isSelected && "data-[selected=true]:rounded-none",
+					outside &&
+						"text-muted-foreground aria-selected:text-muted-foreground",
+					dayDisabled && "text-muted-foreground opacity-50",
+				),
+				on: {
+					click: () => {
+						if (dayDisabled) return;
+						if (mode === "single") {
+							setSelectedDate(date);
+							(onSelect as ((d: Date) => void) | undefined)?.(date);
+						} else {
+							handleRangeClick(date);
+						}
+						renderGrids();
+					},
 				},
 			},
-		});
+			String(date.getDate()),
+		);
 
-		return div({
-			class: cn(
-				"group/day relative flex-1 aspect-square h-full w-full p-0 text-center select-none",
-				"[&:last-child[data-selected=true]_button]:rounded-r-md",
-				"[&:first-child[data-selected=true]_button]:rounded-l-md",
-				isRangeMiddle && "bg-accent rounded-none",
-				rangePos === "start" && "rounded-l-md bg-accent",
-				rangePos === "end" && "rounded-r-md bg-accent",
-				outside && "text-muted-foreground",
-			),
-			"data-selected": isSelected || isRangeEndpoint ? "true" : undefined,
-			nodes: [btn as Node],
-		}) as Node;
+		return div(
+			{
+				class: cn(
+					"group/day relative flex-1 aspect-square h-full w-full p-0 text-center select-none",
+					"[&:last-child[data-selected=true]_button]:rounded-r-md",
+					"[&:first-child[data-selected=true]_button]:rounded-l-md",
+					isRangeMiddle && "bg-accent rounded-none",
+					rangePos === "start" && "rounded-l-md bg-accent",
+					rangePos === "end" && "rounded-r-md bg-accent",
+					outside && "text-muted-foreground",
+				),
+				"data-selected": isSelected || isRangeEndpoint ? "true" : undefined,
+			},
+			[btn as Node],
+		) as Node;
 	}
 
 	function handleRangeClick(date: Date) {
@@ -568,55 +591,67 @@ export function Calendar(
 	}
 
 	// ── Nav buttons ──
-	const prevButton = buttonTag({
-		"data-slot": "calendar-nav-prev",
-		type: "button",
-		class: cn(
-			buttonVariants({ variant: "ghost" }),
-			"size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
-		),
-		nodes: [ChevronLeftIcon({ class: "size-4" })],
-		on: { click: () => navigate(-1) },
-	}) as HTMLElement;
+	const prevButton = buttonTag(
+		{
+			"data-slot": "calendar-nav-prev",
+			type: "button",
+			class: cn(
+				buttonVariants({ variant: "ghost" }),
+				"size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+			),
+			on: { click: () => navigate(-1) },
+		},
+		[ChevronLeftIcon({ class: "size-4" })],
+	) as HTMLElement;
 
-	const nextButton = buttonTag({
-		"data-slot": "calendar-nav-next",
-		type: "button",
-		class: cn(
-			buttonVariants({ variant: "ghost" }),
-			"size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
-		),
-		nodes: [ChevronRightIcon({ class: "size-4" })],
-		on: { click: () => navigate(1) },
-	}) as HTMLElement;
+	const nextButton = buttonTag(
+		{
+			"data-slot": "calendar-nav-next",
+			type: "button",
+			class: cn(
+				buttonVariants({ variant: "ghost" }),
+				"size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+			),
+			on: { click: () => navigate(1) },
+		},
+		[ChevronRightIcon({ class: "size-4" })],
+	) as HTMLElement;
 
 	// ── Structure ──
-	const nav = div({
-		"data-slot": "calendar-nav",
-		class:
-			"absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
-		nodes: [prevButton, nextButton],
-	}) as HTMLElement;
+	const nav = div(
+		{
+			"data-slot": "calendar-nav",
+			class:
+				"absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
+		},
+		[prevButton, nextButton],
+	) as HTMLElement;
 
-	const monthsEl = div({
-		class: "relative flex flex-col gap-4 md:flex-row",
-		nodes: [nav, ...monthPanels],
-	}) as HTMLElement;
+	const monthsEl = div(
+		{
+			class: "relative flex flex-col gap-4 md:flex-row",
+		},
+		[nav, ...monthPanels],
+	) as HTMLElement;
 
-	const root = div({
-		"data-slot": "calendar",
-		class: "w-fit",
-		nodes: [monthsEl],
-	}) as HTMLElement;
+	const root = div(
+		{
+			"data-slot": "calendar",
+			class: "w-fit",
+		},
+		[monthsEl],
+	) as HTMLElement;
 
-	const el = div({
-		class: cn(
-			"group/calendar bg-background p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
-			className,
-		),
-		nodes: [root],
-		...rest,
-	}) as HTMLElement;
+	const el = div(
+		{
+			class: cn(
+				"group/calendar bg-background p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+				className,
+			),
+			...rest,
+		},
+		[root],
+	) as HTMLElement;
 
 	updateCaptions();
 	renderGrids();
