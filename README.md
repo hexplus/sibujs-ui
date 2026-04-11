@@ -18,6 +18,8 @@ A complete UI component library for [SibuJS](https://github.com/hexplus/sibujs).
 npm install sibujs-ui sibujs
 ```
 
+`sibujs-ui` requires **`sibujs >= 1.3.0`** as a peer dependency — earlier versions lack the `registerDisposer`, `createId`, and `tag(props, children)` APIs that the components rely on.
+
 ## Setup
 
 Add the required theme CSS to your project's stylesheet:
@@ -31,26 +33,21 @@ Add the required theme CSS to your project's stylesheet:
 
 ## Usage
 
+Every component accepts the sibujs 1.3.0 `tag(props, children)` shorthand — props as the first argument, children as the second — so the tree reads top-down without `nodes:` keys:
+
 ```ts
 import { Button, Card, CardHeader, CardTitle, CardContent } from "sibujs-ui";
 import { mount } from "sibujs";
 
-const app = Card({
-  nodes: [
-    CardHeader({
-      nodes: [CardTitle({ nodes: "Hello World" })],
-    }),
-    CardContent({
-      nodes: [
-        Button({
-          variant: "default",
-          nodes: "Click me",
-          on: { click: () => alert("Clicked!") },
-        }),
-      ],
-    }),
-  ],
-});
+const app = Card([
+  CardHeader([CardTitle("Hello World")]),
+  CardContent([
+    Button(
+      { variant: "default", on: { click: () => alert("Clicked!") } },
+      "Click me",
+    ),
+  ]),
+]);
 
 mount(app, document.getElementById("app"));
 ```
@@ -91,18 +88,49 @@ For dark mode, add `class="dark"` to your `<html>` element.
 
 ## Component API
 
-All components follow a consistent pattern:
+Every component is a plain function that returns an `HTMLElement`. Five calling conventions are accepted — pick whichever form reads best at the call site:
 
 ```ts
-ComponentName({
+// 1. No args — just the default element
+Separator();
+
+// 2. Children only — string, array, node, or reactive getter
+CardTitle("Hello World");
+CardContent([child1, child2]);
+
+// 3. Positional className + children (shorthand for purely structural wrappers)
+Card("p-6", [header, body]);
+
+// 4. Props object only
+Button({ variant: "default", nodes: "Click me", on: { click: handler } });
+
+// 5. Props object + children (canonical sibujs 1.3.0 form)
+Button(
+  { variant: "default", on: { click: handler } },
+  "Click me",
+);
+```
+
+Common props available on every component:
+
+```ts
+{
   class: "custom-classes",     // Tailwind classes (merged via cn())
-  nodes: "content" | [...],    // Child content
   on: { click: handler },      // Event listeners
   style: { ... },              // Inline styles
   ref: { current: null },      // Element reference
-  variant: "default",          // Component-specific variants
-  // ...other component props
-}): HTMLElement
+  // …plus component-specific props (variant, size, disabled, etc.)
+}
+```
+
+Stateful components (`Checkbox`, `Switch`, `Tabs`, `Select`, `Dialog`, `Tooltip`, `Accordion`, …) accept both literal values and reactive getters for their controlled props — passing a signal getter like `{ open: isOpen }` wires the state through automatically:
+
+```ts
+const [open, setOpen] = signal(false);
+
+Dialog({ open }, [
+  DialogContent([/* … */]),
+]);
 ```
 
 ## Acknowledgements
