@@ -4,6 +4,7 @@ import {
 	effect,
 	type NodeChildren,
 	p,
+	registerDisposer,
 	signal,
 } from "sibujs";
 import { cnReactive } from "../lib/utils";
@@ -187,6 +188,13 @@ export function PopoverContent(
 					closeTimer = undefined;
 				}, 150);
 			}
+		});
+
+		// Detach listeners if the element is disposed while still open
+		registerDisposer(content, () => {
+			if (closeTimer) clearTimeout(closeTimer);
+			document.removeEventListener("mousedown", handleOutsideClick);
+			document.removeEventListener("keydown", handleKeydown);
 		});
 	});
 

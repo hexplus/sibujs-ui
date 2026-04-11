@@ -5,9 +5,8 @@ import { type BaseProps, normalizeArgs } from "./types";
 /**
  * Chart components provide the styling container for chart libraries.
  *
- * Unlike shadcn's React version (which wraps recharts), this provides
- * framework-agnostic containers. Use any charting library and mount
- * it inside ChartContainer.
+ * This provides framework-agnostic containers — use any charting library
+ * and mount it inside ChartContainer.
  */
 
 export type ChartConfig = Record<

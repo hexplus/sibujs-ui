@@ -5,6 +5,7 @@ import {
 	h2,
 	type NodeChildren,
 	p,
+	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
@@ -213,6 +214,14 @@ export function SheetContent(
 							container.style.display = "none";
 							closeTimer = undefined;
 						}, 300);
+					}
+				});
+				registerDisposer(container, () => {
+					if (closeTimer) clearTimeout(closeTimer);
+					document.removeEventListener("keydown", handleKeydown);
+					// Restore body scroll if the sheet was still open
+					if (document.body.style.overflow === "hidden") {
+						document.body.style.overflow = "";
 					}
 				});
 			}

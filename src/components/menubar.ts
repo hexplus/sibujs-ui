@@ -3,6 +3,7 @@ import {
 	div,
 	effect,
 	type NodeChildren,
+	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
@@ -221,6 +222,10 @@ export function MenubarContent(
 						document.removeEventListener("mousedown", handleOutsideClick);
 						document.removeEventListener("keydown", handleKeydown);
 					}
+				});
+				registerDisposer(content, () => {
+					document.removeEventListener("mousedown", handleOutsideClick);
+					document.removeEventListener("keydown", handleKeydown);
 				});
 			}
 		}

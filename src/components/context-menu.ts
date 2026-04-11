@@ -1,4 +1,11 @@
-import { div, effect, type NodeChildren, signal, span } from "sibujs";
+import {
+	div,
+	effect,
+	type NodeChildren,
+	registerDisposer,
+	signal,
+	span,
+} from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -132,6 +139,10 @@ export function ContextMenuContent(
 						document.removeEventListener("mousedown", handleOutsideClick);
 						document.removeEventListener("keydown", handleKeydown);
 					}
+				});
+				registerDisposer(content, () => {
+					document.removeEventListener("mousedown", handleOutsideClick);
+					document.removeEventListener("keydown", handleKeydown);
 				});
 			}
 		}

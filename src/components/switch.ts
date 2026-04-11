@@ -1,4 +1,5 @@
-import { button as buttonTag, type NodeChildren, signal, span } from "sibujs";
+import { button as buttonTag, type NodeChildren, span } from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -27,7 +28,10 @@ export function Switch(
 		...rest
 	} = props;
 
-	const [isChecked, setIsChecked] = signal(controlledChecked ?? defaultChecked);
+	const [isChecked, setIsChecked, isControlled] = bindControlled<boolean>(
+		controlledChecked,
+		defaultChecked,
+	);
 
 	return buttonTag({
 		"data-slot": "switch",
@@ -55,7 +59,7 @@ export function Switch(
 			click: (ev: Event) => {
 				if (disabled) return;
 				const next = !isChecked();
-				if (controlledChecked === undefined) setIsChecked(next);
+				if (!isControlled) setIsChecked(next);
 				onCheckedChange?.(next);
 				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 			},

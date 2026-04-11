@@ -1,4 +1,12 @@
-import { div, effect, type NodeChildren, signal, span } from "sibujs";
+import {
+	createId,
+	div,
+	effect,
+	type NodeChildren,
+	registerDisposer,
+	span,
+} from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cn } from "../lib/utils";
 import {
 	type BaseProps,
@@ -9,9 +17,18 @@ import {
 export interface HoverCardProps extends BaseProps {
 	openDelay?: number;
 	closeDelay?: number;
-	open?: boolean;
+	/** Open state. Accepts a literal OR a reactive getter. */
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
+}
+
+interface HoverCardContext {
+	isOpen: () => boolean;
+	contentId: string;
+	open: () => void;
+	close: () => void;
+	cancelClose: () => void;
 }
 
 export function HoverCard(
@@ -29,9 +46,15 @@ export function HoverCard(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
+		controlledOpen,
+		defaultOpen,
+	);
 	let openTimer: ReturnType<typeof setTimeout> | null = null;
 	let closeTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// Stable id so the trigger's aria-describedby can target the content
+	const contentId = createId("hover-card-content");
 
 	const el = div({
 		"data-slot": "hover-card",
@@ -40,15 +63,17 @@ export function HoverCard(
 		...rest,
 	}) as HTMLElement;
 
-	(el as ElementWithContext).__hoverCard = {
+	const ctx: HoverCardContext = {
 		isOpen,
+		contentId,
 		open: () => {
 			if (closeTimer) {
 				clearTimeout(closeTimer);
 				closeTimer = null;
 			}
 			openTimer = setTimeout(() => {
-				if (controlledOpen === undefined) setIsOpen(true);
+				openTimer = null;
+				if (!isControlled) setIsOpen(true);
 				onOpenChange?.(true);
 			}, openDelay);
 		},
@@ -58,7 +83,8 @@ export function HoverCard(
 				openTimer = null;
 			}
 			closeTimer = setTimeout(() => {
-				if (controlledOpen === undefined) setIsOpen(false);
+				closeTimer = null;
+				if (!isControlled) setIsOpen(false);
 				onOpenChange?.(false);
 			}, closeDelay);
 		},
@@ -69,6 +95,16 @@ export function HoverCard(
 			}
 		},
 	};
+	(el as ElementWithContext).__hoverCard = ctx;
+
+	// Pending open/close timers need to be cleared on unmount so the
+	// callbacks do not fire against a detached element.
+	registerDisposer(el, () => {
+		if (openTimer) clearTimeout(openTimer);
+		if (closeTimer) clearTimeout(closeTimer);
+		openTimer = null;
+		closeTimer = null;
+	});
 
 	return el as HTMLElement;
 }
@@ -80,42 +116,53 @@ export function HoverCardTrigger(
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { nodes, on, ...rest } = props;
 
-	return span({
+	const findCtx = (el: HTMLElement): HoverCardContext | undefined =>
+		(el.closest("[data-slot=hover-card]") as ElementWithContext | null)
+			?.__hoverCard as HoverCardContext | undefined;
+
+	const el = span({
 		"data-slot": "hover-card-trigger",
+		tabindex: "0",
 		nodes,
 		on: {
 			...on,
-			mouseenter: (ev: Event) => {
-				const cardEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=hover-card]",
-				);
-				if (cardEl) (cardEl as ElementWithContext).__hoverCard?.open();
-				(on as Record<string, (ev: Event) => void>)?.mouseenter?.(ev);
+			// `pointerenter` / `pointerleave` give us touch + mouse in one
+			// listener — the previous mouse-only wiring meant tap devices
+			// never surfaced the hover card.
+			pointerenter: (ev: Event) => {
+				findCtx(ev.currentTarget as HTMLElement)?.open();
+				(on as Record<string, (ev: Event) => void>)?.pointerenter?.(ev);
 			},
-			mouseleave: (ev: Event) => {
-				const cardEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=hover-card]",
-				);
-				if (cardEl) (cardEl as ElementWithContext).__hoverCard?.close();
-				(on as Record<string, (ev: Event) => void>)?.mouseleave?.(ev);
+			pointerleave: (ev: Event) => {
+				findCtx(ev.currentTarget as HTMLElement)?.close();
+				(on as Record<string, (ev: Event) => void>)?.pointerleave?.(ev);
 			},
 			focus: (ev: Event) => {
-				const cardEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=hover-card]",
-				);
-				if (cardEl) (cardEl as ElementWithContext).__hoverCard?.open();
+				findCtx(ev.currentTarget as HTMLElement)?.open();
 				(on as Record<string, (ev: Event) => void>)?.focus?.(ev);
 			},
 			blur: (ev: Event) => {
-				const cardEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=hover-card]",
-				);
-				if (cardEl) (cardEl as ElementWithContext).__hoverCard?.close();
+				findCtx(ev.currentTarget as HTMLElement)?.close();
 				(on as Record<string, (ev: Event) => void>)?.blur?.(ev);
+			},
+			keydown: (ev: Event) => {
+				if ((ev as KeyboardEvent).key === "Escape") {
+					findCtx(ev.currentTarget as HTMLElement)?.close();
+				}
+				(on as Record<string, (ev: Event) => void>)?.keydown?.(ev);
 			},
 		},
 		...rest,
 	}) as HTMLElement;
+
+	// Wire aria-describedby once the trigger joins the DOM tree so screen
+	// readers can associate the content with the focusable trigger.
+	queueMicrotask(() => {
+		const ctx = findCtx(el);
+		if (ctx) el.setAttribute("aria-describedby", ctx.contentId);
+	});
+
+	return el;
 }
 
 export interface HoverCardContentProps extends BaseProps {
@@ -139,16 +186,25 @@ export function HoverCardContent(
 		...rest
 	} = props;
 
+	const findCtx = (el: HTMLElement): HoverCardContext | undefined =>
+		(el.closest("[data-slot=hover-card]") as ElementWithContext | null)
+			?.__hoverCard as HoverCardContext | undefined;
+
 	const content = div({
 		"data-slot": "hover-card-content",
 		"data-side": side,
 		"data-align": align,
+		// Seed the closed state at creation so the closed-state CSS applies
+		// on the first paint — prevents a FOUC flash on mount.
+		"data-state": "closed",
+		role: "dialog",
 		class: cn(
 			"z-50 w-64 origin-(--radix-hover-card-content-transform-origin) rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-hidden data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
 			className,
 		),
 		style: {
 			position: "absolute",
+			display: "none",
 			...(side === "bottom" ? { top: `calc(100% + ${sideOffset}px)` } : {}),
 			...(side === "top" ? { bottom: `calc(100% + ${sideOffset}px)` } : {}),
 			...(side === "left" ? { right: `calc(100% + ${sideOffset}px)` } : {}),
@@ -162,36 +218,34 @@ export function HoverCardContent(
 		nodes,
 		on: {
 			...on,
-			mouseenter: (ev: Event) => {
-				const cardEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=hover-card]",
-				);
-				if (cardEl) (cardEl as ElementWithContext).__hoverCard?.cancelClose();
-				(on as Record<string, (ev: Event) => void>)?.mouseenter?.(ev);
+			pointerenter: (ev: Event) => {
+				findCtx(ev.currentTarget as HTMLElement)?.cancelClose();
+				(on as Record<string, (ev: Event) => void>)?.pointerenter?.(ev);
 			},
-			mouseleave: (ev: Event) => {
-				const cardEl = (ev.currentTarget as HTMLElement).closest(
-					"[data-slot=hover-card]",
-				);
-				if (cardEl) (cardEl as ElementWithContext).__hoverCard?.close();
-				(on as Record<string, (ev: Event) => void>)?.mouseleave?.(ev);
+			pointerleave: (ev: Event) => {
+				findCtx(ev.currentTarget as HTMLElement)?.close();
+				(on as Record<string, (ev: Event) => void>)?.pointerleave?.(ev);
 			},
 		},
 		...rest,
 	}) as HTMLElement;
 
 	queueMicrotask(() => {
-		const cardEl = content.closest("[data-slot=hover-card]");
-		if (cardEl) {
-			const ctx = (cardEl as ElementWithContext).__hoverCard;
-			if (ctx) {
-				effect(() => {
-					const open = ctx.isOpen();
-					content.style.display = open ? "" : "none";
-					content.setAttribute("data-state", open ? "open" : "closed");
-				});
-			}
-		}
+		const ctx = findCtx(content);
+		if (!ctx) return;
+
+		// Adopt the stable id so the trigger's aria-describedby can resolve.
+		content.id = ctx.contentId;
+
+		const teardownEffect = effect(() => {
+			const open = ctx.isOpen();
+			content.style.display = open ? "" : "none";
+			content.setAttribute("data-state", open ? "open" : "closed");
+		});
+
+		// Unmount-safe cleanup: the effect goes away when the content is
+		// removed from the DOM, so stale signals cannot poke a detached node.
+		registerDisposer(content, () => teardownEffect());
 	});
 
 	return content as HTMLElement;

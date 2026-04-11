@@ -4,8 +4,8 @@ import {
 	effect,
 	type NodeChildren,
 	show,
-	signal,
 } from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -35,7 +35,10 @@ export function Collapsible(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
+		controlledOpen,
+		defaultOpen,
+	);
 
 	const el = div({
 		"data-slot": "collapsible",
@@ -51,7 +54,7 @@ export function Collapsible(
 		toggle: () => {
 			if (disabled) return;
 			const next = !isOpen();
-			if (controlledOpen === undefined) setIsOpen(next);
+			if (!isControlled) setIsOpen(next);
 			onOpenChange?.(next);
 		},
 	};

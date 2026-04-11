@@ -6,8 +6,7 @@ import { type BaseProps, normalizeArgs } from "./types";
 /**
  * Form components provide the layout and styling for form fields.
  *
- * Unlike shadcn's React version (which wraps react-hook-form),
- * this provides framework-agnostic form field containers.
+ * These components provide framework-agnostic form field containers.
  * Use sibujs's built-in form() utility for validation and state management.
  */
 

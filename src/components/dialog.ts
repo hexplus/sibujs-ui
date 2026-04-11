@@ -5,10 +5,11 @@ import {
 	h2,
 	type NodeChildren,
 	p,
-	signal,
+	registerDisposer,
 	span,
 } from "sibujs";
 import { XIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import {
@@ -41,10 +42,10 @@ export function Dialog(
 		...rest
 	} = props;
 
-	const isControlled = controlledOpen !== undefined;
-	const resolvedOpen =
-		typeof controlledOpen === "function" ? controlledOpen() : controlledOpen;
-	const [isOpen, setIsOpen] = signal(resolvedOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
+		controlledOpen,
+		defaultOpen,
+	);
 
 	const dialogApi = {
 		isOpen,
@@ -62,13 +63,6 @@ export function Dialog(
 			onOpenChange?.(next);
 		},
 	};
-
-	// Sync from reactive getter when open is a function
-	if (typeof controlledOpen === "function") {
-		effect(() => {
-			setIsOpen(controlledOpen());
-		});
-	}
 
 	const el = div({
 		"data-slot": "dialog",
@@ -244,6 +238,13 @@ export function DialogContent(
 							container.style.display = "none";
 							closeTimer = undefined;
 						}, 200);
+					}
+				});
+				registerDisposer(container, () => {
+					if (closeTimer) clearTimeout(closeTimer);
+					document.removeEventListener("keydown", handleKeydown);
+					if (document.body.style.overflow === "hidden") {
+						document.body.style.overflow = "";
 					}
 				});
 			}

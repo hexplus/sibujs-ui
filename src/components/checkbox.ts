@@ -1,11 +1,6 @@
-import {
-	button as buttonTag,
-	effect,
-	type NodeChildren,
-	signal,
-	span,
-} from "sibujs";
+import { button as buttonTag, effect, type NodeChildren, span } from "sibujs";
 import { CheckIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -37,7 +32,10 @@ export function Checkbox(
 		...rest
 	} = props;
 
-	const [isChecked, setIsChecked] = signal(controlledChecked ?? defaultChecked);
+	const [isChecked, setIsChecked, isControlled] = bindControlled<boolean>(
+		controlledChecked,
+		defaultChecked,
+	);
 
 	const indicator = span({
 		"data-slot": "checkbox-indicator",
@@ -62,7 +60,7 @@ export function Checkbox(
 			click: (ev: Event) => {
 				if (disabled) return;
 				const next = !isChecked();
-				if (controlledChecked === undefined) setIsChecked(next);
+				if (!isControlled) setIsChecked(next);
 				onCheckedChange?.(next);
 				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 			},

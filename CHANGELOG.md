@@ -6,6 +6,61 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.12] — 2026-04-11
+
+### Fixed — reactive controlled props
+
+Previously every stateful component inlined `signal(controlled ?? default)` to seed its internal state. When the caller passed a reactive getter (`() => T`), the function itself was stored as the signal value, so every read returned the function rather than the unwrapped value — `data-state`, `aria-*`, and change callbacks all broke silently. A new shared `bindControlled<T>()` helper handles all three shapes (`undefined` / literal / getter) in one place, and every stateful component has been migrated to use it:
+
+- `Toggle.pressed` — now reactive.
+- `Tooltip.open` — now accepts `boolean | (() => boolean)` (type signature widened + runtime fix).
+- `HoverCard.open` — same fix as Tooltip.
+- `Checkbox.checked`, `Switch.checked`, `Tabs.value`, `RadioGroup.value`, `Slider.value`, `Collapsible.open` — migrated off the inline pattern onto `bindControlled`.
+- `Select.value`, `Dialog.open`, `AlertDialog.open`, `Accordion.value` — the inline fixes shipped earlier have been replaced with the shared helper for consistency.
+
+### Fixed — unmount leaks
+
+Many overlay/menu components attached `document`/`window` listeners, `ResizeObserver`s, and `setTimeout` callbacks inside `queueMicrotask` or `effect()` without cleanup paths for the unmount-while-open case. Every confirmed leak is now tied to `registerDisposer`:
+
+- **Dialog / AlertDialog / Drawer / Sheet** — detaches `document` keydown listeners, clears pending close timers, and restores `document.body.style.overflow` if the overlay is disposed while still open.
+- **Popover / DropdownMenu / ContextMenu / Menubar / Select / NavigationMenu / Calendar** — detaches `document` `mousedown`/`keydown` outside-click-and-escape listeners on dispose.
+- **Combobox** — the outside-click listener was previously leaked on every `effect()` re-run because `effect()` does not honor return-value cleanups. The handler is now hoisted and attach/detach is driven by `isOpen()` state, with a final `registerDisposer` safety net.
+- **Sidebar** — `window.matchMedia('change')` and `window keydown` (Ctrl/Cmd+B shortcut) listeners are now detached on dispose.
+- **Accordion** — content `ResizeObserver`, close-fallback `setTimeout`, and the state `effect()` share a single disposer.
+- **ScrollArea** — viewport `ResizeObserver` is disconnected on dispose.
+- **Tooltip / HoverCard** — pending open/close `setTimeout`s and the content `effect()` are cleaned up on dispose.
+
+### Fixed — miscellaneous
+
+- **`Label.htmlFor` alias** — `Label` and `FieldLabel` now accept both `for` and `htmlFor` as the associated-element id. Previously only `for` was honored; `htmlFor` call sites silently dropped the prop.
+- **`normalizeArgs` props-plus-children shorthand** — `Component({ ...props }, children)` (sibujs 1.3.0's canonical form) is now recognised alongside the positional `Component("className", children)` form. The two are disambiguated by the type of the first argument; when a props object is passed, the positional second argument wins over any `nodes` key already on the object.
+
+### Added
+
+- **`bindControlled<T>()` helper** — shared controlled-prop utility exported from `src/lib/controlled.ts`.
+- **`aria-describedby` for Tooltip and HoverCard** — triggers expose a stable `aria-describedby` resolving to the content id so screen readers can associate the content with the focusable trigger.
+- **Keyboard dismissal for Tooltip and HoverCard** — pressing `Escape` while the trigger is focused closes the overlay.
+- **Touch support for Tooltip and HoverCard** — `pointerenter`/`pointerleave` replace the previous mouse-only wiring, so tap devices can surface both overlays.
+- **FOUC prevention for Tooltip and HoverCard** — content elements seed `data-state="closed"` and `display: none` at creation, so closed-state CSS applies on the first paint.
+
+### Security
+
+- **Sidebar cookie hardening** — the sidebar persistence cookie now emits `SameSite=Lax` (CSRF hardening) and `Secure` when the page is served over HTTPS. The stored value is non-sensitive (just open/closed), but defense-in-depth.
+
+### Dependencies
+
+- **`sibujs` peer and dev dependency bumped to `^1.3.0`** — the new `bindControlled` helper and disposer-tied resource cleanup depend on `createId`, `registerDisposer`, and the `tag(props, children)` shorthand introduced in sibujs 1.3.0. Consumers must upgrade `sibujs` alongside `sibujs-ui` 1.0.12.
+
+### Tests
+
+- **New test infrastructure** — `vitest.config.ts` (jsdom environment) plus three test files:
+  - `tests/smoke.test.ts` — 64 tests; every exported component constructs without throwing.
+  - `tests/bindControlled.test.ts` — 5 unit tests for the helper.
+  - `tests/regressions.test.ts` — 23 historical-regression tests covering Checkbox/Switch/Tabs/Toggle reactive controlled props, Label/FieldLabel `for`/`htmlFor` compat, Tooltip/HoverCard reactive `open` + `aria-describedby` + Escape + initial `data-state="closed"`, and Accordion/ScrollArea `ResizeObserver` cleanup on dispose (via a mocked observer).
+- **92 tests total**, all passing under `jsdom`.
+
+---
+
 ## [1.0.11] — 2026-04-04
 
 ### Fixed
