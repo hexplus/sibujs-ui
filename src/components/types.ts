@@ -24,17 +24,49 @@ export interface BaseProps {
 }
 
 /**
- * Normalize component arguments to support all three sibujs calling conventions:
- * 1. Props object:       Component({ class: "x", nodes: "y" })
- * 2. Positional shorthand: Component("className", children)
- * 3. Children-only:      Component("text"), Component([child]), Component(node)
+ * Normalize component arguments to support every sibujs calling convention:
+ *
+ *   1. No args:             Component()
+ *   2. Props object:        Component({ class: "x", nodes: "y" })
+ *   3. Props + children:    Component({ class: "x", on: {...} }, "y")
+ *   4. Positional:          Component("className", children)
+ *   5. Children-only:       Component("text") / Component([child]) / Component(node) / Component(() => child)
+ *
+ * Forms 3 and 4 both use the two-arg shape. They are disambiguated by
+ * the type of `first`: an object (plain props) means form 3, a string
+ * means form 4. Form 3 takes the props verbatim but uses the positional
+ * second arg as the effective `nodes` (overriding any `nodes` key on
+ * the props object if both are present).
  */
 export function normalizeArgs<P extends BaseProps>(
 	first?: P | NodeChildren,
 	second?: NodeChildren,
 ): P {
 	if (first === undefined || first === null) return {} as P;
-	if (second !== undefined) return { class: first, nodes: second } as P;
+
+	// Two-arg forms
+	if (second !== undefined) {
+		// Form 4: Component("className", children)
+		if (typeof first === "string") {
+			return { class: first, nodes: second } as P;
+		}
+		// Form 3: Component({ ...props }, children)
+		// The props object is used verbatim, but the positional second
+		// arg wins over any `nodes` key already on it.
+		if (
+			typeof first === "object" &&
+			!Array.isArray(first) &&
+			!(first instanceof Node) &&
+			typeof first !== "function"
+		) {
+			return { ...(first as P), nodes: second } as P;
+		}
+		// Fallthrough: first is a non-string, non-object value AND second
+		// was provided. That shape is meaningless — ignore second and
+		// process first via the one-arg rules below.
+	}
+
+	// Single-arg forms
 	if (typeof first === "string") return { nodes: first } as P;
 	if (typeof first === "number") return { nodes: first } as P;
 	if (typeof first === "boolean") return {} as P;

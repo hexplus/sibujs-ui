@@ -1,4 +1,4 @@
-import { div, type NodeChildren } from "sibujs";
+import { div, type NodeChildren, registerDisposer } from "sibujs";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -285,6 +285,10 @@ export function ScrollArea(
 				ro.observe(viewport.firstElementChild);
 			}
 		});
+		// Tie the observer to the root element's disposer so an unmounted
+		// scroll-area does not leave the ResizeObserver holding references
+		// to its viewport and content closure.
+		registerDisposer(root, () => ro.disconnect());
 	}
 
 	return root;

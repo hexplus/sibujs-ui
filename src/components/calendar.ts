@@ -2,6 +2,7 @@ import {
 	button as buttonTag,
 	div,
 	type NodeChildren,
+	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
@@ -221,6 +222,11 @@ export function Calendar(
 				"relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50",
 			nodes: [trigger, listEl],
 		}) as HTMLElement;
+
+		// Detach the outside-click listener if the dropdown is disposed while open
+		registerDisposer(root, () => {
+			document.removeEventListener("mousedown", outsideClick);
+		});
 
 		function update(value: string) {
 			const item = items.find((i) => i.value === value);

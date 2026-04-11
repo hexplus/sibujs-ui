@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { button as buttonTag, type NodeChildren, signal } from "sibujs";
+import { button as buttonTag, type NodeChildren } from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -51,7 +52,14 @@ export function Toggle(
 		...rest
 	} = props;
 
-	const [isPressed, setIsPressed] = signal(pressed ?? defaultPressed);
+	// Shared helper handles all three shapes (undefined / literal / getter)
+	// — previously `signal(pressed ?? defaultPressed)` stored the reactive
+	// getter as the literal signal value, so every read returned the
+	// function itself.
+	const [isPressed, setIsPressed, isControlled] = bindControlled<boolean>(
+		pressed,
+		defaultPressed,
+	);
 
 	const el = buttonTag({
 		"data-slot": "toggle",
@@ -64,7 +72,7 @@ export function Toggle(
 			...on,
 			click: (ev: Event) => {
 				const next = !isPressed();
-				if (pressed === undefined) setIsPressed(next);
+				if (!isControlled) setIsPressed(next);
 				onPressedChange?.(next);
 				(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 			},

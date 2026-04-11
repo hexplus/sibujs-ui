@@ -3,10 +3,12 @@ import {
 	div,
 	effect,
 	type NodeChildren,
+	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -38,17 +40,10 @@ export function Select(
 		...rest
 	} = props;
 
-	const isControlled = controlledValue !== undefined;
-	const resolvedValue =
-		typeof controlledValue === "function" ? controlledValue() : controlledValue;
-	const [value, setValue] = signal(resolvedValue ?? defaultValue);
-
-	// Sync from reactive getter when value is a function
-	if (typeof controlledValue === "function") {
-		effect(() => {
-			setValue(controlledValue());
-		});
-	}
+	const [value, setValue, isControlled] = bindControlled<string>(
+		controlledValue,
+		defaultValue,
+	);
 	const [isOpen, setIsOpen] = signal(false);
 	const [displayText, setDisplayText] = signal("");
 	const [displayNode, setDisplayNode] = signal<Node | null>(null);
@@ -342,6 +337,10 @@ export function SelectContent(
 				document.removeEventListener("mousedown", handleOutsideClick);
 				document.removeEventListener("keydown", handleKeydown);
 			}
+		});
+		registerDisposer(content, () => {
+			document.removeEventListener("mousedown", handleOutsideClick);
+			document.removeEventListener("keydown", handleKeydown);
 		});
 	});
 

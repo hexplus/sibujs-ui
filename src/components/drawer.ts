@@ -5,6 +5,7 @@ import {
 	h2,
 	type NodeChildren,
 	p,
+	registerDisposer,
 	signal,
 } from "sibujs";
 import { cnReactive } from "../lib/utils";
@@ -210,6 +211,13 @@ export function DrawerContent(
 					container.style.display = "none";
 					closeTimer = undefined;
 				}, 300); // matches data-[state=closed]:duration-300
+			}
+		});
+		registerDisposer(container, () => {
+			if (closeTimer) clearTimeout(closeTimer);
+			document.removeEventListener("keydown", handleKeydown);
+			if (document.body.style.overflow === "hidden") {
+				document.body.style.overflow = "";
 			}
 		});
 	});

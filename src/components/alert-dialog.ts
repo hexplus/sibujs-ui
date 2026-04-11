@@ -5,8 +5,9 @@ import {
 	h2,
 	type NodeChildren,
 	p,
-	signal,
+	registerDisposer,
 } from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cn, cnReactive } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
 import {
@@ -35,10 +36,10 @@ export function AlertDialog(
 		...rest
 	} = props;
 
-	const isControlled = controlledOpen !== undefined;
-	const resolvedOpen =
-		typeof controlledOpen === "function" ? controlledOpen() : controlledOpen;
-	const [isOpen, setIsOpen] = signal(resolvedOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
+		controlledOpen,
+		defaultOpen,
+	);
 
 	const alertDialogApi = {
 		isOpen,
@@ -51,13 +52,6 @@ export function AlertDialog(
 			onOpenChange?.(false);
 		},
 	};
-
-	// Sync from reactive getter when open is a function
-	if (typeof controlledOpen === "function") {
-		effect(() => {
-			setIsOpen(controlledOpen());
-		});
-	}
 
 	const el = div({
 		"data-slot": "alert-dialog",
@@ -177,6 +171,12 @@ export function AlertDialogContent(
 							container.style.display = "none";
 							closeTimer = undefined;
 						}, 200);
+					}
+				});
+				registerDisposer(container, () => {
+					if (closeTimer) clearTimeout(closeTimer);
+					if (document.body.style.overflow === "hidden") {
+						document.body.style.overflow = "";
 					}
 				});
 			}

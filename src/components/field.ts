@@ -139,6 +139,7 @@ export function FieldContent(
 
 export interface FieldLabelProps extends BaseProps {
 	for?: string;
+	htmlFor?: string;
 }
 
 export function FieldLabel(
@@ -146,10 +147,10 @@ export function FieldLabel(
 	second?: NodeChildren,
 ): HTMLElement {
 	const props = normalizeArgs<FieldLabelProps>(first, second);
-	const { class: className, for: htmlFor, nodes, ...rest } = props;
+	const { class: className, for: forAttr, htmlFor, nodes, ...rest } = props;
 	return Label({
 		"data-slot": "field-label",
-		for: htmlFor,
+		for: forAttr ?? htmlFor,
 		class: cnReactive(
 			"group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
 			"has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4",

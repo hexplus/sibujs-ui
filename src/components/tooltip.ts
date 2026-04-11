@@ -1,4 +1,12 @@
-import { div, effect, type NodeChildren, signal, span } from "sibujs";
+import {
+	createId,
+	div,
+	effect,
+	type NodeChildren,
+	registerDisposer,
+	span,
+} from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -9,7 +17,8 @@ import {
 
 export interface TooltipProps extends BaseProps {
 	delayDuration?: number;
-	open?: boolean;
+	/** Open state. Accepts a literal OR a reactive getter. */
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
@@ -32,6 +41,13 @@ export function TooltipProvider(
 	}) as HTMLElement;
 }
 
+interface TooltipContext {
+	isOpen: () => boolean;
+	contentId: string;
+	open: () => void;
+	close: () => void;
+}
+
 export function Tooltip(
 	first?: TooltipProps | NodeChildren,
 	second?: NodeChildren,
@@ -46,8 +62,17 @@ export function Tooltip(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	// Use the shared helper so reactive `open` getters are supported
+	// safely. Without this, `signal(controlledOpen ?? defaultOpen)` would
+	// store a getter function as the literal signal value.
+	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
+		controlledOpen,
+		defaultOpen,
+	);
 	let delayTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// Stable id so the trigger's `aria-describedby` can point at the content
+	const contentId = createId("tooltip-content");
 
 	const el = div({
 		"data-slot": "tooltip",
@@ -56,16 +81,22 @@ export function Tooltip(
 		...rest,
 	}) as HTMLElement;
 
-	(el as ElementWithContext).__tooltip = {
+	const ctx: TooltipContext = {
 		isOpen,
+		contentId,
 		open: () => {
+			if (delayTimer) {
+				clearTimeout(delayTimer);
+				delayTimer = null;
+			}
 			if (delayDuration > 0) {
 				delayTimer = setTimeout(() => {
-					if (controlledOpen === undefined) setIsOpen(true);
+					delayTimer = null;
+					if (!isControlled) setIsOpen(true);
 					onOpenChange?.(true);
 				}, delayDuration);
 			} else {
-				if (controlledOpen === undefined) setIsOpen(true);
+				if (!isControlled) setIsOpen(true);
 				onOpenChange?.(true);
 			}
 		},
@@ -74,10 +105,19 @@ export function Tooltip(
 				clearTimeout(delayTimer);
 				delayTimer = null;
 			}
-			if (controlledOpen === undefined) setIsOpen(false);
+			if (!isControlled) setIsOpen(false);
 			onOpenChange?.(false);
 		},
 	};
+	(el as ElementWithContext).__tooltip = ctx;
+
+	// Clean up the open-delay timer if the tooltip is unmounted mid-delay
+	registerDisposer(el, () => {
+		if (delayTimer) {
+			clearTimeout(delayTimer);
+			delayTimer = null;
+		}
+	});
 
 	return el as HTMLElement;
 }
@@ -96,21 +136,30 @@ export function TooltipTrigger(
 		...rest,
 	}) as HTMLElement;
 
-	el.addEventListener("mouseenter", () => {
-		const tooltipEl = el.closest("[data-slot=tooltip]");
-		if (tooltipEl) (tooltipEl as ElementWithContext).__tooltip?.open();
-	});
-	el.addEventListener("mouseleave", () => {
-		const tooltipEl = el.closest("[data-slot=tooltip]");
-		if (tooltipEl) (tooltipEl as ElementWithContext).__tooltip?.close();
-	});
-	el.addEventListener("focus", () => {
-		const tooltipEl = el.closest("[data-slot=tooltip]");
-		if (tooltipEl) (tooltipEl as ElementWithContext).__tooltip?.open();
-	});
-	el.addEventListener("blur", () => {
-		const tooltipEl = el.closest("[data-slot=tooltip]");
-		if (tooltipEl) (tooltipEl as ElementWithContext).__tooltip?.close();
+	const findCtx = (): TooltipContext | undefined =>
+		(el.closest("[data-slot=tooltip]") as ElementWithContext | null)
+			?.__tooltip as TooltipContext | undefined;
+
+	// `pointerenter` / `pointerleave` cover mouse AND touch in one API —
+	// previously only mouse events were wired, so mobile users could not
+	// see tooltips. Focus/blur remain as the keyboard path.
+	const onEnter = () => findCtx()?.open();
+	const onLeave = () => findCtx()?.close();
+	const onEscape = (ev: KeyboardEvent) => {
+		if (ev.key === "Escape") findCtx()?.close();
+	};
+
+	el.addEventListener("pointerenter", onEnter);
+	el.addEventListener("pointerleave", onLeave);
+	el.addEventListener("focus", onEnter);
+	el.addEventListener("blur", onLeave);
+	el.addEventListener("keydown", onEscape);
+
+	// Wire aria-describedby once the trigger joins the DOM tree so the
+	// screen reader can read the tooltip content when the trigger focuses.
+	queueMicrotask(() => {
+		const ctx = findCtx();
+		if (ctx) el.setAttribute("aria-describedby", ctx.contentId);
 	});
 
 	return el;
@@ -153,6 +202,10 @@ export function TooltipContent(
 	const content = div({
 		"data-slot": "tooltip-content",
 		"data-side": side,
+		// Seed `data-state="closed"` at creation so the closed-state CSS
+		// applies on the very first paint instead of one microtask later
+		// (prevents a FOUC flash of the tooltip when the parent mounts).
+		"data-state": "closed",
 		role: "tooltip",
 		class: cnReactive(
 			"z-50 w-max whitespace-nowrap animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
@@ -160,6 +213,8 @@ export function TooltipContent(
 		),
 		style: {
 			position: "absolute",
+			// Initial display matches data-state="closed"
+			display: "none",
 			pointerEvents: "none",
 			...(side === "top"
 				? {
@@ -197,12 +252,18 @@ export function TooltipContent(
 	queueMicrotask(() => {
 		const tooltipEl = content.closest("[data-slot=tooltip]");
 		if (!tooltipEl) return;
-		const ctx = (tooltipEl as ElementWithContext).__tooltip;
+		const ctx = (tooltipEl as ElementWithContext).__tooltip as
+			| TooltipContext
+			| undefined;
 		if (!ctx) return;
+
+		// Adopt the stable id from the parent so the trigger's
+		// aria-describedby resolves to this element
+		content.id = ctx.contentId;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
-		effect(() => {
+		const teardownEffect = effect(() => {
 			const open = ctx.isOpen();
 			if (open) {
 				if (closeTimer) {
@@ -218,6 +279,14 @@ export function TooltipContent(
 					closeTimer = undefined;
 				}, 150);
 			}
+		});
+
+		// Unmount-safe cleanup: the effect and pending timer both go away
+		// when the tooltip content is removed from the DOM, so stale
+		// signals never try to poke a detached element.
+		registerDisposer(content, () => {
+			if (closeTimer) clearTimeout(closeTimer);
+			teardownEffect();
 		});
 	});
 

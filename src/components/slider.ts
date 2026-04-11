@@ -1,4 +1,5 @@
-import { div, effect, type NodeChildren, signal } from "sibujs";
+import { div, effect, type NodeChildren } from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -31,16 +32,16 @@ export function Slider(
 		...rest
 	} = props;
 
-	const resolvedControlled =
+	// Determine initial array length for thumb creation. If the controlled prop
+	// is a reactive getter, read it once up front to size the thumbs; otherwise
+	// use the literal or `defaultValue`.
+	const controlledInitial =
 		typeof controlledValue === "function" ? controlledValue() : controlledValue;
-	const initial = resolvedControlled ?? defaultValue ?? [min];
-	const [values, setValues] = signal<number[]>(initial);
-
-	if (typeof controlledValue === "function") {
-		effect(() => {
-			setValues(controlledValue());
-		});
-	}
+	const initial = controlledInitial ?? defaultValue ?? [min];
+	const [values, setValues] = bindControlled<number[]>(
+		controlledValue,
+		initial,
+	);
 
 	const range = div({
 		"data-slot": "slider-range",

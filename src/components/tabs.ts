@@ -1,11 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import {
-	button as buttonTag,
-	div,
-	effect,
-	type NodeChildren,
-	signal,
-} from "sibujs";
+import { button as buttonTag, div, effect, type NodeChildren } from "sibujs";
+import { bindControlled } from "../lib/controlled";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -37,7 +32,10 @@ export function Tabs(
 		...rest
 	} = props;
 
-	const [activeTab, setActiveTab] = signal(controlledValue ?? defaultValue);
+	const [activeTab, setActiveTab, isControlled] = bindControlled<string>(
+		controlledValue,
+		defaultValue,
+	);
 
 	const el = div({
 		"data-slot": "tabs",
@@ -56,7 +54,7 @@ export function Tabs(
 		activeTab,
 		tabsId,
 		setActiveTab: (v: string) => {
-			if (controlledValue === undefined) setActiveTab(v);
+			if (!isControlled) setActiveTab(v);
 			onValueChange?.(v);
 		},
 	};

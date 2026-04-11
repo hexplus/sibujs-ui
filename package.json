@@ -1,6 +1,6 @@
 {
   "name": "sibujs-ui",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
   "keywords": [
     "sibujs",
@@ -48,7 +48,7 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "sibujs": ">=1.0.0"
+    "sibujs": ">=1.3.0"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -58,8 +58,9 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
     "@types/node": "^25.5.0",
+    "jsdom": "^25.0.0",
     "lucide": "^1.7.0",
-    "sibujs": "^1.0.6",
+    "sibujs": "^1.3.0",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
     "vitest": "^3.1.3"

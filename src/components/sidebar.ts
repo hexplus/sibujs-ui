@@ -7,6 +7,7 @@ import {
 	li,
 	main as mainTag,
 	type NodeChildren,
+	registerDisposer,
 	signal,
 	span,
 	ul,
@@ -93,8 +94,15 @@ export function SidebarProvider(
 	const setOpen = (value: boolean) => {
 		if (controlledOpen === undefined) setIsOpen(value);
 		onOpenChange?.(value);
+		// Security: add `SameSite=Lax` (protects against CSRF) and `Secure`
+		// when the page is loaded over HTTPS. `HttpOnly` cannot be set from
+		// JavaScript — only servers can emit that flag. The sidebar state
+		// is non-sensitive (just open/closed), but defense-in-depth.
+		const isHttps =
+			typeof location !== "undefined" && location.protocol === "https:";
+		const secureFlag = isHttps ? "; Secure" : "";
 		// biome-ignore lint/suspicious/noDocumentCookie: intentional cookie for sidebar state persistence
-		document.cookie = `${SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+		document.cookie = `${SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}; SameSite=Lax${secureFlag}`;
 	};
 
 	const toggleSidebar = () => {
@@ -126,11 +134,14 @@ export function SidebarProvider(
 		});
 	});
 
-	// Mobile breakpoint detection
+	// Mobile breakpoint detection + keyboard shortcut — all cleanup tied
+	// to the element's disposer so the listeners go away when the
+	// SidebarProvider is unmounted.
 	if (typeof window !== "undefined") {
 		const mql = window.matchMedia("(max-width: 768px)");
 		setIsMobile(mql.matches);
-		mql.addEventListener("change", (e) => setIsMobile(e.matches));
+		const onMqlChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+		mql.addEventListener("change", onMqlChange);
 
 		// Keyboard shortcut: Ctrl/Cmd+B
 		const handleKeyDown = (event: KeyboardEvent) => {
@@ -143,6 +154,11 @@ export function SidebarProvider(
 			}
 		};
 		window.addEventListener("keydown", handleKeyDown);
+
+		registerDisposer(el, () => {
+			mql.removeEventListener("change", onMqlChange);
+			window.removeEventListener("keydown", handleKeyDown);
+		});
 	}
 
 	return el;

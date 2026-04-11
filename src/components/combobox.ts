@@ -4,6 +4,7 @@ import {
 	effect,
 	input as inputTag,
 	type NodeChildren,
+	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
@@ -235,15 +236,22 @@ export function Combobox(
 		}
 	});
 
-	// Close on outside click
+	// Close on outside click — use a stable handler and attach/detach based
+	// on open state. Previously this effect returned a cleanup function, but
+	// `effect()` does not honor return-value cleanups, so the listener was
+	// leaked on every re-run.
+	const outsideClickHandler = (ev: MouseEvent) => {
+		if (!el.contains(ev.target as Node)) closeCb();
+	};
 	effect(() => {
 		if (isOpen()) {
-			const handler = (ev: MouseEvent) => {
-				if (!el.contains(ev.target as Node)) closeCb();
-			};
-			document.addEventListener("mousedown", handler);
-			return () => document.removeEventListener("mousedown", handler);
+			document.addEventListener("mousedown", outsideClickHandler);
+		} else {
+			document.removeEventListener("mousedown", outsideClickHandler);
 		}
+	});
+	registerDisposer(el, () => {
+		document.removeEventListener("mousedown", outsideClickHandler);
 	});
 
 	return el;

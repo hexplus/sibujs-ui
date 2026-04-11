@@ -5,6 +5,7 @@ import {
 	div,
 	effect,
 	type NodeChildren,
+	registerDisposer,
 	signal,
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
@@ -74,6 +75,13 @@ export function NavigationMenu(
 			document.removeEventListener("mousedown", handleOutsideClick);
 			document.removeEventListener("keydown", handleKeydown);
 		}
+	});
+
+	// Ensure listeners are detached if the element is unmounted while the
+	// menu is still open — otherwise they'd leak.
+	registerDisposer(el, () => {
+		document.removeEventListener("mousedown", handleOutsideClick);
+		document.removeEventListener("keydown", handleKeydown);
 	});
 
 	return el;

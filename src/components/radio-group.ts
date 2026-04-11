@@ -3,10 +3,10 @@ import {
 	div,
 	effect,
 	type NodeChildren,
-	signal,
 	span,
 } from "sibujs";
 import { CircleIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -40,7 +40,10 @@ export function RadioGroup(
 		...rest
 	} = props;
 
-	const [value, setValue] = signal(controlledValue ?? defaultValue);
+	const [value, setValue, isControlled] = bindControlled<string>(
+		controlledValue,
+		defaultValue,
+	);
 
 	const el = div({
 		"data-slot": "radio-group",
@@ -56,7 +59,7 @@ export function RadioGroup(
 		value,
 		select: (v: string) => {
 			if (disabled) return;
-			if (controlledValue === undefined) setValue(v);
+			if (!isControlled) setValue(v);
 			onValueChange?.(v);
 		},
 		name,

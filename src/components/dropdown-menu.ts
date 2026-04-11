@@ -3,6 +3,7 @@ import {
 	div,
 	effect,
 	type NodeChildren,
+	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
@@ -242,6 +243,12 @@ export function DropdownMenuContent(
 				document.removeEventListener("mousedown", handleOutsideClick);
 				document.removeEventListener("keydown", handleKeydown);
 			}
+		});
+
+		// Clean up listeners if the dropdown is unmounted while still open
+		registerDisposer(content, () => {
+			document.removeEventListener("mousedown", handleOutsideClick);
+			document.removeEventListener("keydown", handleKeydown);
 		});
 	});
 

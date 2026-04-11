@@ -4,9 +4,10 @@ import {
 	effect,
 	h3,
 	type NodeChildren,
-	signal,
+	registerDisposer,
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -42,11 +43,12 @@ export function Accordion(
 		...rest
 	} = props;
 
-	const resolvedControlled =
-		typeof controlledValue === "function" ? controlledValue() : controlledValue;
-	const initial =
-		resolvedControlled ?? defaultValue ?? (type === "multiple" ? [] : "");
-	const [value, setValue] = signal<string | string[]>(initial);
+	const defaultForType: string | string[] =
+		defaultValue ?? (type === "multiple" ? [] : "");
+	const [value, setValue, isControlled] = bindControlled<string | string[]>(
+		controlledValue,
+		defaultForType,
+	);
 
 	const el = div({
 		"data-slot": "accordion",
@@ -110,7 +112,7 @@ export function Accordion(
 				next = current === itemValue && collapsible ? "" : itemValue;
 			}
 
-			if (controlledValue === undefined) setValue(next);
+			if (!isControlled) setValue(next);
 			onValueChange?.(next);
 		},
 		isOpen: (itemValue: string): boolean => {
@@ -296,7 +298,7 @@ export function AccordionContent(
 			outer.setAttribute("aria-labelledby", triggerId);
 
 			if (ctx) {
-				// Keep track of dynamic content height when open (for window resizes) matching Radix --radix-accordion-content-height
+				// Keep track of dynamic content height when open (for window resizes)
 				const ro = new ResizeObserver(() => {
 					if (outer.style.display !== "none") {
 						outer.style.setProperty(
@@ -307,13 +309,13 @@ export function AccordionContent(
 				});
 				ro.observe(inner);
 
-				let closeFallbackTimer: ReturnType<typeof setTimeout>;
+				let closeFallbackTimer: ReturnType<typeof setTimeout> | undefined;
 
-				// Hide completely from DOM matching Radix unmount after animation
+				// Hide completely from DOM unmount after animation
 				outer.addEventListener("animationend", (e) => {
 					if (e.target !== outer) return;
 					if (outer.getAttribute("data-state") === "closed") {
-						clearTimeout(closeFallbackTimer);
+						if (closeFallbackTimer) clearTimeout(closeFallbackTimer);
 						outer.style.display = "none";
 					}
 				});
@@ -323,10 +325,10 @@ export function AccordionContent(
 				outer.setAttribute("data-state", initialOpen ? "open" : "closed");
 				outer.style.display = initialOpen ? "" : "none";
 
-				effect(() => {
+				const teardownEffect = effect(() => {
 					const open = ctx.isOpen(itemValue);
 					if (open) {
-						clearTimeout(closeFallbackTimer);
+						if (closeFallbackTimer) clearTimeout(closeFallbackTimer);
 						// Unhide with height forced to 0 so the animation starts from collapsed
 						outer.style.display = "";
 						outer.style.height = "0px";
@@ -362,6 +364,15 @@ export function AccordionContent(
 							outer.style.display = "none";
 						}
 					}
+				});
+
+				// Tie the ResizeObserver, the pending timer, and the effect
+				// to the element's disposer so an unmounted accordion item
+				// cleans up all its external resources.
+				registerDisposer(outer, () => {
+					ro.disconnect();
+					if (closeFallbackTimer) clearTimeout(closeFallbackTimer);
+					teardownEffect();
 				});
 			}
 		}
