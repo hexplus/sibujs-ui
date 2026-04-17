@@ -715,31 +715,28 @@ export function SidebarMenuButton(
 
 	if (!tooltip) return btn;
 
-	// Wrap in Tooltip — only visible when sidebar is collapsed (not mobile)
 	const tooltipEl = Tooltip([
 		TooltipTrigger([btn]),
 		typeof tooltip === "string"
-			? TooltipContent({ side: "right", align: "center" }, tooltip)
-			: TooltipContent({ side: "right", align: "center", ...tooltip }),
+			? TooltipContent({ side: "right", align: "center", portal: true }, tooltip)
+			: TooltipContent({ side: "right", align: "center", portal: true, ...tooltip }),
 	]) as HTMLElement;
 
-	// Hide tooltip when sidebar is expanded
+	// Gate tooltip opening on sidebar state. Wrapping `ctx.open` (instead of
+	// toggling `display` on the content) avoids racing with TooltipContent's
+	// own display effect, which would otherwise overwrite our override on
+	// every hover.
 	queueMicrotask(() => {
 		const providerEl = tooltipEl.closest("[data-slot=sidebar-wrapper]");
-		if (providerEl) {
-			const ctx = (providerEl as ElementWithContext).__sidebar;
-			if (ctx) {
-				const content = tooltipEl.querySelector(
-					"[data-slot=tooltip-content]",
-				) as HTMLElement | null;
-				if (content) {
-					effect(() => {
-						const hidden = ctx.state() !== "collapsed" || ctx.isMobile();
-						content.style.display = hidden ? "none" : "";
-					});
-				}
-			}
-		}
+		if (!providerEl) return;
+		const sidebarCtx = (providerEl as ElementWithContext).__sidebar;
+		const tooltipCtx = (tooltipEl as ElementWithContext).__tooltip;
+		if (!sidebarCtx || !tooltipCtx) return;
+		const originalOpen = tooltipCtx.open;
+		tooltipCtx.open = () => {
+			if (sidebarCtx.state() !== "collapsed" || sidebarCtx.isMobile()) return;
+			originalOpen();
+		};
 	});
 
 	return tooltipEl;
