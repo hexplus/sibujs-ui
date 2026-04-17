@@ -168,6 +168,13 @@ export function TooltipTrigger(
 export interface TooltipContentProps extends BaseProps {
 	side?: "top" | "right" | "bottom" | "left";
 	sideOffset?: number;
+	/**
+	 * Render the tooltip as a portal attached to `document.body` with fixed
+	 * positioning. Use this when the tooltip's nearest scrolling ancestor
+	 * has `overflow: hidden` and would otherwise clip the content (e.g.
+	 * inside a collapsed Sidebar).
+	 */
+	portal?: boolean;
 }
 
 // Arrow positioning classes per side
@@ -187,6 +194,7 @@ export function TooltipContent(
 		class: className,
 		side = "top",
 		sideOffset = 4,
+		portal = false,
 		nodes,
 		...rest
 	} = props;
@@ -198,6 +206,48 @@ export function TooltipContent(
 			arrowSideClasses[side],
 		),
 	}) as HTMLElement;
+
+	const absoluteStyle: Record<string, string> = {
+		position: "absolute",
+		display: "none",
+		pointerEvents: "none",
+		...(side === "top"
+			? {
+					bottom: `calc(100% + ${sideOffset}px)`,
+					left: "50%",
+					transform: "translateX(-50%)",
+				}
+			: {}),
+		...(side === "bottom"
+			? {
+					top: `calc(100% + ${sideOffset}px)`,
+					left: "50%",
+					transform: "translateX(-50%)",
+				}
+			: {}),
+		...(side === "left"
+			? {
+					right: `calc(100% + ${sideOffset}px)`,
+					top: "50%",
+					transform: "translateY(-50%)",
+				}
+			: {}),
+		...(side === "right"
+			? {
+					left: `calc(100% + ${sideOffset}px)`,
+					top: "50%",
+					transform: "translateY(-50%)",
+				}
+			: {}),
+	};
+
+	const portalStyle: Record<string, string> = {
+		position: "fixed",
+		display: "none",
+		pointerEvents: "none",
+		top: "0",
+		left: "0",
+	};
 
 	const content = div(
 		{
@@ -212,47 +262,38 @@ export function TooltipContent(
 				"z-50 w-max whitespace-nowrap animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
 				className,
 			),
-			style: {
-				position: "absolute",
-				// Initial display matches data-state="closed"
-				display: "none",
-				pointerEvents: "none",
-				...(side === "top"
-					? {
-							bottom: `calc(100% + ${sideOffset}px)`,
-							left: "50%",
-							transform: "translateX(-50%)",
-						}
-					: {}),
-				...(side === "bottom"
-					? {
-							top: `calc(100% + ${sideOffset}px)`,
-							left: "50%",
-							transform: "translateX(-50%)",
-						}
-					: {}),
-				...(side === "left"
-					? {
-							right: `calc(100% + ${sideOffset}px)`,
-							top: "50%",
-							transform: "translateY(-50%)",
-						}
-					: {}),
-				...(side === "right"
-					? {
-							left: `calc(100% + ${sideOffset}px)`,
-							top: "50%",
-							transform: "translateY(-50%)",
-						}
-					: {}),
-			} as Record<string, string>,
+			style: portal ? portalStyle : absoluteStyle,
 			...rest,
 		},
 		[...toNodes(nodes), arrow],
 	) as HTMLElement;
 
+	const computePortalPosition = (trigger: HTMLElement) => {
+		const r = trigger.getBoundingClientRect();
+		// The tooltip is measured after display flips to "" — we need its
+		// box to place it correctly relative to the trigger.
+		const tr = content.getBoundingClientRect();
+		let x = 0;
+		let y = 0;
+		if (side === "top") {
+			x = r.left + r.width / 2 - tr.width / 2;
+			y = r.top - tr.height - sideOffset;
+		} else if (side === "bottom") {
+			x = r.left + r.width / 2 - tr.width / 2;
+			y = r.bottom + sideOffset;
+		} else if (side === "left") {
+			x = r.left - tr.width - sideOffset;
+			y = r.top + r.height / 2 - tr.height / 2;
+		} else {
+			x = r.right + sideOffset;
+			y = r.top + r.height / 2 - tr.height / 2;
+		}
+		content.style.left = `${Math.round(x)}px`;
+		content.style.top = `${Math.round(y)}px`;
+	};
+
 	queueMicrotask(() => {
-		const tooltipEl = content.closest("[data-slot=tooltip]");
+		const tooltipEl = content.closest("[data-slot=tooltip]") as HTMLElement | null;
 		if (!tooltipEl) return;
 		const ctx = (tooltipEl as ElementWithContext).__tooltip as
 			| TooltipContext
@@ -262,6 +303,14 @@ export function TooltipContent(
 		// Adopt the stable id from the parent so the trigger's
 		// aria-describedby resolves to this element
 		content.id = ctx.contentId;
+
+		const trigger = tooltipEl.querySelector(
+			"[data-slot=tooltip-trigger]",
+		) as HTMLElement | null;
+
+		if (portal) {
+			document.body.appendChild(content);
+		}
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -274,6 +323,7 @@ export function TooltipContent(
 				}
 				content.style.display = "";
 				content.setAttribute("data-state", "open");
+				if (portal && trigger) computePortalPosition(trigger);
 			} else {
 				content.setAttribute("data-state", "closed");
 				closeTimer = setTimeout(() => {
@@ -285,11 +335,17 @@ export function TooltipContent(
 
 		// Unmount-safe cleanup: the effect and pending timer both go away
 		// when the tooltip content is removed from the DOM, so stale
-		// signals never try to poke a detached element.
+		// signals never try to poke a detached element. When portalled,
+		// also remove the teleported node.
 		registerDisposer(content, () => {
 			if (closeTimer) clearTimeout(closeTimer);
 			teardownEffect();
 		});
+		if (portal) {
+			registerDisposer(tooltipEl, () => {
+				content.remove();
+			});
+		}
 	});
 
 	return content as HTMLElement;
