@@ -6,6 +6,22 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.0] — 2026-04-16
+
+### Added — `TooltipContent.portal`
+
+`TooltipContent` now accepts a `portal?: boolean` prop. When set, the content element is teleported to `document.body` on mount and switched from `position: absolute` (anchored to the tooltip parent) to `position: fixed` with coordinates recomputed from the trigger's `getBoundingClientRect()` every time the tooltip opens. Use this whenever the tooltip's nearest scrolling ancestor has `overflow: hidden` and would otherwise clip the content. Cleanup is wired through `registerDisposer` so the teleported node is removed when the owning tooltip is disposed.
+
+### Fixed — Sidebar tooltip race in expanded mode
+
+`SidebarMenuButton` previously tried to suppress the icon-mode tooltip when the sidebar was expanded by toggling `display` on the content element from a one-shot effect. `TooltipContent`'s own display effect re-asserted `display = ""` on every hover, so the suppression effect was overwritten and the tooltip became visible in expanded mode (and could also leak into the collapsed-without-hover state). The suppression has been replaced with an `open()` interceptor that wraps the tooltip context so the tooltip simply does not open while the sidebar is expanded or in mobile mode — no more inline-style tug-of-war with `TooltipContent`.
+
+### Fixed — Sidebar tooltip clipped in icon-collapsed mode
+
+`SidebarContent` carries `overflow: hidden` in `group-data-[collapsible=icon]` to prevent horizontal scrollbars in icon mode. That clipping also hid the menu-button tooltip, which renders to the right of the (≈48px-wide) icon column. `SidebarMenuButton` now passes `portal: true` to its `TooltipContent`, so the label escapes the sidebar's overflow box and renders correctly next to the icon.
+
+---
+
 ## [1.1.0] — 2026-04-11
 
 ### Changed — shorthand-only authoring internally
