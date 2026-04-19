@@ -1,6 +1,6 @@
 {
   "name": "sibujs-ui",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
   "keywords": [
     "sibujs",
@@ -48,7 +48,7 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "sibujs": ">=2.0.0"
+    "sibujs": "^2.0.0"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

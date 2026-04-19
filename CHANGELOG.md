@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.1] — 2026-04-18
+
+### Changed — peer range widened to `sibujs ^2.0.0`
+
+`peerDependencies.sibujs` relaxed from `>=2.2.0` to `^2.0.0`. The package only uses the stable public API (`signal`, `derived`, `effect`, tag factories, `cnReactive`) — none of which has changed since 2.0.0 — so the previous floor unnecessarily excluded consumers on sibujs 2.0.x and 2.1.x. No source changes, no behavior changes. Install compatibility gained, nothing lost.
+
+---
+
 ## [1.3.0] — 2026-04-16
 
 ### Added — `TooltipContent.portal`

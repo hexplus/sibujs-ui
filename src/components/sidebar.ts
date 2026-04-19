@@ -718,8 +718,16 @@ export function SidebarMenuButton(
 	const tooltipEl = Tooltip([
 		TooltipTrigger([btn]),
 		typeof tooltip === "string"
-			? TooltipContent({ side: "right", align: "center", portal: true }, tooltip)
-			: TooltipContent({ side: "right", align: "center", portal: true, ...tooltip }),
+			? TooltipContent(
+					{ side: "right", align: "center", portal: true },
+					tooltip,
+				)
+			: TooltipContent({
+					side: "right",
+					align: "center",
+					portal: true,
+					...tooltip,
+				}),
 	]) as HTMLElement;
 
 	// Gate tooltip opening on sidebar state. Wrapping `ctx.open` (instead of

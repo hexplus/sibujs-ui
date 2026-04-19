@@ -293,7 +293,9 @@ export function TooltipContent(
 	};
 
 	queueMicrotask(() => {
-		const tooltipEl = content.closest("[data-slot=tooltip]") as HTMLElement | null;
+		const tooltipEl = content.closest(
+			"[data-slot=tooltip]",
+		) as HTMLElement | null;
 		if (!tooltipEl) return;
 		const ctx = (tooltipEl as ElementWithContext).__tooltip as
 			| TooltipContext
