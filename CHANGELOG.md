@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.2] — 2026-04-19
+
+### Changed — peer range widened to `sibujs ^3.0.0`
+
+`peerDependencies.sibujs` bumped from `^2.0.0` to `^3.0.0` so the package installs cleanly alongside sibujs 3.x. sibujs-ui does not use `ErrorBoundary` (the only public API that changed in sibujs 3.0.0) — every component relies exclusively on `signal`, `derived`, `effect`, tag factories, and `cnReactive`, all of which are unchanged. No source changes, no behavior changes.
+
+---
+
 ## [1.3.1] — 2026-04-18
 
 ### Changed — peer range widened to `sibujs ^2.0.0`
