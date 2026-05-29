@@ -1,5 +1,28 @@
 import type { NodeChildren } from "sibujs";
 
+// Dev-mode check, mirroring sibujs core's tree-shakeable `__SIBU_DEV__`
+// convention. Off in production browsers, on in test/dev Node.
+const _isDev: boolean =
+	typeof (globalThis as { __SIBU_DEV__?: boolean }).__SIBU_DEV__ !== "undefined"
+		? !!(globalThis as { __SIBU_DEV__?: boolean }).__SIBU_DEV__
+		: typeof process !== "undefined" && process.env?.NODE_ENV !== "production";
+
+// Heuristic mirror of sibujs core's tagFactory check: does a lone string look
+// like a CSS class list rather than text? Used ONLY to warn — behavior is
+// unchanged. Conservative: prose ("New") never trips it; only Tailwind-shaped
+// utility strings ("h-6 w-48", "space-y-6") with a class-indicator char do.
+function looksLikeClassList(s: string): boolean {
+	const t = s.trim();
+	if (!t) return false;
+	const tokens = t.split(/\s+/);
+	let sawClassish = false;
+	for (const tok of tokens) {
+		if (!/^-?[A-Za-z_][A-Za-z0-9_:/.-]*$/.test(tok)) return false;
+		if (/[-:/0-9]/.test(tok)) sawClassish = true;
+	}
+	return sawClassish;
+}
+
 /**
  * Base props shared by all sibujs-ui components.
  *
@@ -67,7 +90,18 @@ export function normalizeArgs<P extends BaseProps>(
 	}
 
 	// Single-arg forms
-	if (typeof first === "string") return { nodes: first } as P;
+	if (typeof first === "string") {
+		// Lone string → text child (unchanged). Warn in dev if it looks like a
+		// misplaced class list — e.g. Skeleton("h-6 w-48") rendering the class
+		// names as visible text instead of sizing the placeholder.
+		if (_isDev && looksLikeClassList(first)) {
+			console.warn(
+				`[sibujs-ui] lone string "${first}" looks like a class list but is being rendered as TEXT content. ` +
+					`For classes, pass { class: "${first}" }; to set classes AND children use ("${first}", children).`,
+			);
+		}
+		return { nodes: first } as P;
+	}
 	if (typeof first === "number") return { nodes: first } as P;
 	if (typeof first === "boolean") return {} as P;
 	if (typeof first === "function") return { nodes: first } as P;

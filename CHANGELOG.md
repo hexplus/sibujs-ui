@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-05-29
+
+### Added
+
+- **Dev warning for a misplaced lone class string** — a lone string passed to a component (`Skeleton("h-6 w-48")`) still renders as a text child (unchanged behavior), but development builds now warn when that string looks like a CSS class list, hinting the `{ class: "…" }` form. This matches the core `tag()` behavior and prevents class names from silently rendering as visible text in styled wrappers. Prose strings (`Badge("New")`, `Empty("No results")`) never trigger the warning.
+
+---
+
 ## [1.3.2] — 2026-04-19
 
 ### Changed — peer range widened to `sibujs ^3.0.0`
