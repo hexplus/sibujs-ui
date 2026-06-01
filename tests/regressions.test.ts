@@ -15,6 +15,11 @@ import {
 	AccordionTrigger,
 } from "../src/components/accordion";
 import { Checkbox } from "../src/components/checkbox";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from "../src/components/dropdown-menu";
 import { FieldLabel } from "../src/components/field";
 import {
 	HoverCard,
@@ -403,5 +408,39 @@ describe("ScrollArea — ResizeObserver is disconnected on dispose", () => {
 		document.body.removeChild(root);
 
 		expect(ro.disconnect).toHaveBeenCalledTimes(1);
+	});
+});
+
+// ─── 7. Portal disposal leak — dropdown-menu / menubar / tooltip ───────────
+//
+// These components portal their content to <document.body> to escape overflow
+// clipping. A disposer registered on the portaled node is never reached by
+// dispose() (which only walks the owner's subtree), so on unmount the portaled
+// DOM node was orphaned in <body> forever (and any global listeners / effect
+// subscriptions leaked with it). The fix anchors cleanup on the in-tree root.
+
+describe("DropdownMenu — portaled content is removed on dispose", () => {
+	it("does not leave the portaled content orphaned in <body> after dispose", async () => {
+		const root = DropdownMenu({}, [
+			DropdownMenuTrigger({}, "Open"),
+			DropdownMenuContent({}, "Item"),
+		]);
+		document.body.appendChild(root);
+		await Promise.resolve(); // flush the queueMicrotask that portals content
+
+		const content = document.body.querySelector(
+			'[data-slot="dropdown-menu-content"]',
+		) as HTMLElement;
+		expect(content).toBeTruthy();
+		// Portaled directly under <body>, no longer inside the owner subtree.
+		expect(content.parentElement).toBe(document.body);
+		expect(root.contains(content)).toBe(false);
+
+		dispose(root);
+
+		// The in-tree disposer must have removed the orphaned portaled node.
+		expect(document.body.contains(content)).toBe(false);
+
+		document.body.removeChild(root);
 	});
 });

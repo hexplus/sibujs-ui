@@ -344,7 +344,12 @@ export function TooltipContent(
 			teardownEffect();
 		});
 		if (portal) {
+			// When portaled, `content` lives under <body>, so the disposer above
+			// is never reached on unmount. Do the full teardown (timer, effect,
+			// and the orphaned node) on the in-tree tooltip element instead.
 			registerDisposer(tooltipEl, () => {
+				if (closeTimer) clearTimeout(closeTimer);
+				teardownEffect();
 				content.remove();
 			});
 		}
