@@ -647,7 +647,7 @@ export function MenubarSubContent(
 		// Portal to body
 		document.body.appendChild(content);
 
-		effect(() => {
+		const stopSubEffect = effect(() => {
 			const open = ctx.isOpen();
 			content.style.display = open ? "" : "none";
 			content.setAttribute("data-state", open ? "open" : "closed");
@@ -663,6 +663,14 @@ export function MenubarSubContent(
 
 		content.addEventListener("mouseenter", () => ctx.open());
 		content.addEventListener("mouseleave", () => ctx.close());
+
+		// `content` is portaled to <body>; anchor cleanup on the in-tree sub
+		// root so unmount tears down the effect subscription and removes the
+		// orphaned node.
+		registerDisposer(subEl, () => {
+			stopSubEffect();
+			content.remove();
+		});
 	});
 
 	return content;

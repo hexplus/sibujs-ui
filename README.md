@@ -99,6 +99,10 @@ CardTitle("Hello World");
 CardContent([child1, child2]);
 
 // 3. Positional className + children (shorthand for purely structural wrappers)
+//    NOTE: the string is a className ONLY when children follow it. A LONE
+//    string is a text child — `Skeleton("h-6 w-48")` renders the class names
+//    as text. For a childless styled element use `{ class }`:
+//    Skeleton({ class: "h-6 w-48" }). Dev builds warn on class-like lone strings.
 Card("p-6", [header, body]);
 
 // 4. Props object only

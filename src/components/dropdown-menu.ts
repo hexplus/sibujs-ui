@@ -186,7 +186,7 @@ export function DropdownMenuContent(
 		// Portal to body to avoid overflow clipping
 		document.body.appendChild(content);
 
-		effect(() => {
+		const stopContentEffect = effect(() => {
 			const open = ctx.isOpen();
 			content.setAttribute("data-state", open ? "open" : "closed");
 			if (open) {
@@ -245,10 +245,16 @@ export function DropdownMenuContent(
 			}
 		});
 
-		// Clean up listeners if the dropdown is unmounted while still open
-		registerDisposer(content, () => {
+		// `content` is portaled to <body>, so a disposer registered on it is
+		// never reached by dispose() (which only walks the owner's subtree).
+		// Anchor cleanup on the in-tree menu root instead: on unmount, stop the
+		// positioning effect, drop the global listeners, and remove the
+		// orphaned portaled node.
+		registerDisposer(menuEl, () => {
+			stopContentEffect();
 			document.removeEventListener("mousedown", handleOutsideClick);
 			document.removeEventListener("keydown", handleKeydown);
+			content.remove();
 		});
 	});
 
@@ -674,7 +680,7 @@ export function DropdownMenuSubContent(
 		// Move to body so it's not clipped by parent overflow
 		document.body.appendChild(content);
 
-		effect(() => {
+		const stopSubEffect = effect(() => {
 			const open = ctx.isOpen();
 			content.style.display = open ? "" : "none";
 			content.setAttribute("data-state", open ? "open" : "closed");
@@ -698,6 +704,14 @@ export function DropdownMenuSubContent(
 		});
 		content.addEventListener("mouseleave", () => {
 			ctx.close();
+		});
+
+		// `content` is portaled to <body>; anchor cleanup on the in-tree sub
+		// root so unmount tears down the effect subscription and removes the
+		// orphaned node (without this both leak forever).
+		registerDisposer(subEl, () => {
+			stopSubEffect();
+			content.remove();
 		});
 	});
 

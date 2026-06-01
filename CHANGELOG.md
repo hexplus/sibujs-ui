@@ -6,6 +6,22 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.1] — 2026-06-01
+
+### Fixed — Portaled content leaked on unmount (dropdown-menu, menubar, tooltip)
+
+Components that teleport their content to `document.body` to escape overflow clipping registered their cleanup on the **portaled** node. Because `dispose()` only traverses the owner's subtree, a disposer on a node that has been moved to `<body>` never runs on unmount — so the portaled DOM node was orphaned in `<body>` indefinitely, and any `document` `mousedown`/`keydown` listeners and `effect()` subscriptions leaked with it.
+
+Cleanup is now anchored on the in-tree root element (which `dispose()` does reach), so on unmount the positioning effect is torn down, global listeners are removed, and the portaled node is removed:
+
+- **`DropdownMenuContent`** — was leaking the node and (when open) the outside-click/keydown listeners; the positioning effect was also never disposed.
+- **`DropdownMenuSubContent`** and **`MenubarSubContent`** — had no disposer at all; the portaled node and the open-state effect leaked on every unmount.
+- **`TooltipContent`** (with `portal: true`) — already removed the node, but its hover timer and display effect leaked when portaled; both are now torn down too.
+
+No API or behavior changes for mounted components — this only affects teardown. Verified against `sibujs@3.2.0`.
+
+---
+
 ## [1.4.0] — 2026-05-29
 
 ### Added
