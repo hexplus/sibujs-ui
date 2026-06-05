@@ -6,6 +6,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.2] — 2026-06-05
+
+### Changed
+
+- Bumped the `sibujs` dependency to 3.2.2. No component changes — sibujs-ui does not use the router, so this is a maintenance bump to track the latest core release.
+
+---
+
 ## [1.4.1] — 2026-06-01
 
 ### Fixed — Portaled content leaked on unmount (dropdown-menu, menubar, tooltip)
