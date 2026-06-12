@@ -60,7 +60,7 @@
     "@types/node": "^25.5.0",
     "jsdom": "^25.0.0",
     "lucide": "^1.7.0",
-    "sibujs": "^3.2.2",
+    "sibujs": "^3.3.0",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
     "vitest": "^4.1.8"
