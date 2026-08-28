@@ -6,6 +6,22 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.0] — 2026-08-28
+
+### Changed — Supports sibujs 4.x
+
+The peer range was `^3.2.0`, so installing sibujs-ui alongside the sibujs 4.0.0 release produced an unsatisfied peer dependency: npm reported an invalid tree and could resolve two copies of the framework, which the runtime warns about because duplicated reactive instances do not share state.
+
+The range is now `>=3.2.0 <5.0.0`. sibujs-ui uses none of the APIs 4.0 changed — it does not call `loadWasmModule()`, define custom elements, or use the reactive attribute binders — so 3.x support is retained rather than dropped, and existing users are not forced to upgrade the framework to take this release.
+
+Verified against both ends of the range: 102 tests, lint and the ESM/CJS/declaration build all pass on sibujs 3.3.0 and on 4.0.0. No component changed.
+
+Note that sibujs 4.0 raises its own floors — Node >= 22.3.0, and Chrome/Edge >= 93, Firefox >= 92, Safari >= 15.4. Those apply to the framework, not to sibujs-ui, but they reach any project that upgrades.
+
+- The `sibujs` devDependency is now `^4.0.0`, so the suite runs against the newest core release.
+
+---
+
 ## [1.4.2] — 2026-06-05
 
 ### Changed
