@@ -1,18 +1,19 @@
 import {
 	createId,
+	dispose,
 	div,
-	effect,
 	type NodeChildren,
 	registerDisposer,
 	span,
 } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 export interface TooltipProps extends BaseProps {
@@ -65,10 +66,8 @@ export function Tooltip(
 	// Use the shared helper so reactive `open` getters are supported
 	// safely. Without this, `signal(controlledOpen ?? defaultOpen)` would
 	// store a getter function as the literal signal value.
-	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
-		controlledOpen,
-		defaultOpen,
-	);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 	let delayTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// Stable id so the trigger's `aria-describedby` can point at the content
@@ -80,6 +79,9 @@ export function Tooltip(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	const ctx: TooltipContext = {
 		isOpen,
@@ -157,7 +159,7 @@ export function TooltipTrigger(
 
 	// Wire aria-describedby once the trigger joins the DOM tree so the
 	// screen reader can read the tooltip content when the trigger focuses.
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const ctx = findCtx();
 		if (ctx) el.setAttribute("aria-describedby", ctx.contentId);
 	});
@@ -265,7 +267,7 @@ export function TooltipContent(
 			style: portal ? portalStyle : absoluteStyle,
 			...rest,
 		},
-		[...toNodes(nodes), arrow],
+		[...toChildren(nodes), arrow],
 	) as HTMLElement;
 
 	const computePortalPosition = (trigger: HTMLElement) => {
@@ -292,7 +294,7 @@ export function TooltipContent(
 		content.style.top = `${Math.round(y)}px`;
 	};
 
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		const tooltipEl = content.closest(
 			"[data-slot=tooltip]",
 		) as HTMLElement | null;
@@ -310,13 +312,16 @@ export function TooltipContent(
 			"[data-slot=tooltip-trigger]",
 		) as HTMLElement | null;
 
+		// When portaled, `content` leaves the caller's tree, so the tooltip root
+		// becomes the only node dispose() can reach — it must own the cleanup.
+		const anchor: HTMLElement = portal ? tooltipEl : content;
 		if (portal) {
 			document.body.appendChild(content);
 		}
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
-		const teardownEffect = effect(() => {
+		ownedEffect(anchor, () => {
 			const open = ctx.isOpen();
 			if (open) {
 				if (closeTimer) {
@@ -339,20 +344,13 @@ export function TooltipContent(
 		// when the tooltip content is removed from the DOM, so stale
 		// signals never try to poke a detached element. When portalled,
 		// also remove the teleported node.
-		registerDisposer(content, () => {
+		nodeOwner(anchor).add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
-			teardownEffect();
-		});
-		if (portal) {
-			// When portaled, `content` lives under <body>, so the disposer above
-			// is never reached on unmount. Do the full teardown (timer, effect,
-			// and the orphaned node) on the in-tree tooltip element instead.
-			registerDisposer(tooltipEl, () => {
-				if (closeTimer) clearTimeout(closeTimer);
-				teardownEffect();
+			if (portal) {
+				dispose(content);
 				content.remove();
-			});
-		}
+			}
+		});
 	});
 
 	return content as HTMLElement;

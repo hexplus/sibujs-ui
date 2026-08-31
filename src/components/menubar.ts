@@ -1,19 +1,20 @@
 import {
 	button as buttonTag,
+	dispose,
 	div,
-	effect,
 	type NodeChildren,
-	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 // ── Menubar ──────────────────────────────────────────────────────────────────
@@ -39,7 +40,8 @@ export function Menubar(
 // ── MenubarMenu ──────────────────────────────────────────────────────────────
 
 export interface MenubarMenuProps extends BaseProps {
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the menu reactively. */
+	open?: boolean | (() => boolean);
 	onOpenChange?: (open: boolean) => void;
 }
 
@@ -49,7 +51,8 @@ export function MenubarMenu(
 ): HTMLElement {
 	const props = normalizeArgs<MenubarMenuProps>(first, second);
 	const { open: controlledOpen, onOpenChange, nodes, ...rest } = props;
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? false);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, false);
 
 	const el = div({
 		"data-slot": "menubar-menu",
@@ -58,6 +61,9 @@ export function MenubarMenu(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	const closeAll = () => {
 		// Close all sub-menus immediately
@@ -71,21 +77,21 @@ export function MenubarMenu(
 					(sc as HTMLElement).style.display = "none";
 				}
 			});
-		if (controlledOpen === undefined) setIsOpen(false);
+		if (!isControlled) setIsOpen(false);
 		onOpenChange?.(false);
 	};
 
 	(el as ElementWithContext).__menubarMenu = {
 		isOpen,
 		open: () => {
-			if (controlledOpen === undefined) setIsOpen(true);
+			if (!isControlled) setIsOpen(true);
 			onOpenChange?.(true);
 		},
 		close: closeAll,
 		toggle: () => {
 			if (isOpen()) closeAll();
 			else {
-				if (controlledOpen === undefined) setIsOpen(true);
+				if (!isControlled) setIsOpen(true);
 				onOpenChange?.(true);
 			}
 		},
@@ -125,12 +131,12 @@ export function MenubarTrigger(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const menuEl = el.closest("[data-slot=menubar-menu]");
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__menubarMenu;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					el.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
 				});
 			}
@@ -206,12 +212,12 @@ export function MenubarContent(
 		}
 	};
 
-	queueMicrotask(() => {
+	deferOwned(content, (owner) => {
 		const menuEl = content.closest("[data-slot=menubar-menu]");
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__menubarMenu;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(content, () => {
 					const open = ctx.isOpen();
 					content.style.display = open ? "" : "none";
 					content.setAttribute("data-state", open ? "open" : "closed");
@@ -223,7 +229,7 @@ export function MenubarContent(
 						document.removeEventListener("keydown", handleKeydown);
 					}
 				});
-				registerDisposer(content, () => {
+				owner.add(() => {
 					document.removeEventListener("mousedown", handleOutsideClick);
 					document.removeEventListener("keydown", handleKeydown);
 				});
@@ -419,7 +425,7 @@ export function MenubarCheckboxItem(
 				},
 				() => (isChecked() ? [CheckIcon({ class: "size-4" })] : []),
 			),
-			...toNodes(nodes),
+			...toChildren(nodes),
 		],
 	) as HTMLElement;
 }
@@ -501,15 +507,15 @@ export function MenubarRadioItem(
 			},
 			...rest,
 		},
-		[indicator, ...toNodes(nodes)],
+		[indicator, ...toChildren(nodes)],
 	) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const groupEl = el.closest("[data-slot=menubar-radio-group]");
 		if (groupEl) {
 			const ctx = (groupEl as ElementWithContext).__menubarRadioGroup;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					const checked = ctx.value() === value;
 					el.setAttribute("aria-checked", String(checked));
 					indicator.innerHTML = "";
@@ -601,7 +607,7 @@ export function MenubarSubTrigger(
 			),
 			...rest,
 		},
-		[...toNodes(nodes), ChevronRightIcon({ class: "ml-auto h-4 w-4" })],
+		[...toChildren(nodes), ChevronRightIcon({ class: "ml-auto h-4 w-4" })],
 	) as HTMLElement;
 
 	el.addEventListener("mouseenter", () => {
@@ -633,7 +639,7 @@ export function MenubarSubContent(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		const subEl = content.closest("[data-slot=menubar-sub]");
 		if (!subEl) return;
 		const ctx = (subEl as ElementWithContext).__menubarSub;
@@ -644,10 +650,11 @@ export function MenubarSubContent(
 		if (rootMenu)
 			(content as ElementWithContext).__menubarRoot = rootMenu as HTMLElement;
 
-		// Portal to body
+		// Portal to body. Cleanup is owned by the in-tree sub root, since a
+		// disposer on the portaled node would never run.
 		document.body.appendChild(content);
 
-		const stopSubEffect = effect(() => {
+		ownedEffect(subEl, () => {
 			const open = ctx.isOpen();
 			content.style.display = open ? "" : "none";
 			content.setAttribute("data-state", open ? "open" : "closed");
@@ -667,8 +674,8 @@ export function MenubarSubContent(
 		// `content` is portaled to <body>; anchor cleanup on the in-tree sub
 		// root so unmount tears down the effect subscription and removes the
 		// orphaned node.
-		registerDisposer(subEl, () => {
-			stopSubEffect();
+		nodeOwner(subEl).add(() => {
+			dispose(content);
 			content.remove();
 		});
 	});

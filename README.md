@@ -10,7 +10,7 @@ A complete UI component library for [SibuJS](https://github.com/hexplus/sibujs).
 - **Zero VDOM** — direct DOM manipulation with fine-grained reactivity
 - **TypeScript** — full type definitions for all components and props
 - **Themeable** — 12 built-in color themes with CSS custom properties
-- **Tree-shakeable** — import only what you use
+- **Bundler-friendly** — ships ESM and CJS builds and declares `"sideEffects": false`, so bundlers can drop the components you never import
 
 ## Installation
 
@@ -18,7 +18,13 @@ A complete UI component library for [SibuJS](https://github.com/hexplus/sibujs).
 npm install sibujs-ui sibujs
 ```
 
-`sibujs-ui` requires **`sibujs >= 1.3.0`** as a peer dependency — earlier versions lack the `registerDisposer`, `createId`, and `tag(props, children)` APIs that the components rely on.
+`sibujs-ui` declares **`sibujs >=3.2.0 <5.0.0`** as a peer dependency — earlier versions lack the `registerDisposer`, `createId`, `onMount`, and `tag(props, children)` APIs that the components rely on.
+
+CI runs the full test suite, type-check and build against sibujs `3.2.0`, `3.4.1` and `4.0.1` — the floor, middle and current top of that range — in a dedicated compatibility matrix that installs each version and fails if the requested version is not the one actually resolved. That matrix is the only thing this claim rests on; if a version is not listed there, it is not tested.
+
+**Node:** `>=22.3.0` to *use* the package, matching SibuJS 4's own floor.
+
+Building and testing the repository needs `>=22.12.0`, because the dev toolchain (Vite 7 / rolldown) ships a native binding that declares `^20.19.0 || >=22.12.0`. That is a contributor requirement only — rolldown is a devDependency and is never published. CI runs the full verification on Node 22.12, 22 and 24.
 
 ## Setup
 
@@ -33,7 +39,7 @@ Add the required theme CSS to your project's stylesheet:
 
 ## Usage
 
-Every component accepts the sibujs 1.3.0 `tag(props, children)` shorthand — props as the first argument, children as the second — so the tree reads top-down without `nodes:` keys:
+Every component accepts the sibujs `tag(props, children)` shorthand — props as the first argument, children as the second — so the tree reads top-down without `nodes:` keys:
 
 ```ts
 import { Button, Card, CardHeader, CardTitle, CardContent } from "sibujs-ui";
@@ -108,7 +114,7 @@ Card("p-6", [header, body]);
 // 4. Props object only
 Button({ variant: "default", nodes: "Click me", on: { click: handler } });
 
-// 5. Props object + children (canonical sibujs 1.3.0 form)
+// 5. Props object + children (canonical sibujs form)
 Button(
   { variant: "default", on: { click: handler } },
   "Click me",
@@ -136,6 +142,110 @@ Dialog({ open }, [
   DialogContent([/* … */]),
 ]);
 ```
+
+### Reactive children
+
+Children may be reactive getters anywhere `NodeChildren` is accepted, including
+inside arrays and nested arrays. The getter is bound by SibuJS, so it re-renders
+when its dependencies change:
+
+```ts
+const [label, setLabel] = signal("Saving…");
+
+DialogContent(() => label());              // whole child is reactive
+DialogContent([icon, () => label()]);      // mixed static and reactive
+```
+
+Components that add their own internal nodes — the Dialog close button, the
+Drawer drag handle, a menu's chevron, a Command group heading — keep those in
+their documented position around your children.
+
+`null`, `undefined` and booleans are ignored, matching SibuJS semantics. Nested
+arrays are flattened in order, and neither arrays nor getters are ever
+stringified.
+
+Reactive children are disposed together with their component, so a getter stops
+being read once its subtree is disposed.
+
+> `toChildren()` is the exported helper for this. The older `toNodes()` keeps its
+> `Node[]` return type for backward compatibility and therefore cannot represent
+> a reactive child — prefer `toChildren()` in your own components.
+
+### Form controls
+
+`Checkbox`, `Switch` and `RadioGroup` render styled `button` elements but take
+part in forms through a visually hidden native input, so `FormData`,
+`checkValidity()` / `reportValidity()` and form reset behave natively:
+
+```ts
+const form = document.createElement("form");
+form.append(
+  Checkbox({ name: "terms", required: true }),
+  Switch({ name: "notify", value: "email" }),
+  RadioGroup({ name: "plan", defaultValue: "free", required: true }, [
+    RadioGroupItem({ value: "free" }),
+    RadioGroupItem({ value: "pro" }),
+  ]),
+);
+
+new FormData(form); // → terms=on (only while checked), plan=free, …
+```
+
+- A control is submitted only while checked/selected, under its `name`.
+- `value` defaults to `"on"` for `Checkbox` and `Switch`, as a native checkbox does.
+- `disabled` controls are excluded from submission, per the HTML spec.
+- `required` is enforced by real constraint validation, not a custom check.
+- `form.reset()` restores `defaultChecked` / `defaultValue` and the visible control follows.
+- Controlled and uncontrolled usage behave identically.
+
+The bridge input is `aria-hidden` with `tabindex="-1"`, so it adds no duplicate
+tab stop and no duplicate form entry — the styled control stays the only
+focusable, announced element.
+
+`RadioGroup` implements the native radio keyboard model: the group is a single
+tab stop, and <kbd>↑</kbd>/<kbd>↓</kbd>/<kbd>←</kbd>/<kbd>→</kbd> move (wrapping)
+while <kbd>Home</kbd>/<kbd>End</kbd> jump to the first/last item. Disabled items
+are skipped.
+
+A `name` (or `required`) is what opts a control into form participation; without
+either, no hidden input is created.
+
+## Accessibility
+
+Components ship ARIA roles, states and id wiring — `Dialog` and `AlertDialog`
+generate per-instance ids so `aria-labelledby` / `aria-describedby` resolve to
+their own title and description, and a reference is dropped rather than left
+dangling when the element is absent. This is not a claim of full WCAG
+conformance; audit your own application.
+
+## Releasing
+
+Releases are published manually by the package owner. There is no release
+automation in this repository: no scripted version bump, commit, tag, push or
+registry check.
+
+Run the verification gates first:
+
+```bash
+npm ci
+npm test -- --run
+npm run lint
+npx tsc --noEmit
+npm run build
+npm pack --dry-run
+```
+
+Then, once the gates are green, the owner sets the new version in
+`package.json`, and publishes:
+
+```bash
+npm login
+npm publish --access public
+```
+
+`npm login` and `npm publish` are manual owner actions. They are never run by
+CI, by any script in this repository, or by any test. `prepublishOnly` rebuilds
+the package so `npm publish` always ships a fresh `dist/`.
 
 ## Acknowledgements
 

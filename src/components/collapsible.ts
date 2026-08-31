@@ -1,11 +1,6 @@
-import {
-	button as buttonTag,
-	div,
-	effect,
-	type NodeChildren,
-	show,
-} from "sibujs";
+import { button as buttonTag, div, type NodeChildren, show } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -35,10 +30,8 @@ export function Collapsible(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
-		controlledOpen,
-		defaultOpen,
-	);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 
 	const el = div({
 		"data-slot": "collapsible",
@@ -48,6 +41,9 @@ export function Collapsible(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	(el as ElementWithContext).__collapsible = {
 		isOpen,
@@ -87,12 +83,12 @@ export function CollapsibleTrigger(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const collapsibleEl = el.closest("[data-slot=collapsible]");
 		if (collapsibleEl) {
 			const ctx = (collapsibleEl as ElementWithContext).__collapsible;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					el.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
 				});
 			}
@@ -117,13 +113,13 @@ export function CollapsibleContent(
 	}) as HTMLElement;
 
 	// After insertion, bind visibility and data-state to parent collapsible state
-	queueMicrotask(() => {
+	deferOwned(wrapper, () => {
 		const collapsibleEl = wrapper.closest("[data-slot=collapsible]");
 		if (collapsibleEl) {
 			const ctx = (collapsibleEl as ElementWithContext).__collapsible;
 			if (ctx) {
 				show(() => ctx.isOpen(), wrapper);
-				effect(() => {
+				ownedEffect(wrapper, () => {
 					wrapper.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
 				});
 			}

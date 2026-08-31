@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { button as buttonTag, div, effect, type NodeChildren } from "sibujs";
+import { button as buttonTag, div, type NodeChildren } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -32,10 +33,8 @@ export function Tabs(
 		...rest
 	} = props;
 
-	const [activeTab, setActiveTab, isControlled] = bindControlled<string>(
-		controlledValue,
-		defaultValue,
-	);
+	const [activeTab, setActiveTab, isControlled, stopControlled] =
+		bindControlled<string>(controlledValue, defaultValue);
 
 	const el = div({
 		"data-slot": "tabs",
@@ -47,6 +46,8 @@ export function Tabs(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	nodeOwner(el).add(stopControlled);
 
 	const tabsId = `tabs-${++tabsIdCounter}`;
 
@@ -137,22 +138,21 @@ export function TabsTrigger(
 	}) as HTMLElement;
 
 	// Bind active state reactively + aria
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const tabsEl = el.closest("[data-slot=tabs]");
-		if (tabsEl) {
-			const ctx = (tabsEl as ElementWithContext).__tabs;
-			if (ctx) {
-				const idPrefix = ctx.tabsId;
-				el.id = `tab-${idPrefix}-${value}`;
-				el.setAttribute("aria-controls", `panel-${idPrefix}-${value}`);
+		if (!tabsEl) return;
+		const ctx = (tabsEl as ElementWithContext).__tabs;
+		if (!ctx) return;
 
-				effect(() => {
-					const isActive = ctx.activeTab() === value;
-					el.setAttribute("data-state", isActive ? "active" : "inactive");
-					el.setAttribute("aria-selected", String(isActive));
-				});
-			}
-		}
+		const idPrefix = ctx.tabsId;
+		el.id = `tab-${idPrefix}-${value}`;
+		el.setAttribute("aria-controls", `panel-${idPrefix}-${value}`);
+
+		ownedEffect(el, () => {
+			const isActive = ctx.activeTab() === value;
+			el.setAttribute("data-state", isActive ? "active" : "inactive");
+			el.setAttribute("aria-selected", String(isActive));
+		});
 	});
 
 	return el as HTMLElement;
@@ -179,22 +179,21 @@ export function TabsContent(
 	}) as HTMLElement;
 
 	// Bind visibility to active tab + aria
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const tabsEl = el.closest("[data-slot=tabs]");
-		if (tabsEl) {
-			const ctx = (tabsEl as ElementWithContext).__tabs;
-			if (ctx) {
-				const idPrefix = ctx.tabsId;
-				el.id = `panel-${idPrefix}-${value}`;
-				el.setAttribute("aria-labelledby", `tab-${idPrefix}-${value}`);
+		if (!tabsEl) return;
+		const ctx = (tabsEl as ElementWithContext).__tabs;
+		if (!ctx) return;
 
-				effect(() => {
-					const isActive = ctx.activeTab() === value;
-					el.style.display = isActive ? "" : "none";
-					el.setAttribute("data-state", isActive ? "active" : "inactive");
-				});
-			}
-		}
+		const idPrefix = ctx.tabsId;
+		el.id = `panel-${idPrefix}-${value}`;
+		el.setAttribute("aria-labelledby", `tab-${idPrefix}-${value}`);
+
+		ownedEffect(el, () => {
+			const isActive = ctx.activeTab() === value;
+			el.style.display = isActive ? "" : "none";
+			el.setAttribute("data-state", isActive ? "active" : "inactive");
+		});
 	});
 
 	return el as HTMLElement;

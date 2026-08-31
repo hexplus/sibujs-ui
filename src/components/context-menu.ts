@@ -1,18 +1,12 @@
-import {
-	div,
-	effect,
-	type NodeChildren,
-	registerDisposer,
-	signal,
-	span,
-} from "sibujs";
+import { div, type NodeChildren, signal, span } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
+import { deferOwned, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 export interface ContextMenuProps extends BaseProps {
@@ -121,12 +115,12 @@ export function ContextMenuContent(
 		}
 	};
 
-	queueMicrotask(() => {
+	deferOwned(content, (owner) => {
 		const menuEl = content.closest("[data-slot=context-menu]");
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__contextMenu;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(content, () => {
 					const open = ctx.isOpen();
 					content.style.display = open ? "" : "none";
 					content.setAttribute("data-state", open ? "open" : "closed");
@@ -140,7 +134,7 @@ export function ContextMenuContent(
 						document.removeEventListener("keydown", handleKeydown);
 					}
 				});
-				registerDisposer(content, () => {
+				owner.add(() => {
 					document.removeEventListener("mousedown", handleOutsideClick);
 					document.removeEventListener("keydown", handleKeydown);
 				});
@@ -268,7 +262,7 @@ export function ContextMenuCheckboxItem(
 				},
 				() => (isChecked() ? [CheckIcon({ class: "size-4" })] : []),
 			),
-			...toNodes(nodes),
+			...toChildren(nodes),
 		],
 	) as HTMLElement;
 }
@@ -350,16 +344,16 @@ export function ContextMenuRadioItem(
 			},
 			...rest,
 		},
-		[indicatorWrapper, ...toNodes(nodes)],
+		[indicatorWrapper, ...toChildren(nodes)],
 	) as HTMLElement;
 
 	// Reactively show/hide radio indicator
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const groupEl = el.closest("[data-slot=context-menu-radio-group]");
 		if (groupEl) {
 			const ctx = (groupEl as ElementWithContext).__radioGroup;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					const isSelected = ctx.value() === val;
 					el.setAttribute("aria-checked", String(isSelected));
 					indicatorWrapper.innerHTML = "";
@@ -490,7 +484,7 @@ export function ContextMenuSubTrigger(
 			},
 			...rest,
 		},
-		[...toNodes(nodes), ChevronRightIcon({ class: "ml-auto size-4" })],
+		[...toChildren(nodes), ChevronRightIcon({ class: "ml-auto size-4" })],
 	) as HTMLElement;
 }
 
@@ -516,12 +510,12 @@ export function ContextMenuSubContent(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		const subEl = content.closest("[data-slot=context-menu-sub]");
 		if (subEl) {
 			const ctx = (subEl as ElementWithContext).__contextSub;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(content, () => {
 					const open = ctx.isOpen();
 					content.style.display = open ? "" : "none";
 					content.setAttribute("data-state", open ? "open" : "closed");

@@ -1,5 +1,6 @@
 import { div, type NodeChildren } from "sibujs";
 import { GripVerticalIcon } from "../icons";
+import { deferOwned } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -215,7 +216,7 @@ export function ResizablePanelGroup(
 	(el as ElementWithContext).__groupCtx = groupCtx;
 
 	// Once children are mounted, normalise sizes & restore saved layout
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		if (autoSaveId) {
 			try {
 				const saved = localStorage.getItem(`resizable-panels:${autoSaveId}`);
@@ -363,7 +364,7 @@ export function ResizableHandle(
 	) as HTMLElement;
 
 	// Set correct aria-orientation once mounted
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const groupEl = el.closest("[data-slot=resizable-panel-group]");
 		if (groupEl) {
 			const ctx: GroupContext | undefined = (groupEl as ElementWithContext)

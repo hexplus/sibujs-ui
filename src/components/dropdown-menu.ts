@@ -1,23 +1,25 @@
 import {
 	button as buttonTag,
+	dispose,
 	div,
-	effect,
 	type NodeChildren,
-	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 export interface DropdownMenuProps extends BaseProps {
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the menu reactively. */
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
@@ -34,7 +36,8 @@ export function DropdownMenu(
 		nodes,
 		...rest
 	} = props;
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 
 	const el = div({
 		"data-slot": "dropdown-menu",
@@ -42,6 +45,9 @@ export function DropdownMenu(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	const closeAll = () => {
 		// Close all sub-menus immediately
@@ -58,14 +64,14 @@ export function DropdownMenu(
 					(sc as HTMLElement).style.display = "none";
 				}
 			});
-		if (controlledOpen === undefined) setIsOpen(false);
+		if (!isControlled) setIsOpen(false);
 		onOpenChange?.(false);
 	};
 
 	(el as ElementWithContext).__dropdown = {
 		isOpen,
 		open: () => {
-			if (controlledOpen === undefined) setIsOpen(true);
+			if (!isControlled) setIsOpen(true);
 			onOpenChange?.(true);
 		},
 		close: closeAll,
@@ -73,7 +79,7 @@ export function DropdownMenu(
 			if (isOpen()) {
 				closeAll();
 			} else {
-				if (controlledOpen === undefined) setIsOpen(true);
+				if (!isControlled) setIsOpen(true);
 				onOpenChange?.(true);
 			}
 		},
@@ -107,12 +113,12 @@ export function DropdownMenuTrigger(
 	}) as HTMLElement;
 
 	// Bind aria-expanded reactively
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const menuEl = el.closest("[data-slot=dropdown-menu]");
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__dropdown;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					el.setAttribute("aria-expanded", String(ctx.isOpen()));
 				});
 			}
@@ -174,7 +180,7 @@ export function DropdownMenuContent(
 		}
 	};
 
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		menuEl = content.closest("[data-slot=dropdown-menu]") as HTMLElement | null;
 		if (!menuEl) return;
 		const ctx = (menuEl as ElementWithContext).__dropdown;
@@ -183,10 +189,14 @@ export function DropdownMenuContent(
 		// Store root reference so portaled items can find the menu
 		(content as ElementWithContext).__dropdownRoot = menuEl;
 
-		// Portal to body to avoid overflow clipping
+		// Portal to body to avoid overflow clipping. From here on `content` is
+		// NOT a descendant of the caller's tree, so everything below must be
+		// owned by the in-tree menu root — a disposer on `content` would never
+		// be reached by dispose().
+		const anchor: HTMLElement = menuEl;
 		document.body.appendChild(content);
 
-		const stopContentEffect = effect(() => {
+		ownedEffect(anchor, () => {
 			const open = ctx.isOpen();
 			content.setAttribute("data-state", open ? "open" : "closed");
 			if (open) {
@@ -250,10 +260,12 @@ export function DropdownMenuContent(
 		// Anchor cleanup on the in-tree menu root instead: on unmount, stop the
 		// positioning effect, drop the global listeners, and remove the
 		// orphaned portaled node.
-		registerDisposer(menuEl, () => {
-			stopContentEffect();
+		nodeOwner(anchor).add(() => {
 			document.removeEventListener("mousedown", handleOutsideClick);
 			document.removeEventListener("keydown", handleKeydown);
+			// Dispose the portaled subtree's own bindings before detaching it —
+			// dispose(anchor) cannot walk into it any more.
+			dispose(content);
 			content.remove();
 		});
 	});
@@ -388,7 +400,7 @@ export function DropdownMenuCheckboxItem(
 				},
 				() => (isChecked() ? [CheckIcon({ class: "size-4" })] : []),
 			),
-			...toNodes(nodes),
+			...toChildren(nodes),
 		],
 	) as HTMLElement;
 }
@@ -533,16 +545,16 @@ export function DropdownMenuRadioItem(
 			},
 			...rest,
 		},
-		[indicatorWrapper, ...toNodes(nodes)],
+		[indicatorWrapper, ...toChildren(nodes)],
 	) as HTMLElement;
 
 	// Reactively show/hide radio indicator
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const groupEl = el.closest("[data-slot=dropdown-menu-radio-group]");
 		if (groupEl) {
 			const ctx = (groupEl as ElementWithContext).__radioGroup;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					const isSelected = ctx.value() === val;
 					el.setAttribute("aria-checked", String(isSelected));
 					indicatorWrapper.innerHTML = "";
@@ -644,7 +656,7 @@ export function DropdownMenuSubTrigger(
 			},
 			...rest,
 		},
-		[...toNodes(nodes), ChevronRightIcon({ class: "ml-auto size-4" })],
+		[...toChildren(nodes), ChevronRightIcon({ class: "ml-auto size-4" })],
 	) as HTMLElement;
 }
 
@@ -666,7 +678,7 @@ export function DropdownMenuSubContent(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		const subEl = content.closest("[data-slot=dropdown-menu-sub]");
 		if (!subEl) return;
 		const ctx = (subEl as ElementWithContext).__dropdownSub;
@@ -677,10 +689,11 @@ export function DropdownMenuSubContent(
 		if (rootMenu)
 			(content as ElementWithContext).__dropdownRoot = rootMenu as HTMLElement;
 
-		// Move to body so it's not clipped by parent overflow
+		// Move to body so it's not clipped by parent overflow. Cleanup is owned
+		// by the in-tree sub root, not the portaled node.
 		document.body.appendChild(content);
 
-		const stopSubEffect = effect(() => {
+		ownedEffect(subEl, () => {
 			const open = ctx.isOpen();
 			content.style.display = open ? "" : "none";
 			content.setAttribute("data-state", open ? "open" : "closed");
@@ -709,8 +722,8 @@ export function DropdownMenuSubContent(
 		// `content` is portaled to <body>; anchor cleanup on the in-tree sub
 		// root so unmount tears down the effect subscription and removes the
 		// orphaned node (without this both leak forever).
-		registerDisposer(subEl, () => {
-			stopSubEffect();
+		nodeOwner(subEl).add(() => {
+			dispose(content);
 			content.remove();
 		});
 	});

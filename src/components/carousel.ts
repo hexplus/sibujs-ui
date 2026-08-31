@@ -1,5 +1,6 @@
-import { div, effect, type NodeChildren, signal, span } from "sibujs";
+import { div, type NodeChildren, signal, span } from "sibujs";
 import { ArrowLeftIcon, ArrowRightIcon } from "../icons";
+import { deferOwned, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
 import {
@@ -163,7 +164,7 @@ export function CarouselContent(
 	outerWrapper.appendChild(content);
 
 	// Update orientation-based styles and listen for scroll
-	queueMicrotask(() => {
+	deferOwned(outerWrapper, () => {
 		const carouselEl = outerWrapper.closest("[data-slot=carousel]");
 		if (carouselEl) {
 			const ctx = (carouselEl as ElementWithContext).__carousel;
@@ -204,7 +205,7 @@ export function CarouselItem(
 	}) as HTMLElement;
 
 	// Add orientation-based padding
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const carouselEl = el.closest("[data-slot=carousel]");
 		if (carouselEl) {
 			const ctx = (carouselEl as ElementWithContext).__carousel;
@@ -273,7 +274,7 @@ export function CarouselPrevious(
 	) as HTMLElement;
 
 	// Position based on orientation & bind disabled state
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const carouselEl = el.closest("[data-slot=carousel]");
 		if (carouselEl) {
 			const ctx = (carouselEl as ElementWithContext).__carousel;
@@ -289,7 +290,7 @@ export function CarouselPrevious(
 				el.classList.add("top-1/2", "-left-12", "-translate-y-1/2");
 			}
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					(el as HTMLButtonElement).disabled = !ctx.canScrollPrev();
 				});
 			}
@@ -351,7 +352,7 @@ export function CarouselNext(
 	) as HTMLElement;
 
 	// Position based on orientation & bind disabled state
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const carouselEl = el.closest("[data-slot=carousel]");
 		if (carouselEl) {
 			const ctx = (carouselEl as ElementWithContext).__carousel;
@@ -367,7 +368,7 @@ export function CarouselNext(
 				el.classList.add("top-1/2", "-right-12", "-translate-y-1/2");
 			}
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					(el as HTMLButtonElement).disabled = !ctx.canScrollNext();
 				});
 			}

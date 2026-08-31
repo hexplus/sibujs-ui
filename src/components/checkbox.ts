@@ -1,6 +1,8 @@
-import { button as buttonTag, effect, type NodeChildren, span } from "sibujs";
+import { button as buttonTag, type NodeChildren, span } from "sibujs";
 import { CheckIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
+import { attachCheckboxBridge } from "../lib/form-control";
+import { nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -9,8 +11,11 @@ export interface CheckboxProps extends BaseProps {
 	defaultChecked?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
 	disabled?: boolean;
+	/** Form field name. Required for the checkbox to appear in FormData. */
 	name?: string;
+	/** Submitted value while checked. Defaults to `"on"`, like a native checkbox. */
 	value?: string;
+	/** Enforced through a real native control, so `checkValidity()` works. */
 	required?: boolean;
 }
 
@@ -32,10 +37,8 @@ export function Checkbox(
 		...rest
 	} = props;
 
-	const [isChecked, setIsChecked, isControlled] = bindControlled<boolean>(
-		controlledChecked,
-		defaultChecked,
-	);
+	const [isChecked, setIsChecked, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledChecked, defaultChecked);
 
 	const indicator = span({
 		"data-slot": "checkbox-indicator",
@@ -70,12 +73,31 @@ export function Checkbox(
 		[indicator],
 	) as HTMLElement;
 
-	// Update indicator content reactively
-	effect(() => {
-		indicator.innerHTML = "";
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
+	// Update indicator content reactively — owned, so it stops on dispose
+	// instead of mutating detached DOM forever.
+	ownedEffect(el, () => {
+		indicator.replaceChildren();
 		if (isChecked()) {
 			indicator.appendChild(CheckIcon({ class: "size-3.5" }));
 		}
+	});
+
+	// Native bridge so the checkbox actually participates in its form.
+	attachCheckboxBridge(el, {
+		name,
+		value,
+		required,
+		disabled,
+		defaultChecked,
+		checked: isChecked,
+		onReset: (next) => {
+			if (next === isChecked()) return;
+			if (!isControlled) setIsChecked(next);
+			onCheckedChange?.(next);
+		},
 	});
 
 	return el;

@@ -1,19 +1,22 @@
 import {
 	button as buttonTag,
+	createId,
 	div,
-	effect,
 	h2,
 	type NodeChildren,
 	p,
-	registerDisposer,
 } from "sibujs";
+import { bindAriaRefs } from "../lib/aria";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import { createScrollLock } from "../lib/scroll-lock";
 import { cn, cnReactive } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
+	toChildren,
 } from "./types";
 
 export interface AlertDialogProps extends BaseProps {
@@ -36,10 +39,8 @@ export function AlertDialog(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
-		controlledOpen,
-		defaultOpen,
-	);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 
 	const alertDialogApi = {
 		isOpen,
@@ -65,6 +66,8 @@ export function AlertDialog(
 		},
 		...rest,
 	}) as HTMLElement;
+
+	nodeOwner(el).add(stopControlled);
 
 	return el as HTMLElement;
 }
@@ -104,26 +107,43 @@ export function AlertDialogContent(
 	const props = normalizeArgs<AlertDialogContentProps>(first, second);
 	const { class: className, size = "default", nodes, ...rest } = props;
 
+	// Per-instance ids. The previous fixed "alert-dialog-title" /
+	// "alert-dialog-description" strings were never assigned to any element, so
+	// both ARIA references dangled — and would have collided outright once two
+	// dialogs existed. createId() is unique per call, so each instance labels
+	// only its own children.
+	const titleId = createId("alert-dialog-title");
+	const descId = createId("alert-dialog-description");
+
+	// Recorded now, while it is a fact. An explicit reference may name an
+	// external element, several elements, or one that does not exist yet — none
+	// of which can be told apart from a generated reference after the fact, so
+	// authorship is captured rather than inferred.
+	const callerLabelledBy = rest["aria-labelledby"] != null;
+	const callerDescribedBy = rest["aria-describedby"] != null;
+
 	const overlay = div({
 		"data-slot": "alert-dialog-overlay",
 		class:
 			"fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
 	}) as HTMLElement;
 
-	const content = div({
-		"data-slot": "alert-dialog-content",
-		"data-size": size,
-		role: "alertdialog",
-		"aria-modal": "true",
-		"aria-labelledby": "alert-dialog-title",
-		"aria-describedby": "alert-dialog-description",
-		class: cn(
-			"group/alert-dialog-content fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[size=sm]:max-w-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[size=default]:sm:max-w-lg",
-			className,
-		),
-		nodes,
-		...rest,
-	}) as HTMLElement;
+	const content = div(
+		{
+			"data-slot": "alert-dialog-content",
+			"data-size": size,
+			role: "alertdialog",
+			"aria-modal": "true",
+			"aria-labelledby": titleId,
+			"aria-describedby": descId,
+			class: cn(
+				"group/alert-dialog-content fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 data-[size=sm]:max-w-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[size=default]:sm:max-w-lg",
+				className,
+			),
+			...rest,
+		},
+		toChildren(nodes),
+	) as HTMLElement;
 
 	const container = div(
 		{
@@ -144,45 +164,64 @@ export function AlertDialogContent(
 
 	// Do NOT close on overlay click for alert-dialog (user must take action)
 
-	queueMicrotask(() => {
+	const scrollLock = createScrollLock();
+
+	// Keep the generated references pointing at real, owned children — adding,
+	// re-pointing and removing them as titles mount, move and unmount. A
+	// caller-supplied reference is left strictly alone.
+	bindAriaRefs(container, content, "[data-slot=alert-dialog-content]", [
+		{
+			attr: "aria-labelledby",
+			claimant: "[data-slot=alert-dialog-title]",
+			baseId: titleId,
+			callerOwned: callerLabelledBy,
+		},
+		{
+			attr: "aria-describedby",
+			claimant: "[data-slot=alert-dialog-description]",
+			baseId: descId,
+			callerOwned: callerDescribedBy,
+		},
+	]);
+
+	deferOwned(container, (owner) => {
 		const dialogEl = container.parentElement?.closest?.(
 			"[data-slot=alert-dialog]",
 		);
-		if (dialogEl) {
-			const ctx = (dialogEl as ElementWithContext).__alertDialog;
-			if (ctx) {
-				let closeTimer: ReturnType<typeof setTimeout> | undefined;
-				effect(() => {
-					const open = ctx.isOpen();
-					const state = open ? "open" : "closed";
+		if (!dialogEl) return;
+		const ctx = (dialogEl as ElementWithContext).__alertDialog;
+		if (!ctx) return;
 
-					if (open) {
-						if (closeTimer) {
-							clearTimeout(closeTimer);
-							closeTimer = undefined;
-						}
-						container.style.display = "contents";
-						overlay.setAttribute("data-state", state);
-						content.setAttribute("data-state", state);
-						document.body.style.overflow = "hidden";
-					} else {
-						overlay.setAttribute("data-state", state);
-						content.setAttribute("data-state", state);
-						document.body.style.overflow = "";
-						closeTimer = setTimeout(() => {
-							container.style.display = "none";
-							closeTimer = undefined;
-						}, 200);
-					}
-				});
-				registerDisposer(container, () => {
-					if (closeTimer) clearTimeout(closeTimer);
-					if (document.body.style.overflow === "hidden") {
-						document.body.style.overflow = "";
-					}
-				});
+		let closeTimer: ReturnType<typeof setTimeout> | undefined;
+
+		ownedEffect(container, () => {
+			const open = ctx.isOpen();
+			const state = open ? "open" : "closed";
+
+			if (open) {
+				if (closeTimer) {
+					clearTimeout(closeTimer);
+					closeTimer = undefined;
+				}
+				container.style.display = "contents";
+				overlay.setAttribute("data-state", state);
+				content.setAttribute("data-state", state);
+				scrollLock.acquire();
+			} else {
+				overlay.setAttribute("data-state", state);
+				content.setAttribute("data-state", state);
+				scrollLock.release();
+				closeTimer = setTimeout(() => {
+					container.style.display = "none";
+					closeTimer = undefined;
+				}, 200);
 			}
-		}
+		});
+
+		owner.add(() => {
+			if (closeTimer) clearTimeout(closeTimer);
+			scrollLock.release();
+		});
 	});
 
 	return container as HTMLElement;
@@ -228,7 +267,7 @@ export function AlertDialogTitle(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return h2({
+	const el = h2({
 		"data-slot": "alert-dialog-title",
 		class: cnReactive(
 			"text-lg font-semibold sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2",
@@ -237,6 +276,11 @@ export function AlertDialogTitle(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// The id and the content's `aria-labelledby` are maintained by the owning
+	// AlertDialogContent (see `bindAriaRefs`), which is the only place that can
+	// see this title mount, move or unmount. An explicit caller id is kept.
+	return el;
 }
 
 export function AlertDialogDescription(
@@ -245,12 +289,16 @@ export function AlertDialogDescription(
 ): HTMLElement {
 	const props = normalizeArgs<BaseProps>(first, second);
 	const { class: className, nodes, ...rest } = props;
-	return p({
+	const el = p({
 		"data-slot": "alert-dialog-description",
 		class: cnReactive("text-sm text-muted-foreground", className),
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// As with AlertDialogTitle, the owning AlertDialogContent maintains the id
+	// and the content's `aria-describedby`.
+	return el;
 }
 
 export function AlertDialogMedia(

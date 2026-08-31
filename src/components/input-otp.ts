@@ -1,5 +1,6 @@
-import { div, effect, type NodeChildren, signal, span } from "sibujs";
+import { div, type NodeChildren, signal, span } from "sibujs";
 import { MinusIcon } from "../icons";
+import { deferOwned, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -166,12 +167,12 @@ export function InputOTPSlot(
 	slotEl.appendChild(charDisplay);
 	slotEl.appendChild(caret);
 
-	queueMicrotask(() => {
+	deferOwned(slotEl, () => {
 		const otpEl = slotEl.closest("[data-slot=input-otp]");
 		if (otpEl) {
 			const ctx = (otpEl as ElementWithContext).__inputOtp;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(slotEl, () => {
 					const val = ctx.value();
 					const focused = ctx.focusedIndex();
 					const hasFocus = ctx.isFocused();

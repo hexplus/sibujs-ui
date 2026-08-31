@@ -1,25 +1,26 @@
 import {
 	button as buttonTag,
 	div,
-	effect,
 	h2,
 	type NodeChildren,
 	p,
-	registerDisposer,
-	signal,
 	span,
 } from "sibujs";
 import { XIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import { createScrollLock } from "../lib/scroll-lock";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 export interface SheetProps extends BaseProps {
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the sheet reactively. */
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
@@ -36,7 +37,8 @@ export function Sheet(
 		nodes,
 		...rest
 	} = props;
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 
 	const el = div({
 		"data-slot": "sheet",
@@ -46,14 +48,16 @@ export function Sheet(
 		...rest,
 	}) as HTMLElement;
 
+	nodeOwner(el).add(stopControlled);
+
 	(el as ElementWithContext).__sheet = {
 		isOpen,
 		open: () => {
-			if (controlledOpen === undefined) setIsOpen(true);
+			if (!isControlled) setIsOpen(true);
 			onOpenChange?.(true);
 		},
 		close: () => {
-			if (controlledOpen === undefined) setIsOpen(false);
+			if (!isControlled) setIsOpen(false);
 			onOpenChange?.(false);
 		},
 	};
@@ -172,7 +176,7 @@ export function SheetContent(
 			),
 			...rest,
 		},
-		[...toNodes(nodes), ...(closeBtn ? [closeBtn as Node] : [])],
+		[...toChildren(nodes), ...(closeBtn ? [closeBtn as Node] : [])],
 	) as HTMLElement;
 
 	const container = div(
@@ -196,47 +200,58 @@ export function SheetContent(
 		if (ev.key === "Escape") closeFn();
 	};
 
-	queueMicrotask(() => {
-		const sheetEl = container.parentElement?.closest?.("[data-slot=sheet]");
-		if (sheetEl) {
-			const ctx = (sheetEl as ElementWithContext).__sheet;
-			if (ctx) {
-				let closeTimer: ReturnType<typeof setTimeout> | undefined;
-				effect(() => {
-					const open = ctx.isOpen();
-					const state = open ? "open" : "closed";
+	const scrollLock = createScrollLock();
 
-					if (open) {
-						if (closeTimer) {
-							clearTimeout(closeTimer);
-							closeTimer = undefined;
-						}
-						container.style.display = "contents";
-						overlay.setAttribute("data-state", state);
-						content.setAttribute("data-state", state);
-						document.addEventListener("keydown", handleKeydown);
-						document.body.style.overflow = "hidden";
-					} else {
-						overlay.setAttribute("data-state", state);
-						content.setAttribute("data-state", state);
-						document.removeEventListener("keydown", handleKeydown);
-						document.body.style.overflow = "";
-						closeTimer = setTimeout(() => {
-							container.style.display = "none";
-							closeTimer = undefined;
-						}, 300);
-					}
-				});
-				registerDisposer(container, () => {
-					if (closeTimer) clearTimeout(closeTimer);
-					document.removeEventListener("keydown", handleKeydown);
-					// Restore body scroll if the sheet was still open
-					if (document.body.style.overflow === "hidden") {
-						document.body.style.overflow = "";
-					}
-				});
+	deferOwned(container, (owner) => {
+		const sheetEl = container.parentElement?.closest?.("[data-slot=sheet]");
+		if (!sheetEl) return;
+		const ctx = (sheetEl as ElementWithContext).__sheet;
+		if (!ctx) return;
+
+		let closeTimer: ReturnType<typeof setTimeout> | undefined;
+		let keydownBound = false;
+		const bindKeydown = () => {
+			if (keydownBound) return;
+			keydownBound = true;
+			document.addEventListener("keydown", handleKeydown);
+		};
+		const unbindKeydown = () => {
+			if (!keydownBound) return;
+			keydownBound = false;
+			document.removeEventListener("keydown", handleKeydown);
+		};
+
+		ownedEffect(container, () => {
+			const open = ctx.isOpen();
+			const state = open ? "open" : "closed";
+
+			if (open) {
+				if (closeTimer) {
+					clearTimeout(closeTimer);
+					closeTimer = undefined;
+				}
+				container.style.display = "contents";
+				overlay.setAttribute("data-state", state);
+				content.setAttribute("data-state", state);
+				bindKeydown();
+				scrollLock.acquire();
+			} else {
+				overlay.setAttribute("data-state", state);
+				content.setAttribute("data-state", state);
+				unbindKeydown();
+				scrollLock.release();
+				closeTimer = setTimeout(() => {
+					container.style.display = "none";
+					closeTimer = undefined;
+				}, 300);
 			}
-		}
+		});
+
+		owner.add(() => {
+			if (closeTimer) clearTimeout(closeTimer);
+			unbindKeydown();
+			scrollLock.release();
+		});
 	});
 
 	return container as HTMLElement;

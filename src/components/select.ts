@@ -1,20 +1,19 @@
 import {
 	button as buttonTag,
 	div,
-	effect,
 	type NodeChildren,
-	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 export interface SelectProps extends BaseProps {
@@ -40,10 +39,8 @@ export function Select(
 		...rest
 	} = props;
 
-	const [value, setValue, isControlled] = bindControlled<string>(
-		controlledValue,
-		defaultValue,
-	);
+	const [value, setValue, isControlled, stopControlled] =
+		bindControlled<string>(controlledValue, defaultValue);
 	const [isOpen, setIsOpen] = signal(false);
 	const [displayText, setDisplayText] = signal("");
 	const [displayNode, setDisplayNode] = signal<Node | null>(null);
@@ -56,6 +53,9 @@ export function Select(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	const getVisibleItems = () =>
 		Array.from(
@@ -101,7 +101,7 @@ export function Select(
 					(item) => item.getAttribute("data-value") === value(),
 				);
 				setHighlightedIndex(selectedIdx >= 0 ? selectedIdx : 0);
-				queueMicrotask(() => updateHighlight());
+				deferOwned(el, () => updateHighlight());
 			} else {
 				setHighlightedIndex(-1);
 			}
@@ -192,7 +192,7 @@ export function SelectTrigger(
 	} = props;
 
 	// If nodes are provided (e.g. SelectValue), use them; otherwise create a default value display
-	const childNodes = toNodes(nodes);
+	const childNodes = toChildren(nodes);
 	const hasSelectValue = childNodes.some(
 		(n) =>
 			n instanceof HTMLElement &&
@@ -231,7 +231,7 @@ export function SelectTrigger(
 	});
 
 	// Update display text reactively + bind aria-expanded
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const selectEl = el.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
@@ -242,7 +242,7 @@ export function SelectTrigger(
 		) as HTMLElement | null;
 		if (!valueEl) return;
 
-		effect(() => {
+		ownedEffect(el, () => {
 			const node = ctx.displayNode();
 			const text = ctx.displayText();
 			const open = ctx.isOpen();
@@ -324,13 +324,13 @@ export function SelectContent(
 		}
 	};
 
-	queueMicrotask(() => {
+	deferOwned(content, (owner) => {
 		const selectEl = content.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
 
-		effect(() => {
+		ownedEffect(content, () => {
 			const open = ctx.isOpen();
 			content.style.display = open ? "" : "none";
 			content.setAttribute("data-state", open ? "open" : "closed");
@@ -342,7 +342,7 @@ export function SelectContent(
 				document.removeEventListener("keydown", handleKeydown);
 			}
 		});
-		registerDisposer(content, () => {
+		owner.add(() => {
 			document.removeEventListener("mousedown", handleOutsideClick);
 			document.removeEventListener("keydown", handleKeydown);
 		});
@@ -446,13 +446,13 @@ export function SelectItem(
 	});
 
 	// Show check icon for selected item and sync displayText
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const selectEl = el.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
 
-		effect(() => {
+		ownedEffect(el, () => {
 			const isSelected = ctx.value() === itemValue;
 			el.setAttribute("aria-selected", String(isSelected));
 			el.setAttribute("data-state", isSelected ? "checked" : "unchecked");
@@ -512,13 +512,13 @@ export function SelectValue(
 	) as HTMLElement;
 
 	// Sync display reactively — prefer cloned node tree, fall back to text
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const selectEl = el.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
 
-		effect(() => {
+		ownedEffect(el, () => {
 			const node = ctx.displayNode();
 			const text = ctx.displayText();
 			const trigger = el.closest("[data-slot=select-trigger]");

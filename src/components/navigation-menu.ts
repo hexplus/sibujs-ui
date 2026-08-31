@@ -3,18 +3,17 @@ import {
 	a as aTag,
 	button as buttonTag,
 	div,
-	effect,
 	type NodeChildren,
-	registerDisposer,
 	signal,
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 // ── Trigger Style CVA ────────────────────────────────────────────────────────
@@ -38,7 +37,7 @@ export function NavigationMenu(
 
 	const [activeItem, setActiveItem] = signal<string | null>(null);
 
-	const childNodes = toNodes(nodes);
+	const childNodes = toChildren(nodes);
 	if (viewport) childNodes.push(NavigationMenuViewport() as Node);
 
 	const el = div(
@@ -69,7 +68,7 @@ export function NavigationMenu(
 		if (ev.key === "Escape") setActiveItem(null);
 	};
 
-	effect(() => {
+	ownedEffect(el, () => {
 		if (activeItem() !== null) {
 			document.addEventListener("mousedown", handleOutsideClick);
 			document.addEventListener("keydown", handleKeydown);
@@ -81,7 +80,7 @@ export function NavigationMenu(
 
 	// Ensure listeners are detached if the element is unmounted while the
 	// menu is still open — otherwise they'd leak.
-	registerDisposer(el, () => {
+	nodeOwner(el).add(() => {
 		document.removeEventListener("mousedown", handleOutsideClick);
 		document.removeEventListener("keydown", handleKeydown);
 	});
@@ -151,7 +150,7 @@ export function NavigationMenuTrigger(
 			...rest,
 		},
 		[
-			...toNodes(nodes),
+			...toChildren(nodes),
 			ChevronDownIcon({
 				class:
 					"relative top-[1px] ml-1 size-3 transition duration-300 group-data-[state=open]:rotate-180",
@@ -172,14 +171,14 @@ export function NavigationMenuTrigger(
 		}
 	});
 
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const itemEl = el.closest("[data-slot=navigation-menu-item]");
 		const menuEl = el.closest("[data-slot=navigation-menu]");
 		if (itemEl && menuEl) {
 			const ctx = (menuEl as ElementWithContext).__navMenu;
 			const itemId = (itemEl as ElementWithContext).__navItemId;
 			if (ctx && itemId) {
-				effect(() => {
+				ownedEffect(el, () => {
 					el.setAttribute(
 						"data-state",
 						ctx.activeItem() === itemId ? "open" : "closed",
@@ -212,7 +211,7 @@ export function NavigationMenuContent(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		const itemEl = content.closest("[data-slot=navigation-menu-item]");
 		const menuEl = content.closest("[data-slot=navigation-menu]");
 		if (itemEl && menuEl) {
@@ -220,7 +219,7 @@ export function NavigationMenuContent(
 			const itemId = (itemEl as ElementWithContext).__navItemId;
 			if (ctx && itemId) {
 				let closeTimer: ReturnType<typeof setTimeout> | undefined;
-				effect(() => {
+				ownedEffect(content, () => {
 					const isActive = ctx.activeItem() === itemId;
 					if (isActive) {
 						if (closeTimer) {
@@ -326,7 +325,7 @@ export function NavigationMenuIndicator(
 				class:
 					"relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md",
 			}),
-			...toNodes(nodes),
+			...toChildren(nodes),
 		],
 	) as HTMLElement;
 }

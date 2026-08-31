@@ -1,11 +1,4 @@
-import {
-	button as buttonTag,
-	div,
-	effect,
-	type NodeChildren,
-	p,
-	signal,
-} from "sibujs";
+import { button as buttonTag, div, type NodeChildren, p, signal } from "sibujs";
 import {
 	CircleCheckIcon,
 	InfoIcon,
@@ -14,6 +7,7 @@ import {
 	TriangleAlertIcon,
 	XIcon,
 } from "../icons";
+import { nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -279,10 +273,16 @@ export function Toaster(
 
 	toasterContainer = container;
 
-	// React to toast changes
-	effect(() => {
+	// React to toast changes — owned by the toaster container so a disposed
+	// Toaster stops re-rendering into a detached node.
+	ownedEffect(container, () => {
 		const _toasts = toasts();
 		renderToasts();
+	});
+	nodeOwner(container).add(() => {
+		// Drop the module-level reference to this instance on unmount so a stale
+		// container can never be re-rendered into.
+		if (toasterContainer === container) toasterContainer = null;
 	});
 
 	return container as HTMLElement;

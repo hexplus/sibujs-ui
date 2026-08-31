@@ -7,6 +7,7 @@ import {
 	span,
 } from "sibujs";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
+import { nodeOwner } from "../lib/lifecycle";
 import { cn } from "../lib/utils";
 import { buttonVariants } from "./button";
 import { type BaseProps, normalizeArgs } from "./types";
@@ -181,8 +182,9 @@ export function Calendar(
 				) as HTMLElement;
 				listEl.appendChild(option);
 			}
-			// Scroll active into view
-			requestAnimationFrame(() => {
+			// Scroll active into view — owned so a disposed dropdown does not
+			// scroll a detached list on the next frame.
+			nodeOwner(listEl).raf(() => {
 				const activeIdx = items.findIndex((i) => i.value === selected);
 				if (activeIdx >= 0 && listEl.children[activeIdx]) {
 					(listEl.children[activeIdx] as HTMLElement).scrollIntoView({
