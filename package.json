@@ -18,6 +18,9 @@
     "url": "git+https://github.com/hexplus/sibujs-ui.git"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=22.3.0"
+  },
   "author": "hexplus (https://github.com/hexplus)",
   "type": "module",
   "sideEffects": false,
@@ -44,7 +47,6 @@
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
     "test": "vitest",
-    "publish:npm": "node publish.mjs",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {

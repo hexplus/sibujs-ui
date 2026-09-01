@@ -1,7 +1,12 @@
 // Utilities
 
 // Types
-export { type BaseProps, normalizeArgs, toNodes } from "./components/types";
+export {
+	type BaseProps,
+	normalizeArgs,
+	toChildren,
+	toNodes,
+} from "./components/types";
 
 // Icons (1694 lucide icons + aliases)
 export * from "./icons";

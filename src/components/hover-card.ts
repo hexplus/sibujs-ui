@@ -1,12 +1,12 @@
 import {
 	createId,
 	div,
-	effect,
 	type NodeChildren,
 	registerDisposer,
 	span,
 } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn } from "../lib/utils";
 import {
 	type BaseProps,
@@ -46,10 +46,8 @@ export function HoverCard(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
-		controlledOpen,
-		defaultOpen,
-	);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 	let openTimer: ReturnType<typeof setTimeout> | null = null;
 	let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -62,6 +60,9 @@ export function HoverCard(
 		nodes,
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	const ctx: HoverCardContext = {
 		isOpen,
@@ -157,7 +158,7 @@ export function HoverCardTrigger(
 
 	// Wire aria-describedby once the trigger joins the DOM tree so screen
 	// readers can associate the content with the focusable trigger.
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const ctx = findCtx(el);
 		if (ctx) el.setAttribute("aria-describedby", ctx.contentId);
 	});
@@ -230,22 +231,18 @@ export function HoverCardContent(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		const ctx = findCtx(content);
 		if (!ctx) return;
 
 		// Adopt the stable id so the trigger's aria-describedby can resolve.
 		content.id = ctx.contentId;
 
-		const teardownEffect = effect(() => {
+		ownedEffect(content, () => {
 			const open = ctx.isOpen();
 			content.style.display = open ? "" : "none";
 			content.setAttribute("data-state", open ? "open" : "closed");
 		});
-
-		// Unmount-safe cleanup: the effect goes away when the content is
-		// removed from the DOM, so stale signals cannot poke a detached node.
-		registerDisposer(content, () => teardownEffect());
 	});
 
 	return content as HTMLElement;

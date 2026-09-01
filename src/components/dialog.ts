@@ -1,22 +1,23 @@
 import {
 	button as buttonTag,
 	div,
-	effect,
 	h2,
 	type NodeChildren,
 	p,
-	registerDisposer,
 	span,
 } from "sibujs";
 import { XIcon } from "../icons";
+import { bindAriaRefs } from "../lib/aria";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import { createScrollLock } from "../lib/scroll-lock";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 // Auto-incrementing ID for accessible linkage
@@ -42,10 +43,8 @@ export function Dialog(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen, isControlled] = bindControlled<boolean>(
-		controlledOpen,
-		defaultOpen,
-	);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 
 	const dialogApi = {
 		isOpen,
@@ -76,6 +75,8 @@ export function Dialog(
 		},
 		...rest,
 	}) as HTMLElement;
+
+	nodeOwner(el).add(stopControlled);
 
 	return el as HTMLElement;
 }
@@ -145,6 +146,13 @@ export function DialogContent(
 	const titleId = `${dialogId}-title`;
 	const descId = `${dialogId}-desc`;
 
+	// Recorded now, while it is a fact. An explicit reference may name an
+	// external element, several elements, or one that does not exist yet — none
+	// of which can be told apart from a generated reference after the fact, so
+	// authorship is captured rather than inferred.
+	const callerLabelledBy = rest["aria-labelledby"] != null;
+	const callerDescribedBy = rest["aria-describedby"] != null;
+
 	// Create overlay
 	const overlay = div({
 		"data-slot": "dialog-overlay",
@@ -173,7 +181,9 @@ export function DialogContent(
 			)
 		: null;
 
-	const contentNodes = toNodes(nodes);
+	// Reactive (function) children must survive: toChildren keeps getters intact
+	// so the tag factory binds them, and the close button still lands last.
+	const contentNodes = toChildren(nodes);
 	if (closeButtonEl) contentNodes.push(closeButtonEl as Node);
 
 	const content = div(
@@ -192,9 +202,6 @@ export function DialogContent(
 		contentNodes,
 	) as HTMLElement;
 
-	// Store IDs for child components
-	(content as ElementWithContext).__dialogIds = { titleId, descId };
-
 	// Container that portals overlay + content
 	const container = div(
 		{
@@ -203,6 +210,24 @@ export function DialogContent(
 		},
 		[overlay, content],
 	) as HTMLElement;
+
+	// Keep the generated references pointing at real, owned children — adding,
+	// re-pointing and removing them as titles mount, move and unmount. A
+	// caller-supplied reference is left strictly alone.
+	bindAriaRefs(container, content, "[data-slot=dialog-content]", [
+		{
+			attr: "aria-labelledby",
+			claimant: "[data-slot=dialog-title]",
+			baseId: titleId,
+			callerOwned: callerLabelledBy,
+		},
+		{
+			attr: "aria-describedby",
+			claimant: "[data-slot=dialog-description]",
+			baseId: descId,
+			callerOwned: callerDescribedBy,
+		},
+	]);
 
 	// Wire close behavior
 	const closeFn = () => {
@@ -222,47 +247,63 @@ export function DialogContent(
 		if (ev.key === "Escape") closeFn();
 	};
 
-	// Bind visibility reactively after insertion
-	queueMicrotask(() => {
-		const dialogEl = container.parentElement?.closest?.("[data-slot=dialog]");
-		if (dialogEl) {
-			const ctx = (dialogEl as ElementWithContext).__dialog;
-			if (ctx) {
-				let closeTimer: ReturnType<typeof setTimeout> | undefined;
-				effect(() => {
-					const open = ctx.isOpen();
-					const state = open ? "open" : "closed";
+	// Bind visibility reactively after insertion. `container` is the node that
+	// lives in the caller's tree, so it owns every subscription, timer, global
+	// listener and the scroll lock.
+	const scrollLock = createScrollLock();
 
-					if (open) {
-						if (closeTimer) {
-							clearTimeout(closeTimer);
-							closeTimer = undefined;
-						}
-						container.style.display = "contents";
-						overlay.setAttribute("data-state", state);
-						content.setAttribute("data-state", state);
-						document.addEventListener("keydown", handleKeydown);
-						document.body.style.overflow = "hidden";
-					} else {
-						overlay.setAttribute("data-state", state);
-						content.setAttribute("data-state", state);
-						document.removeEventListener("keydown", handleKeydown);
-						document.body.style.overflow = "";
-						closeTimer = setTimeout(() => {
-							container.style.display = "none";
-							closeTimer = undefined;
-						}, 200);
-					}
-				});
-				registerDisposer(container, () => {
-					if (closeTimer) clearTimeout(closeTimer);
-					document.removeEventListener("keydown", handleKeydown);
-					if (document.body.style.overflow === "hidden") {
-						document.body.style.overflow = "";
-					}
-				});
+	deferOwned(container, (owner) => {
+		const dialogEl = container.parentElement?.closest?.("[data-slot=dialog]");
+		if (!dialogEl) return;
+		const ctx = (dialogEl as ElementWithContext).__dialog;
+		if (!ctx) return;
+
+		let closeTimer: ReturnType<typeof setTimeout> | undefined;
+		let keydownBound = false;
+
+		const bindKeydown = () => {
+			if (keydownBound) return;
+			keydownBound = true;
+			document.addEventListener("keydown", handleKeydown);
+		};
+		const unbindKeydown = () => {
+			if (!keydownBound) return;
+			keydownBound = false;
+			document.removeEventListener("keydown", handleKeydown);
+		};
+
+		ownedEffect(container, () => {
+			const open = ctx.isOpen();
+			const state = open ? "open" : "closed";
+
+			if (open) {
+				if (closeTimer) {
+					clearTimeout(closeTimer);
+					closeTimer = undefined;
+				}
+				container.style.display = "contents";
+				overlay.setAttribute("data-state", state);
+				content.setAttribute("data-state", state);
+				bindKeydown();
+				scrollLock.acquire();
+			} else {
+				overlay.setAttribute("data-state", state);
+				content.setAttribute("data-state", state);
+				unbindKeydown();
+				scrollLock.release();
+				closeTimer = setTimeout(() => {
+					container.style.display = "none";
+					closeTimer = undefined;
+				}, 200);
 			}
-		}
+		});
+
+		owner.add(() => {
+			if (closeTimer) clearTimeout(closeTimer);
+			unbindKeydown();
+			// Release only the lock this instance holds.
+			scrollLock.release();
+		});
 	});
 
 	return container;
@@ -296,7 +337,7 @@ export function DialogFooter(
 	const props = normalizeArgs<DialogFooterProps>(first, second);
 	const { class: className, showCloseButton = false, nodes, ...rest } = props;
 
-	const footerNodes = toNodes(nodes);
+	const footerNodes = toChildren(nodes);
 	if (showCloseButton) {
 		const closeBtn = Button(
 			{
@@ -338,15 +379,9 @@ export function DialogTitle(
 		...rest,
 	}) as HTMLElement;
 
-	// Auto-set ID for aria linkage
-	queueMicrotask(() => {
-		const contentEl = el.closest("[data-slot=dialog-content]");
-		if (contentEl) {
-			const ids = (contentEl as ElementWithContext).__dialogIds;
-			if (ids?.titleId) el.id = ids.titleId;
-		}
-	});
-
+	// The id and the content's `aria-labelledby` are maintained by the owning
+	// DialogContent (see `bindAriaRefs`), which is the only place that can see
+	// this title mount, move or unmount.
 	return el;
 }
 
@@ -364,14 +399,7 @@ export function DialogDescription(
 		...rest,
 	}) as HTMLElement;
 
-	// Auto-set ID for aria linkage
-	queueMicrotask(() => {
-		const contentEl = el.closest("[data-slot=dialog-content]");
-		if (contentEl) {
-			const ids = (contentEl as ElementWithContext).__dialogIds;
-			if (ids?.descId) el.id = ids.descId;
-		}
-	});
-
+	// As with DialogTitle, the owning DialogContent maintains the id and the
+	// content's `aria-describedby`.
 	return el;
 }

@@ -1,14 +1,14 @@
 import {
 	button as buttonTag,
 	div,
-	effect,
 	input as inputTag,
 	type NodeChildren,
-	registerDisposer,
 	signal,
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, XIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import {
@@ -21,13 +21,14 @@ import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 // ── Combobox (Root) ──────────────────────────────────────────────────────────
 
 export interface ComboboxProps extends BaseProps {
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the combobox reactively. */
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	value?: string | string[];
@@ -57,7 +58,8 @@ export function Combobox(
 	} = props;
 
 	const initValue = controlledValue ?? defaultValue ?? (multiple ? [] : "");
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 	const [query, setQuery] = signal("");
 	const [selectedValue, setSelectedValue] = signal(initValue);
 	const [highlightedIndex, setHighlightedIndex] = signal(-1);
@@ -70,14 +72,17 @@ export function Combobox(
 		...rest,
 	}) as HTMLElement;
 
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
 	const openCb = () => {
 		if (disabled) return;
-		if (controlledOpen === undefined) setIsOpen(true);
+		if (!isControlled) setIsOpen(true);
 		onOpenChange?.(true);
 	};
 
 	const closeCb = () => {
-		if (controlledOpen === undefined) setIsOpen(false);
+		if (!isControlled) setIsOpen(false);
 		onOpenChange?.(false);
 		setHighlightedIndex(-1);
 	};
@@ -243,14 +248,14 @@ export function Combobox(
 	const outsideClickHandler = (ev: MouseEvent) => {
 		if (!el.contains(ev.target as Node)) closeCb();
 	};
-	effect(() => {
+	ownedEffect(el, () => {
 		if (isOpen()) {
 			document.addEventListener("mousedown", outsideClickHandler);
 		} else {
 			document.removeEventListener("mousedown", outsideClickHandler);
 		}
 	});
-	registerDisposer(el, () => {
+	nodeOwner(el).add(() => {
 		document.removeEventListener("mousedown", outsideClickHandler);
 	});
 
@@ -272,12 +277,12 @@ export function ComboboxValue(
 		...rest,
 	}) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const comboEl = el.closest("[data-slot=combobox]");
 		if (comboEl) {
 			const ctx = (comboEl as ElementWithContext).__combobox;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					const val = ctx.selectedValue();
 					const placeholder = el.getAttribute("data-placeholder") ?? "";
 					if (typeof val === "string") {
@@ -323,7 +328,7 @@ export function ComboboxTrigger(
 			...rest,
 		},
 		[
-			...toNodes(nodes),
+			...toChildren(nodes),
 			ChevronDownIcon({
 				"data-slot": "combobox-trigger-icon",
 				class: "pointer-events-none size-4 text-muted-foreground",
@@ -450,12 +455,12 @@ export function ComboboxInput(
 				},
 				addonChildren,
 			),
-			...toNodes(nodes),
+			...toChildren(nodes),
 		],
 	) as HTMLElement;
 
 	// Wire input events to combobox context
-	queueMicrotask(() => {
+	deferOwned(wrapper, () => {
 		const comboEl = wrapper.closest("[data-slot=combobox]");
 		if (!comboEl) return;
 		const ctx = (comboEl as ElementWithContext).__combobox;
@@ -475,7 +480,7 @@ export function ComboboxInput(
 		});
 
 		// Show selected value label in input when selection changes
-		effect(() => {
+		ownedEffect(wrapper, () => {
 			const val = ctx.selectedValue();
 			const open = ctx.isOpen();
 
@@ -496,7 +501,7 @@ export function ComboboxInput(
 
 		// When opening, reset filter to show all items
 		let wasOpen = ctx.isOpen();
-		effect(() => {
+		ownedEffect(wrapper, () => {
 			const open = ctx.isOpen();
 			if (open && !wasOpen) {
 				inputEl.value = "";
@@ -564,7 +569,7 @@ export function ComboboxContent(
 	}) as HTMLElement;
 
 	// Position and visibility
-	queueMicrotask(() => {
+	deferOwned(content, () => {
 		const comboEl = content.closest("[data-slot=combobox]");
 		if (!comboEl) return;
 		const ctx = (comboEl as ElementWithContext).__combobox;
@@ -603,7 +608,7 @@ export function ComboboxContent(
 			}
 		};
 
-		effect(() => {
+		ownedEffect(content, () => {
 			const open = ctx.isOpen();
 			content.style.display = open ? "" : "none";
 			content.setAttribute("data-state", open ? "open" : "closed");
@@ -683,7 +688,7 @@ export function ComboboxItem(
 			),
 			...rest,
 		},
-		[...toNodes(nodes), indicator],
+		[...toChildren(nodes), indicator],
 	) as HTMLElement;
 
 	// Event listeners (attached directly for reliable binding)
@@ -708,12 +713,12 @@ export function ComboboxItem(
 	});
 
 	// Bind check indicator reactively
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const comboEl = el.closest("[data-slot=combobox]");
 		if (comboEl) {
 			const ctx = (comboEl as ElementWithContext).__combobox;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					const selected = ctx.isSelected(value);
 					el.setAttribute("aria-selected", String(selected));
 					indicator.innerHTML = "";
@@ -834,7 +839,7 @@ export function ComboboxChip(
 	const props = normalizeArgs<ComboboxChipProps>(first, second);
 	const { class: className, value, showRemove = true, nodes, ...rest } = props;
 
-	const chipNodes = [...toNodes(nodes)];
+	const chipNodes = [...toChildren(nodes)];
 
 	if (showRemove) {
 		const removeBtn = Button(
@@ -894,7 +899,7 @@ export function ComboboxChipsInput(
 		| string
 		| undefined;
 
-	queueMicrotask(() => {
+	deferOwned(inputEl, () => {
 		const comboEl = inputEl.closest("[data-slot=combobox]");
 		if (comboEl) {
 			const ctx = (comboEl as ElementWithContext).__combobox;
@@ -908,7 +913,7 @@ export function ComboboxChipsInput(
 					if (!ctx.isOpen()) ctx.open();
 				});
 				// Hide placeholder when chips are present
-				effect(() => {
+				ownedEffect(inputEl, () => {
 					const val = ctx.selectedValue();
 					const hasValues = Array.isArray(val) && val.length > 0;
 					(inputEl as HTMLInputElement).placeholder = hasValues

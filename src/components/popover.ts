@@ -1,12 +1,6 @@
-import {
-	button as buttonTag,
-	div,
-	effect,
-	type NodeChildren,
-	p,
-	registerDisposer,
-	signal,
-} from "sibujs";
+import { button as buttonTag, div, type NodeChildren, p } from "sibujs";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -15,7 +9,8 @@ import {
 } from "./types";
 
 export interface PopoverProps extends BaseProps {
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the popover reactively. */
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
@@ -32,7 +27,8 @@ export function Popover(
 		nodes,
 		...rest
 	} = props;
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 
 	const el = div({
 		"data-slot": "popover",
@@ -41,19 +37,22 @@ export function Popover(
 		...rest,
 	}) as HTMLElement;
 
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
 	(el as ElementWithContext).__popover = {
 		isOpen,
 		open: () => {
-			if (controlledOpen === undefined) setIsOpen(true);
+			if (!isControlled) setIsOpen(true);
 			onOpenChange?.(true);
 		},
 		close: () => {
-			if (controlledOpen === undefined) setIsOpen(false);
+			if (!isControlled) setIsOpen(false);
 			onOpenChange?.(false);
 		},
 		toggle: () => {
 			const next = !isOpen();
-			if (controlledOpen === undefined) setIsOpen(next);
+			if (!isControlled) setIsOpen(next);
 			onOpenChange?.(next);
 		},
 	};
@@ -86,12 +85,12 @@ export function PopoverTrigger(
 	}) as HTMLElement;
 
 	// Bind aria-expanded reactively
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const popoverEl = el.closest("[data-slot=popover]");
 		if (popoverEl) {
 			const ctx = (popoverEl as ElementWithContext).__popover;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					el.setAttribute("aria-expanded", String(ctx.isOpen()));
 				});
 			}
@@ -160,7 +159,7 @@ export function PopoverContent(
 		}
 	};
 
-	queueMicrotask(() => {
+	deferOwned(content, (owner) => {
 		const popoverEl = content.closest("[data-slot=popover]");
 		if (!popoverEl) return;
 		const ctx = (popoverEl as ElementWithContext).__popover;
@@ -168,7 +167,7 @@ export function PopoverContent(
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
-		effect(() => {
+		ownedEffect(content, () => {
 			const open = ctx.isOpen();
 			if (open) {
 				if (closeTimer) {
@@ -191,7 +190,7 @@ export function PopoverContent(
 		});
 
 		// Detach listeners if the element is disposed while still open
-		registerDisposer(content, () => {
+		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
 			document.removeEventListener("mousedown", handleOutsideClick);
 			document.removeEventListener("keydown", handleKeydown);

@@ -1,5 +1,7 @@
 import { button as buttonTag, type NodeChildren, span } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { attachCheckboxBridge } from "../lib/form-control";
+import { nodeOwner } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -9,7 +11,12 @@ export interface SwitchProps extends BaseProps {
 	onCheckedChange?: (checked: boolean) => void;
 	disabled?: boolean;
 	size?: "sm" | "default";
+	/** Form field name. Required for the switch to appear in FormData. */
 	name?: string;
+	/** Submitted value while checked. Defaults to `"on"`, like a native checkbox. */
+	value?: string;
+	/** Enforced through a real native control, so `checkValidity()` works. */
+	required?: boolean;
 }
 
 export function Switch(
@@ -24,22 +31,24 @@ export function Switch(
 		onCheckedChange,
 		disabled,
 		size = "default",
+		name,
+		value,
+		required,
 		on,
 		...rest
 	} = props;
 
-	const [isChecked, setIsChecked, isControlled] = bindControlled<boolean>(
-		controlledChecked,
-		defaultChecked,
-	);
+	const [isChecked, setIsChecked, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledChecked, defaultChecked);
 
-	return buttonTag(
+	const el = buttonTag(
 		{
 			"data-slot": "switch",
 			"data-size": size,
 			type: "button",
 			role: "switch",
 			"aria-checked": () => String(isChecked()),
+			"aria-required": required ? "true" : undefined,
 			"data-state": () => (isChecked() ? "checked" : "unchecked"),
 			disabled,
 			class: cnReactive(
@@ -68,4 +77,24 @@ export function Switch(
 			}),
 		],
 	) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
+	// Native bridge so the switch actually participates in its form.
+	attachCheckboxBridge(el, {
+		name,
+		value,
+		required,
+		disabled,
+		defaultChecked,
+		checked: isChecked,
+		onReset: (next) => {
+			if (next === isChecked()) return;
+			if (!isControlled) setIsChecked(next);
+			onCheckedChange?.(next);
+		},
+	});
+
+	return el;
 }

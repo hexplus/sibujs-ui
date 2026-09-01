@@ -1,4 +1,5 @@
-import { div, type NodeChildren, registerDisposer } from "sibujs";
+import { div, type NodeChildren } from "sibujs";
+import { deferOwned, nodeOwner } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -111,6 +112,12 @@ export function ScrollArea(
 		}
 	}
 
+	// A pending hide must not outlive the component.
+	nodeOwner(root).add(() => {
+		if (hideTimer) clearTimeout(hideTimer);
+		hideTimer = null;
+	});
+
 	function hideBars(): void {
 		if (type === "always") return;
 		if (hideTimer) clearTimeout(hideTimer);
@@ -193,7 +200,7 @@ export function ScrollArea(
 
 	// Always-visible mode
 	if (type === "always") {
-		queueMicrotask(() => {
+		deferOwned(root, () => {
 			updateThumbs();
 			showBars();
 		});
@@ -275,8 +282,8 @@ export function ScrollArea(
 	setupDrag(vThumb, vBar, "vertical");
 	setupDrag(hThumb, hBar, "horizontal");
 
-	// Initial update after DOM mount
-	queueMicrotask(() => updateThumbs());
+	// Initial update after DOM mount — skipped if the root is disposed first.
+	deferOwned(root, () => updateThumbs());
 
 	// Observe content size changes
 	if (typeof ResizeObserver !== "undefined") {
@@ -285,16 +292,16 @@ export function ScrollArea(
 			if (type === "always") showBars();
 		});
 		ro.observe(viewport);
+		// Tie the observer to the root element's disposer so an unmounted
+		// scroll-area does not leave the ResizeObserver holding references
+		// to its viewport and content closure.
+		nodeOwner(root).observer(ro);
 		// Observe first child too (content changes)
-		queueMicrotask(() => {
+		deferOwned(root, () => {
 			if (viewport.firstElementChild) {
 				ro.observe(viewport.firstElementChild);
 			}
 		});
-		// Tie the observer to the root element's disposer so an unmounted
-		// scroll-area does not leave the ResizeObserver holding references
-		// to its viewport and content closure.
-		registerDisposer(root, () => ro.disconnect());
 	}
 
 	return root;

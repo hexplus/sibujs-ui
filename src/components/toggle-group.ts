@@ -1,11 +1,6 @@
 import type { VariantProps } from "class-variance-authority";
-import {
-	button as buttonTag,
-	div,
-	effect,
-	type NodeChildren,
-	signal,
-} from "sibujs";
+import { button as buttonTag, div, type NodeChildren, signal } from "sibujs";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn } from "../lib/utils";
 import { toggleVariants } from "./toggle";
 import {
@@ -112,9 +107,10 @@ export function ToggleGroupItem(
 		...rest,
 	}) as HTMLElement;
 
-	// Apply classes synchronously — walk up to find group context on the same call stack
-	// (the group element is created before its children in the nodes array)
-	requestAnimationFrame(() => {
+	// Apply classes on the next frame — walk up to find group context
+	// (the group element is created before its children in the nodes array).
+	// Owned, so a disposed item never writes attributes afterwards.
+	nodeOwner(el).raf(() => {
 		const groupEl = el.closest("[data-slot=toggle-group]");
 		const ctx = groupEl ? (groupEl as ElementWithContext).__toggleGroup : null;
 
@@ -171,13 +167,13 @@ export function ToggleGroupItem(
 	});
 
 	// Reactive state binding after mount
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const groupEl = el.closest("[data-slot=toggle-group]");
 		if (!groupEl) return;
 		const ctx = (groupEl as ElementWithContext).__toggleGroup;
 		if (!ctx) return;
 
-		effect(() => {
+		ownedEffect(el, () => {
 			const current = ctx.value();
 			const isOn =
 				ctx.type === "multiple"

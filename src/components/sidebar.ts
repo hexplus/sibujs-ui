@@ -3,7 +3,6 @@ import {
 	a as aTag,
 	button as buttonTag,
 	div,
-	effect,
 	li,
 	main as mainTag,
 	type NodeChildren,
@@ -13,6 +12,8 @@ import {
 	ul,
 } from "sibujs";
 import { PanelLeftIcon } from "../icons";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
@@ -49,7 +50,8 @@ const SIDEBAR_CSS_VARS = {
 
 export interface SidebarProviderProps extends BaseProps {
 	defaultOpen?: boolean;
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the sidebar reactively. */
+	open?: boolean | (() => boolean);
 	onOpenChange?: (open: boolean) => void;
 }
 
@@ -68,7 +70,8 @@ export function SidebarProvider(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 	const [isMobile, setIsMobile] = signal(false);
 	const [openMobile, setOpenMobile] = signal(false);
 
@@ -91,8 +94,11 @@ export function SidebarProvider(
 		...rest,
 	}) as HTMLElement;
 
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
 	const setOpen = (value: boolean) => {
-		if (controlledOpen === undefined) setIsOpen(value);
+		if (!isControlled) setIsOpen(value);
 		onOpenChange?.(value);
 		// Security: add `SameSite=Lax` (protects against CSRF) and `Secure`
 		// when the page is loaded over HTTPS. `HttpOnly` cannot be set from
@@ -125,8 +131,8 @@ export function SidebarProvider(
 	};
 
 	// Reactive data-sidebar-state
-	queueMicrotask(() => {
-		effect(() => {
+	deferOwned(el, () => {
+		ownedEffect(el, () => {
 			el.setAttribute(
 				"data-sidebar-state",
 				isOpen() ? "expanded" : "collapsed",
@@ -271,7 +277,7 @@ export function Sidebar(
 	const mobileSheet = Sheet(
 		{
 			onOpenChange: (open: boolean) => {
-				// Sync back to provider (set up in queueMicrotask below)
+				// Sync back to provider (set up in the deferred wiring below)
 				mobileOnOpenChange?.(open);
 			},
 		},
@@ -308,7 +314,7 @@ export function Sidebar(
 	let mobileOnOpenChange: ((open: boolean) => void) | null = null;
 
 	// Bind reactive state after mount
-	queueMicrotask(() => {
+	deferOwned(sidebarEl, () => {
 		const providerEl = sidebarEl.closest("[data-slot=sidebar-wrapper]");
 		if (!providerEl) return;
 		const ctx = (providerEl as ElementWithContext).__sidebar;
@@ -321,7 +327,7 @@ export function Sidebar(
 		sidebarEl.parentElement?.insertBefore(mobileSheet, sidebarEl);
 
 		// Desktop: reactive data-state and data-collapsible
-		effect(() => {
+		ownedEffect(sidebarEl, () => {
 			const state = ctx.isOpen() ? "expanded" : "collapsed";
 			sidebarEl.setAttribute("data-state", state);
 			sidebarEl.setAttribute(
@@ -332,7 +338,7 @@ export function Sidebar(
 
 		// Mobile: sync sheet open state with provider's openMobile signal
 		if (mobileSheetCtx) {
-			effect(() => {
+			ownedEffect(sidebarEl, () => {
 				const mobileOpen = ctx.openMobile();
 				if (mobileOpen && !mobileSheetCtx?.isOpen()) {
 					// Move inner content to mobile sheet
@@ -734,7 +740,7 @@ export function SidebarMenuButton(
 	// toggling `display` on the content) avoids racing with TooltipContent's
 	// own display effect, which would otherwise overwrite our override on
 	// every hover.
-	queueMicrotask(() => {
+	deferOwned(tooltipEl, () => {
 		const providerEl = tooltipEl.closest("[data-slot=sidebar-wrapper]");
 		if (!providerEl) return;
 		const sidebarCtx = (providerEl as ElementWithContext).__sidebar;

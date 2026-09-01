@@ -1,5 +1,6 @@
-import { div, effect, type NodeChildren } from "sibujs";
+import { div, type NodeChildren } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -38,7 +39,7 @@ export function Slider(
 	const controlledInitial =
 		typeof controlledValue === "function" ? controlledValue() : controlledValue;
 	const initial = controlledInitial ?? defaultValue ?? [min];
-	const [values, setValues] = bindControlled<number[]>(
+	const [values, setValues, , stopControlled] = bindControlled<number[]>(
 		controlledValue,
 		initial,
 	);
@@ -93,8 +94,12 @@ export function Slider(
 		[track, ...thumbs],
 	) as HTMLElement;
 
-	// Update range and thumb positions
-	effect(() => {
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
+	// Update range and thumb positions — owned so a disposed slider stops
+	// writing styles into detached thumbs.
+	ownedEffect(el, () => {
 		const vals = values();
 		const rangePercent = (((vals[0] ?? min) - min) / (max - min)) * 100;
 		if (orientation === "horizontal") {

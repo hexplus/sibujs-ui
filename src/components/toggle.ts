@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { button as buttonTag, type NodeChildren } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { nodeOwner } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -56,10 +57,8 @@ export function Toggle(
 	// — previously `signal(pressed ?? defaultPressed)` stored the reactive
 	// getter as the literal signal value, so every read returned the
 	// function itself.
-	const [isPressed, setIsPressed, isControlled] = bindControlled<boolean>(
-		pressed,
-		defaultPressed,
-	);
+	const [isPressed, setIsPressed, isControlled, stopControlled] =
+		bindControlled<boolean>(pressed, defaultPressed);
 
 	const el = buttonTag({
 		"data-slot": "toggle",
@@ -79,6 +78,9 @@ export function Toggle(
 		},
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	return el;
 }

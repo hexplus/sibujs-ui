@@ -1,23 +1,18 @@
-import {
-	button as buttonTag,
-	div,
-	effect,
-	h2,
-	type NodeChildren,
-	p,
-	registerDisposer,
-	signal,
-} from "sibujs";
+import { button as buttonTag, div, h2, type NodeChildren, p } from "sibujs";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import { createScrollLock } from "../lib/scroll-lock";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 export interface DrawerProps extends BaseProps {
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the drawer reactively. */
+	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	direction?: "top" | "bottom" | "right" | "left";
@@ -37,7 +32,8 @@ export function Drawer(
 		...rest
 	} = props;
 
-	const [isOpen, setIsOpen] = signal(controlledOpen ?? defaultOpen);
+	const [isOpen, setIsOpen, isControlled, stopControlled] =
+		bindControlled<boolean>(controlledOpen, defaultOpen);
 
 	const el = div({
 		"data-slot": "drawer",
@@ -48,15 +44,17 @@ export function Drawer(
 		...rest,
 	}) as HTMLElement;
 
+	nodeOwner(el).add(stopControlled);
+
 	(el as ElementWithContext).__drawer = {
 		isOpen,
 		direction,
 		open: () => {
-			if (controlledOpen === undefined) setIsOpen(true);
+			if (!isControlled) setIsOpen(true);
 			onOpenChange?.(true);
 		},
 		close: () => {
-			if (controlledOpen === undefined) setIsOpen(false);
+			if (!isControlled) setIsOpen(false);
 			onOpenChange?.(false);
 		},
 	};
@@ -148,7 +146,7 @@ export function DrawerContent(
 			"aria-modal": "true",
 			...rest,
 		},
-		[handle, ...toNodes(nodes)],
+		[handle, ...toChildren(nodes)],
 	) as HTMLElement;
 
 	const container = div(
@@ -171,7 +169,9 @@ export function DrawerContent(
 		if (ev.key === "Escape") closeFn();
 	};
 
-	queueMicrotask(() => {
+	const scrollLock = createScrollLock();
+
+	deferOwned(container, (owner) => {
 		const drawerEl = container.parentElement?.closest?.("[data-slot=drawer]");
 		if (!drawerEl) return;
 		const ctx = (drawerEl as ElementWithContext).__drawer;
@@ -190,8 +190,19 @@ export function DrawerContent(
 			typeof resolvedClass === "function" ? resolvedClass() : resolvedClass;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
+		let keydownBound = false;
+		const bindKeydown = () => {
+			if (keydownBound) return;
+			keydownBound = true;
+			document.addEventListener("keydown", handleKeydown);
+		};
+		const unbindKeydown = () => {
+			if (!keydownBound) return;
+			keydownBound = false;
+			document.removeEventListener("keydown", handleKeydown);
+		};
 
-		effect(() => {
+		ownedEffect(container, () => {
 			const open = ctx.isOpen();
 			const state = open ? "open" : "closed";
 
@@ -203,26 +214,25 @@ export function DrawerContent(
 				container.style.display = "contents";
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				document.addEventListener("keydown", handleKeydown);
-				document.body.style.overflow = "hidden";
+				bindKeydown();
+				scrollLock.acquire();
 			} else {
 				// Trigger exit animation first, then hide after it completes
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				document.removeEventListener("keydown", handleKeydown);
-				document.body.style.overflow = "";
+				unbindKeydown();
+				scrollLock.release();
 				closeTimer = setTimeout(() => {
 					container.style.display = "none";
 					closeTimer = undefined;
 				}, 300); // matches data-[state=closed]:duration-300
 			}
 		});
-		registerDisposer(container, () => {
+
+		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
-			document.removeEventListener("keydown", handleKeydown);
-			if (document.body.style.overflow === "hidden") {
-				document.body.style.overflow = "";
-			}
+			unbindKeydown();
+			scrollLock.release();
 		});
 	});
 

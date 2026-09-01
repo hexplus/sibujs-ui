@@ -1,19 +1,13 @@
-import {
-	button as buttonTag,
-	div,
-	effect,
-	h3,
-	type NodeChildren,
-	registerDisposer,
-} from "sibujs";
+import { button as buttonTag, div, h3, type NodeChildren } from "sibujs";
 import { ChevronDownIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
-	toNodes,
+	toChildren,
 } from "./types";
 
 let accordionIdCounter = 0;
@@ -45,10 +39,9 @@ export function Accordion(
 
 	const defaultForType: string | string[] =
 		defaultValue ?? (type === "multiple" ? [] : "");
-	const [value, setValue, isControlled] = bindControlled<string | string[]>(
-		controlledValue,
-		defaultForType,
-	);
+	const [value, setValue, isControlled, stopControlled] = bindControlled<
+		string | string[]
+	>(controlledValue, defaultForType);
 
 	const el = div({
 		"data-slot": "accordion",
@@ -93,6 +86,9 @@ export function Accordion(
 		},
 		...rest,
 	}) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	(el as ElementWithContext).__accordion = {
 		type,
@@ -151,12 +147,12 @@ export function AccordionItem(
 	(el as ElementWithContext).__accordionItemDisabled = disabled;
 
 	// Bind data-state
-	queueMicrotask(() => {
+	deferOwned(el, () => {
 		const accordionEl = el.closest("[data-slot=accordion]");
 		if (accordionEl) {
 			const ctx = (accordionEl as ElementWithContext).__accordion;
 			if (ctx) {
-				effect(() => {
+				ownedEffect(el, () => {
 					const open = ctx.isOpen(value);
 					el.setAttribute("data-state", open ? "open" : "closed");
 				});
@@ -188,7 +184,7 @@ export function AccordionTrigger(
 			"pointer-events-none size-4 shrink-0 translate-y-0.5 text-muted-foreground transition-transform duration-200",
 	});
 
-	const triggerNodes = toNodes(nodes);
+	const triggerNodes = toChildren(nodes);
 	triggerNodes.push(chevron);
 
 	const btn = buttonTag(
@@ -231,7 +227,7 @@ export function AccordionTrigger(
 	) as HTMLElement;
 
 	// Bind open state + ARIA reactively mimicking Radix trigger
-	queueMicrotask(() => {
+	deferOwned(header, () => {
 		const itemEl = header.closest("[data-slot=accordion-item]");
 		const accordionEl = itemEl?.closest("[data-slot=accordion]");
 
@@ -253,7 +249,7 @@ export function AccordionTrigger(
 				const ctx = (accordionEl as ElementWithContext).__accordion;
 				const itemValue = itemEl.getAttribute("data-value") ?? "";
 				if (ctx) {
-					effect(() => {
+					ownedEffect(header, () => {
 						const open = ctx.isOpen(itemValue);
 						btn.setAttribute("data-state", open ? "open" : "closed");
 						btn.setAttribute("aria-expanded", String(open));
@@ -289,7 +285,7 @@ export function AccordionContent(
 		[inner],
 	) as HTMLElement;
 
-	queueMicrotask(() => {
+	deferOwned(outer, (owner) => {
 		const itemEl = outer.closest("[data-slot=accordion-item]");
 		const accordionEl = itemEl?.closest("[data-slot=accordion]");
 		if (accordionEl && itemEl) {
@@ -303,16 +299,22 @@ export function AccordionContent(
 			outer.setAttribute("aria-labelledby", triggerId);
 
 			if (ctx) {
-				// Keep track of dynamic content height when open (for window resizes)
-				const ro = new ResizeObserver(() => {
-					if (outer.style.display !== "none") {
-						outer.style.setProperty(
-							"--radix-accordion-content-height",
-							`${inner.offsetHeight}px`,
-						);
-					}
-				});
-				ro.observe(inner);
+				// Keep track of dynamic content height when open (for window resizes).
+				// ResizeObserver is absent in jsdom and in SSR/older-browser
+				// environments, where constructing it would throw — the accordion
+				// still works, it just cannot track dynamic height.
+				const ro =
+					typeof ResizeObserver !== "undefined"
+						? new ResizeObserver(() => {
+								if (outer.style.display !== "none") {
+									outer.style.setProperty(
+										"--radix-accordion-content-height",
+										`${inner.offsetHeight}px`,
+									);
+								}
+							})
+						: null;
+				ro?.observe(inner);
 
 				let closeFallbackTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -330,7 +332,7 @@ export function AccordionContent(
 				outer.setAttribute("data-state", initialOpen ? "open" : "closed");
 				outer.style.display = initialOpen ? "" : "none";
 
-				const teardownEffect = effect(() => {
+				ownedEffect(outer, () => {
 					const open = ctx.isOpen(itemValue);
 					if (open) {
 						if (closeFallbackTimer) clearTimeout(closeFallbackTimer);
@@ -341,8 +343,10 @@ export function AccordionContent(
 							"--radix-accordion-content-height",
 							`${inner.offsetHeight}px`,
 						);
-						// Single rAF: browser has laid out at height:0, now trigger the open animation
-						requestAnimationFrame(() => {
+						// Single rAF: browser has laid out at height:0, now trigger the
+						// open animation. Owned, so a disposal between scheduling and
+						// the frame cancels it instead of mutating detached DOM.
+						owner.raf(() => {
 							outer.style.height = "";
 							outer.setAttribute("data-state", "open");
 						});
@@ -374,10 +378,9 @@ export function AccordionContent(
 				// Tie the ResizeObserver, the pending timer, and the effect
 				// to the element's disposer so an unmounted accordion item
 				// cleans up all its external resources.
-				registerDisposer(outer, () => {
-					ro.disconnect();
+				owner.add(() => {
+					ro?.disconnect();
 					if (closeFallbackTimer) clearTimeout(closeFallbackTimer);
-					teardownEffect();
 				});
 			}
 		}

@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# An in-progress run for the same ref is superseded by a newer push.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.12 is the floor for *building and testing* this package, not for
+        # using it. Vite 7 pulls rolldown, whose native binding declares
+        # `engines: ^20.19.0 || >=22.12.0`; on Node 22.3–22.11 npm silently
+        # skips that optional dependency and Vitest cannot start at all.
+        #
+        # Consumers only need Node >= 22.3.0 (SibuJS 4's floor) — rolldown is a
+        # devDependency and is never shipped. See `engines` in package.json.
+        node: ['22.12', '22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test -- --run
+
+      - name: Build
+        run: npm run build
+
+      - name: Packaging check
+        run: npm pack --dry-run
+
+  # The README advertises a supported peer range. This job is what makes that
+  # claim true: the `verify` job above only varies Node and would happily test
+  # the same lockfile-pinned SibuJS three times over.
+  compat:
+    name: SibuJS ${{ matrix.sibujs }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor, middle and current top of the declared peer range
+        # (`sibujs >=3.2.0 <5.0.0`). Keep in sync with the README.
+        sibujs: ['3.2.0', '3.4.1', '4.0.1']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install (lockfile)
+        run: npm ci
+
+      # --no-save keeps package.json and package-lock.json untouched, so the
+      # committed metadata is never rewritten by a matrix job.
+      - name: Install SibuJS ${{ matrix.sibujs }}
+        run: npm install --no-save --no-audit --no-fund sibujs@${{ matrix.sibujs }}
+
+      # Guard against the matrix silently testing the lockfile version: if the
+      # override did not take effect, fail loudly rather than report a false pass.
+      - name: Verify resolved SibuJS version
+        run: |
+          RESOLVED=$(node -p "require('./node_modules/sibujs/package.json').version")
+          echo "Resolved SibuJS: $RESOLVED (expected ${{ matrix.sibujs }})"
+          echo "### SibuJS $RESOLVED" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$RESOLVED" != "${{ matrix.sibujs }}" ]; then
+            echo "::error::Expected SibuJS ${{ matrix.sibujs }} but resolved $RESOLVED"
+            exit 1
+          fi
+
+      - name: Type-check against SibuJS ${{ matrix.sibujs }}
+        run: npx tsc --noEmit
+
+      - name: Test against SibuJS ${{ matrix.sibujs }}
+        run: npm test -- --run
+
+      - name: Build against SibuJS ${{ matrix.sibujs }}
+        run: npm run build
+
+  audit:
+    name: Audit (production deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev

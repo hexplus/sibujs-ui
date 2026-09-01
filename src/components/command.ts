@@ -1,11 +1,13 @@
 import {
 	div,
 	input as inputTag,
+	type NodeChild,
 	type NodeChildren,
 	signal,
 	span,
 } from "sibujs";
 import { SearchIcon } from "../icons";
+import { deferOwned } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	Dialog,
@@ -18,29 +20,8 @@ import {
 	type BaseProps,
 	type ElementWithContext,
 	normalizeArgs,
+	toChildren,
 } from "./types";
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function toNodes(nodes: unknown): Node[] {
-	if (Array.isArray(nodes)) {
-		const out: Node[] = [];
-		for (const n of nodes) {
-			if (n instanceof Node) out.push(n);
-			else if (n != null && typeof n !== "boolean" && typeof n !== "function")
-				out.push(document.createTextNode(String(n)));
-		}
-		return out;
-	}
-	if (nodes instanceof Node) return [nodes];
-	if (
-		nodes != null &&
-		typeof nodes !== "boolean" &&
-		typeof nodes !== "function"
-	)
-		return [document.createTextNode(String(nodes))];
-	return [];
-}
 
 // ── Command ──────────────────────────────────────────────────────────────────
 
@@ -191,18 +172,17 @@ export function CommandInput(
 		[SearchIcon({ class: "size-4 shrink-0 opacity-50" }), inputEl],
 	) as HTMLElement;
 
-	// Wire to parent command
-	queueMicrotask(() => {
+	// Wire to parent command — skipped if this input was disposed first, so a
+	// dead component never attaches a listener.
+	deferOwned(wrapper, (owner) => {
 		const cmdEl = wrapper.closest("[data-slot=command]");
-		if (cmdEl) {
-			const ctx = (cmdEl as ElementWithContext).__command;
-			if (ctx) {
-				inputEl.addEventListener("input", () => {
-					ctx.setQuery((inputEl as HTMLInputElement).value);
-					ctx.filter();
-				});
-			}
-		}
+		if (!cmdEl) return;
+		const ctx = (cmdEl as ElementWithContext).__command;
+		if (!ctx) return;
+		owner.listen(inputEl, "input", () => {
+			ctx.setQuery((inputEl as HTMLInputElement).value);
+			ctx.filter();
+		});
 	});
 
 	return wrapper as HTMLElement;
@@ -269,9 +249,11 @@ export function CommandGroup(
 			)
 		: null;
 
-	const childNodes: Node[] = [];
+	// NodeChild[] rather than Node[] so a reactive child survives, with the
+	// heading still first.
+	const childNodes: NodeChild[] = [];
 	if (headingEl) childNodes.push(headingEl as Node);
-	childNodes.push(...toNodes(nodes));
+	childNodes.push(...toChildren(nodes));
 
 	return div(
 		{

@@ -1,4 +1,4 @@
-import type { NodeChildren } from "sibujs";
+import type { NodeChild, NodeChildren } from "sibujs";
 
 // Dev-mode check, mirroring sibujs core's tree-shakeable `__SIBU_DEV__`
 // convention. Off in production browsers, on in test/dev Node.
@@ -111,27 +111,84 @@ export function normalizeArgs<P extends BaseProps>(
 }
 
 /**
+ * Normalize `NodeChildren` into a flat `NodeChild[]` that can be handed
+ * straight to a sibujs tag factory — **preserving reactive child getters**.
+ *
+ * This is the primitive components should use whenever they need to inspect or
+ * extend caller-supplied children (prepending an icon, appending a close
+ * button, …) before passing them on.
+ *
+ * Behaviour, matching sibujs `NodeChild` semantics:
+ *  - functions are passed through untouched, so the tag factory binds them
+ *    reactively and disposes the binding with the element;
+ *  - DOM nodes are passed through;
+ *  - strings and numbers are passed through (the factory makes the text node);
+ *  - arrays — including nested arrays — are flattened, preserving order;
+ *  - `null`, `undefined` and booleans are dropped, as sibujs ignores them.
+ *
+ * Nothing is stringified: an array is never turned into `"a,b"` and a function
+ * is never turned into its source text.
+ *
+ * Note the deliberate asymmetry with {@link toNodes}: this returns `NodeChild[]`
+ * rather than `Node[]` precisely because a reactive child has no `Node`
+ * representation until the factory binds it. Materializing one here — via a
+ * placeholder plus a manual `effect()` — is what previously leaked
+ * subscriptions and duplicated content.
+ */
+export function toChildren(nodes: unknown): NodeChild[] {
+	const out: NodeChild[] = [];
+
+	const walk = (value: unknown): void => {
+		if (value === null || value === undefined) return;
+		if (typeof value === "boolean") return;
+		if (Array.isArray(value)) {
+			for (const item of value) walk(item);
+			return;
+		}
+		// Functions and Nodes pass through as-is; strings/numbers are valid
+		// NodeChild values that the tag factory turns into text.
+		out.push(value as NodeChild);
+	};
+
+	walk(nodes);
+	return out;
+}
+
+/**
  * Convert arbitrary node content to a flat array of DOM Nodes.
- * Safely handles arrays, single nodes, strings, numbers, nulls, etc.
+ *
+ * @deprecated Prefer {@link toChildren}. This helper cannot represent a
+ * reactive child — a `() => NodeChild` getter has no `Node` form — so it drops
+ * function children entirely. Its signature is kept unchanged for backward
+ * compatibility with any external caller that relies on a `Node[]` result.
  */
 export function toNodes(nodes: unknown): Node[] {
 	if (Array.isArray(nodes)) {
 		const out: Node[] = [];
 		for (const n of nodes) {
 			if (n instanceof Node) out.push(n);
-			else if (n != null && typeof n !== "boolean" && typeof n !== "function")
+			else if (typeof n === "function") warnDroppedReactiveChild();
+			else if (n != null && typeof n !== "boolean")
 				out.push(document.createTextNode(String(n)));
 		}
 		return out;
 	}
 	if (nodes instanceof Node) return [nodes];
-	if (
-		nodes != null &&
-		typeof nodes !== "boolean" &&
-		typeof nodes !== "function"
-	)
+	if (typeof nodes === "function") {
+		warnDroppedReactiveChild();
+		return [];
+	}
+	if (nodes != null && typeof nodes !== "boolean")
 		return [document.createTextNode(String(nodes))];
 	return [];
+}
+
+function warnDroppedReactiveChild(): void {
+	if (!_isDev) return;
+	console.warn(
+		"[sibujs-ui] toNodes() dropped a reactive (function) child because it can only return DOM nodes. " +
+			"Use toChildren() and pass the result to a tag factory to keep reactive children.",
+	);
 }
 
 /**
