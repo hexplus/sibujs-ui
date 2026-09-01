@@ -220,32 +220,87 @@ conformance; audit your own application.
 
 ## Releasing
 
-Releases are published manually by the package owner. There is no release
-automation in this repository: no scripted version bump, commit, tag, push or
-registry check.
+Releases are published manually by the package owner. This repository contains
+no release automation: nothing here selects a version, parses a registry
+response, commits, tags, pushes, retries a publication or rolls one back.
 
-Run the verification gates first:
+The order below matters. The version has to be set **before** the quality gates
+run, because `npm pack` and the build describe whatever version is on disk at
+the time — validating first and editing `package.json` afterwards would sign off
+on a package that was never actually inspected.
+
+**1. Start from a clean, up-to-date release branch.** `git status` should report
+nothing outstanding, so the artifact is built from exactly what is committed.
+
+**2. Install the canonical dependencies.**
 
 ```bash
 npm ci
+```
+
+`npm ci` installs strictly from `package-lock.json`, so the gates run against the
+same tree CI uses.
+
+**3. Set the intended version.**
+
+```bash
+npm version <version> --no-git-tag-version
+```
+
+This writes the new version to **both** `package.json` and `package-lock.json`.
+`--no-git-tag-version` is what keeps it inert: no commit and no tag are created,
+so the version bump stays a reviewable working-tree change.
+
+**4. Confirm both manifests agree.**
+
+```bash
+node -p "require('./package.json').version"
+node -p "require('./package-lock.json').version"
+```
+
+Both must print the intended release version. A hand-edited `package.json` is
+the usual way these drift apart, which then ships a tarball whose lockfile
+disagrees with its manifest. At `lockfileVersion` 3 the root version is stored
+twice, so it is worth checking the mirror as well:
+
+```bash
+node -p "require('./package-lock.json').packages[''].version"
+```
+
+**5. Run every quality gate, now that the version is set.**
+
+```bash
 npm test -- --run
 npm run lint
 npx tsc --noEmit
 npm run build
-npm pack --dry-run
+npm pack --dry-run --json
+npm audit --omit=dev
 ```
 
-Then, once the gates are green, the owner sets the new version in
-`package.json`, and publishes:
+**6. Inspect the package that would actually be published.** `npm pack
+--dry-run --json` reports the tarball contents along with its `name`, `version`
+and `filename`; confirm the reported version is the intended release version and
+that the file list holds the built entry points (`dist/index.js`,
+`dist/index.cjs`, `dist/index.d.ts`, `dist/index.d.cts`), the theme CSS under
+`src/themes/`, and `README.md`.
+
+**7. Publish — a manual owner action.** Only once every check above has passed:
 
 ```bash
 npm login
 npm publish --access public
 ```
 
-`npm login` and `npm publish` are manual owner actions. They are never run by
-CI, by any script in this repository, or by any test. `prepublishOnly` rebuilds
-the package so `npm publish` always ships a fresh `dist/`.
+`npm login` and `npm publish` are run by hand by the package owner. They are
+never executed by CI, by any script in this repository, or by any test.
+`prepublishOnly` rebuilds the package first, so a publish always ships a freshly
+built `dist/`.
+
+**8. Commit and tag afterwards, if you want to.** Creating a release commit and
+a Git tag is a separate decision the owner makes after reviewing the version
+diff, not a step this repository performs. There is deliberately no script for
+it.
 
 ## Acknowledgements
 
