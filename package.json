@@ -1,6 +1,6 @@
 {
   "name": "sibujs-ui",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
   "keywords": [
     "sibujs",
@@ -30,6 +30,7 @@
   "files": [
     "dist",
     "src/themes",
+    "styles",
     "README.md",
     "LICENSE"
   ],
@@ -39,10 +40,21 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./cdn": {
+      "default": "./dist/cdn.global.js"
+    },
+    "./cdn-dev": {
+      "default": "./dist/cdn.dev.global.js"
+    },
+    "./cdn-css": {
+      "default": "./dist/sibujs-ui.css"
+    },
     "./themes/*": "./src/themes/*"
   },
   "scripts": {
-    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist",
+    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist && npm run build:cdn && npm run build:css",
+    "build:cdn": "tsup --config tsup.cdn.config.ts",
+    "build:css": "tailwindcss -i styles/cdn.css -o dist/sibujs-ui.css --minify",
     "lint": "biome check --max-diagnostics=500 src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
@@ -59,10 +71,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
+    "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^25.5.0",
     "jsdom": "^25.0.0",
     "lucide": "^1.7.0",
-    "sibujs": "^4.3.0",
+    "sibujs": "^4.4.0",
+    "tailwindcss": "^4.3.3",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
     "vitest": "^4.1.8"

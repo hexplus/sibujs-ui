@@ -48,11 +48,18 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
-      - name: Test
-        run: npm test -- --run
-
+      # BUILD BEFORE TEST, deliberately. `tests/cdn-artifacts.test.ts` asserts
+      # properties of the published artifacts that source cannot show — that
+      # SibuJS is absent from the CDN bundle's bytes, that diagnostics are
+      # compiled out of the production build, that the stylesheet carries the
+      # utilities the components use. With no `dist/` those tests have nothing
+      # to read, and they are written to FAIL rather than skip on CI, because a
+      # silent skip is how the gap they cover would come back.
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm test -- --run
 
       - name: Packaging check
         run: npm pack --dry-run
@@ -101,11 +108,14 @@ jobs:
       - name: Type-check against SibuJS ${{ matrix.sibujs }}
         run: npx tsc --noEmit
 
-      - name: Test against SibuJS ${{ matrix.sibujs }}
-        run: npm test -- --run
-
+      # Built first for the same reason as above: the artifact tests read
+      # `dist/`, and here they also run the CDN bundle against THIS matrix
+      # entry's runtime, which is the point of the job.
       - name: Build against SibuJS ${{ matrix.sibujs }}
         run: npm run build
+
+      - name: Test against SibuJS ${{ matrix.sibujs }}
+        run: npm test -- --run
 
   audit:
     name: Audit (production deps)

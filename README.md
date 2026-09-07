@@ -26,6 +26,56 @@ CI runs the full test suite, type-check and build against sibujs `3.2.0`, `3.4.1
 
 Building and testing the repository needs `>=22.12.0`, because the dev toolchain (Vite 7 / rolldown) ships a native binding that declares `^20.19.0 || >=22.12.0`. That is a contributor requirement only — rolldown is a devDependency and is never published. CI runs the full verification on Node 22.12, 22 and 24.
 
+### Without a bundler (CDN)
+
+One stylesheet and two script tags, **the runtime first**:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/sibujs-ui@latest/dist/sibujs-ui.css" />
+<script src="https://unpkg.com/sibujs@latest/dist/cdn.global.js"></script>
+<script src="https://unpkg.com/sibujs-ui@latest/dist/cdn.global.js"></script>
+<script>
+  const { Button, Card, Dialog } = window.SibuUI;
+  document.body.appendChild(Button({ variant: "default" }, ["Click me"]));
+</script>
+```
+
+That is the whole setup — no build step, and no separate theme import.
+
+This is what makes the components usable from a SibuJS **island**: build them
+inside a `registerIsland` setup and append them to the server-rendered markup.
+Components create their signals through the same runtime the island uses, so a
+click handler on a `Button` drives the island's own state with no wiring.
+
+SibuJS is **not** bundled into `sibujs-ui`'s CDN file. It stays a peer
+dependency there too: the build resolves `sibujs` to the `window.Sibu` that the
+runtime tag installs, so a page never downloads the framework twice. That is
+also why the order matters — loading `sibujs-ui` alone throws an error saying
+exactly that, rather than failing later inside a component.
+
+Use `cdn.dev.global.js` while developing to get the package's warnings; the
+production file has them compiled out, not merely disabled. Both are also
+reachable as `sibujs-ui/cdn` and `sibujs-ui/cdn-dev`.
+
+The CDN build carries the whole package — every component **and** the full icon
+set — because a `<script>` tag cannot tree-shake. Bundler users are unaffected
+and still pay only for what they import.
+
+**The stylesheet is not optional.** Every component carries Tailwind utility
+classes — 29 of them on a single `Button` — and the theme files are custom
+properties only. Without `sibujs-ui.css`, the components behave correctly and
+render as raw browser defaults: nothing throws, so it looks like a styling bug
+rather than a missing file.
+
+It is 113.7 KB (17.7 KB gzip), contains the utilities the components actually
+use plus the base and default themes, and is reachable as `sibujs-ui/cdn-css`.
+It includes Tailwind's Preflight reset, exactly as the bundler setup below
+does — so it will restyle the surrounding page. Dark mode works by putting
+`class="dark"` on `<html>` or any ancestor.
+
+Using a different theme? Link the stylesheet and then override the tokens with
+one of `sibujs-ui/themes/*.css`, or your own values.
+
 ## Setup
 
 Add the required theme CSS to your project's stylesheet:

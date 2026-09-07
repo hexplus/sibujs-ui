@@ -6,6 +6,76 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.6.0] — 2026-09-07
+
+### Added — a CDN build
+
+`sibujs-ui` had no no-build story: the package shipped ESM and CJS only, so a
+page without a bundler could use the SibuJS runtime from a `<script>` tag but
+none of these components. It now ships its own IIFE pair, installing `SibuUI`:
+
+```html
+<script src="https://unpkg.com/sibujs@latest/dist/cdn.global.js"></script>
+<script src="https://unpkg.com/sibujs-ui@latest/dist/cdn.global.js"></script>
+<script>
+  const { Button, Card, Dialog } = window.SibuUI;
+</script>
+```
+
+New export paths: `sibujs-ui/cdn`, `sibujs-ui/cdn-dev` and `sibujs-ui/cdn-css`.
+`npm run build` produces all three; `npm run build:cdn` and `npm run build:css`
+build them separately.
+
+**A compiled stylesheet ships with it, and it is not optional.** Every component
+carries Tailwind utility classes — 29 on a single `Button` — and the theme files
+are custom properties only, so a page that loaded just the script tag got
+correct behaviour and raw browser defaults: `display: inline-block`,
+`background: rgb(240,240,240)`, `padding: 6px`, no radius. Nothing threw, which
+makes that harder to diagnose, not easier. A no-build consumer has no build step
+by definition, so `dist/sibujs-ui.css` is now compiled from the components'
+actual class usage plus the base and default themes — 113.7 KB, 17.7 KB gzip.
+With it linked, the same `Button` renders `inline-flex`, `oklch(0.205 0 0)`,
+16px padding, 8px radius, 36px tall, and dark mode inverts correctly.
+
+It includes Tailwind's Preflight, matching what bundler consumers get from
+`@import "tailwindcss"` — the components are designed against that reset, and
+without it buttons keep their native chrome. It therefore restyles the host
+page, which the README states plainly.
+
+**SibuJS is not bundled in.** It stays a peer dependency in this artifact too:
+the build resolves `sibujs` to the `window.Sibu` that the runtime tag installs,
+so a page that already loaded the framework does not download it again. Loading
+`sibujs-ui`'s tag without the runtime throws a message naming the problem and
+the fix, rather than surfacing later as an undefined property inside whichever
+component ran first.
+
+| bundle | size |
+| --- | --- |
+| `cdn.global.js` | 573.5 KB raw / 132.2 KB gzip |
+| `cdn.dev.global.js` | 574.1 KB raw / 132.4 KB gzip |
+
+The CDN build carries the whole package — every component and the full icon
+set — because a `<script>` tag cannot tree-shake, and the icons are roughly
+79 KB gzip of that total. Bundler users are unaffected: the ESM/CJS entry
+points are untouched and still tree-shake per import.
+
+`tests/cdn-artifacts.test.ts` runs the published bundles against the installed
+runtime and pins the properties that source cannot show: SibuJS absent from the
+bytes, the ordering guard firing, `SibuUI` registered without disturbing
+`Sibu`, and diagnostics compiled out of the production file.
+
+### Fixed — the dev gate is now foldable
+
+`components/types.ts` tested `globalThis.__SIBU_DEV__` first. A member
+expression is not a `define` target, so no bundler could replace it: the branch
+stayed live and its warning text rode along into builds that could never print
+it. It now leads with a bare `__SIBU_DEV__`, mirroring the framework's own
+convention, so `define: { __SIBU_DEV__: "false" }` folds it away. Behaviour is
+unchanged everywhere the flag was already correct — the fallbacks it used
+before are still consulted in the same order after it.
+
+---
+
 ## [1.5.3] — 2026-09-07
 
 Verified against `sibujs@4.3.0`. No component, styling or API change — the
@@ -14,7 +84,7 @@ published package is byte-identical in behaviour to 1.5.2.
 ### Changed
 
 - Development dependency `sibujs` → `^4.3.0`, so the suite and the type
-  declarations build against the release consumers will actually install
+  declarations build against the release that consumers will actually install
   alongside this package. It is a devDependency, so nothing changes for
   consumers: the peer range `>=3.2.0 <5.0.0` already admitted 4.3.0.
 
