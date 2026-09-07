@@ -1,6 +1,6 @@
 {
   "name": "sibujs-ui",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
   "keywords": [
     "sibujs",
@@ -39,10 +39,17 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./cdn": {
+      "default": "./dist/cdn.global.js"
+    },
+    "./cdn-dev": {
+      "default": "./dist/cdn.dev.global.js"
+    },
     "./themes/*": "./src/themes/*"
   },
   "scripts": {
-    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist",
+    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist && npm run build:cdn",
+    "build:cdn": "tsup --config tsup.cdn.config.ts",
     "lint": "biome check --max-diagnostics=500 src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",

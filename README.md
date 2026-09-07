@@ -26,6 +26,36 @@ CI runs the full test suite, type-check and build against sibujs `3.2.0`, `3.4.1
 
 Building and testing the repository needs `>=22.12.0`, because the dev toolchain (Vite 7 / rolldown) ships a native binding that declares `^20.19.0 || >=22.12.0`. That is a contributor requirement only — rolldown is a devDependency and is never published. CI runs the full verification on Node 22.12, 22 and 24.
 
+### Without a bundler (CDN)
+
+Two script tags, **the runtime first**:
+
+```html
+<script src="https://unpkg.com/sibujs@latest/dist/cdn.global.js"></script>
+<script src="https://unpkg.com/sibujs-ui@latest/dist/cdn.global.js"></script>
+<script>
+  const { Button, Card, Dialog } = window.SibuUI;
+  document.body.appendChild(Button({ variant: "default" }, ["Click me"]));
+</script>
+```
+
+SibuJS is **not** bundled into `sibujs-ui`'s CDN file. It stays a peer
+dependency there too: the build resolves `sibujs` to the `window.Sibu` that the
+runtime tag installs, so a page never downloads the framework twice. That is
+also why the order matters — loading `sibujs-ui` alone throws an error saying
+exactly that, rather than failing later inside a component.
+
+Use `cdn.dev.global.js` while developing to get the package's warnings; the
+production file has them compiled out, not merely disabled. Both are also
+reachable as `sibujs-ui/cdn` and `sibujs-ui/cdn-dev`.
+
+The CDN build carries the whole package — every component **and** the full icon
+set — because a `<script>` tag cannot tree-shake. Bundler users are unaffected
+and still pay only for what they import.
+
+Tailwind still has to be on the page for the components to look right; see
+**Setup** below.
+
 ## Setup
 
 Add the required theme CSS to your project's stylesheet:

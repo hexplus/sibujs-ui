@@ -1,11 +1,26 @@
 import type { NodeChild, NodeChildren } from "sibujs";
 
+declare const __SIBU_DEV__: boolean | undefined;
+
 // Dev-mode check, mirroring sibujs core's tree-shakeable `__SIBU_DEV__`
 // convention. Off in production browsers, on in test/dev Node.
+//
+// THE BARE IDENTIFIER MUST COME FIRST. Only a bare `__SIBU_DEV__` is a `define`
+// target — `globalThis.__SIBU_DEV__` is a member expression, which a bundler
+// cannot replace, so leading with it left every branch live and carried the
+// warning text into builds that could never print it. Leading with the bare
+// name lets `define: { __SIBU_DEV__: "false" }` fold this to `false` and drop
+// the diagnostics entirely, which is what the CDN build relies on. When no
+// define is applied the identifier resolves to the global of that name, so the
+// first branch reads what the second would — hence the `!!` coercion.
 const _isDev: boolean =
-	typeof (globalThis as { __SIBU_DEV__?: boolean }).__SIBU_DEV__ !== "undefined"
-		? !!(globalThis as { __SIBU_DEV__?: boolean }).__SIBU_DEV__
-		: typeof process !== "undefined" && process.env?.NODE_ENV !== "production";
+	typeof __SIBU_DEV__ !== "undefined"
+		? !!__SIBU_DEV__
+		: typeof (globalThis as { __SIBU_DEV__?: boolean }).__SIBU_DEV__ !==
+				"undefined"
+			? !!(globalThis as { __SIBU_DEV__?: boolean }).__SIBU_DEV__
+			: typeof process !== "undefined" &&
+				process.env?.NODE_ENV !== "production";
 
 // Heuristic mirror of sibujs core's tagFactory check: does a lone string look
 // like a CSS class list rather than text? Used ONLY to warn — behavior is
