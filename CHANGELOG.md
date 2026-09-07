@@ -22,8 +22,25 @@ none of these components. It now ships its own IIFE pair, installing `SibuUI`:
 </script>
 ```
 
-New export paths: `sibujs-ui/cdn` and `sibujs-ui/cdn-dev`. `npm run build` now
-produces them; `npm run build:cdn` builds them alone.
+New export paths: `sibujs-ui/cdn`, `sibujs-ui/cdn-dev` and `sibujs-ui/cdn-css`.
+`npm run build` produces all three; `npm run build:cdn` and `npm run build:css`
+build them separately.
+
+**A compiled stylesheet ships with it, and it is not optional.** Every component
+carries Tailwind utility classes — 29 on a single `Button` — and the theme files
+are custom properties only, so a page that loaded just the script tag got
+correct behaviour and raw browser defaults: `display: inline-block`,
+`background: rgb(240,240,240)`, `padding: 6px`, no radius. Nothing threw, which
+makes that harder to diagnose, not easier. A no-build consumer has no build step
+by definition, so `dist/sibujs-ui.css` is now compiled from the components'
+actual class usage plus the base and default themes — 113.7 KB, 17.7 KB gzip.
+With it linked, the same `Button` renders `inline-flex`, `oklch(0.205 0 0)`,
+16px padding, 8px radius, 36px tall, and dark mode inverts correctly.
+
+It includes Tailwind's Preflight, matching what bundler consumers get from
+`@import "tailwindcss"` — the components are designed against that reset, and
+without it buttons keep their native chrome. It therefore restyles the host
+page, which the README states plainly.
 
 **SibuJS is not bundled in.** It stays a peer dependency in this artifact too:
 the build resolves `sibujs` to the `window.Sibu` that the runtime tag installs,

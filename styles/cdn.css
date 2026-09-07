@@ -1,0 +1,28 @@
+/**
+ * The stylesheet published alongside the CDN bundle.
+ *
+ * Compiled to `dist/sibujs-ui.css` by `npm run build:css`, and served as
+ * `sibujs-ui/cdn-css`. A page that loads the CDN <script> without this gets
+ * correct behaviour and unstyled components: the utility classes on every
+ * component resolve to nothing, so a Button renders as a raw browser button.
+ * Nothing errors, which makes it worse to diagnose, not better.
+ *
+ * It carries the themes as well as the utilities, so a no-build consumer needs
+ * exactly one <link> and no separate theme import.
+ *
+ * `@import "tailwindcss"` includes Preflight, Tailwind's reset. That is
+ * deliberate: bundler consumers get it too (the README's Setup does the same
+ * import), and the components are designed against it — without it, buttons
+ * keep their native chrome and borders default to currentColor. It does mean
+ * this stylesheet restyles the host page, which the README states plainly.
+ */
+@import "tailwindcss";
+
+/* Scanned for class names. Relative to this file, so it survives being moved
+   as long as the components stay under `src/`. */
+@source "../src/**/*.ts";
+
+/* Tokens, keyframes and the `data-*` variants the components rely on. Both are
+   token-only files; the utilities above are what actually paint. */
+@import "../src/themes/base.css";
+@import "../src/themes/default.css";

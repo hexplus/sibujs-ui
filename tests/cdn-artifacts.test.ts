@@ -132,3 +132,47 @@ describe.skipIf(!built && !onCI)("published CDN artifacts", () => {
 		expect(statSync(PROD_CDN).size).toBeLessThan(statSync(DEV_CDN).size);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// The stylesheet that makes the CDN bundle usable.
+//
+// The components carry Tailwind utility classes — 29 of them on a single
+// Button — and the shipped themes are custom properties only. A page that loads
+// the script tag without a Tailwind build gets correct behaviour and a raw
+// browser default button: nothing errors, and it looks broken. A no-build
+// consumer has no build step by definition, so the compiled CSS has to ship.
+// ---------------------------------------------------------------------------
+
+const CDN_CSS = resolve(ROOT, "dist/sibujs-ui.css");
+
+// Gated on the same flag as the bundles above: once this package has been
+// built, a MISSING stylesheet is a failure rather than a skip — skipping on
+// absence would hide exactly the gap these tests exist to close.
+describe.skipIf(!built && !onCI)("the CDN stylesheet", () => {
+	it("is built", () => {
+		expect(existsSync(CDN_CSS), `missing ${CDN_CSS} — run \`npm run build\``).toBe(true);
+	});
+
+	it("carries the utilities the components actually use", () => {
+		const css = readFileSync(CDN_CSS, "utf8");
+		// A sample spanning layout, spacing, borders and state variants, taken
+		// from classes Button and friends emit.
+		for (const utility of [".inline-flex", ".rounded-md", ".px-4", ".gap-2", ".shrink-0"]) {
+			expect(css, `${utility} is missing — the source scan did not reach the components`).toContain(utility);
+		}
+	});
+
+	it("carries the theme tokens, so no separate theme import is needed", () => {
+		const css = readFileSync(CDN_CSS, "utf8");
+		expect(css).toContain("--radius");
+		expect(css).toContain("--color-primary");
+		// base.css contributes the animations the components name.
+		expect(css).toContain("accordion-down");
+	});
+
+	it("is compiled, not a passthrough of the source imports", () => {
+		const css = readFileSync(CDN_CSS, "utf8");
+		expect(css).not.toContain('@import "tailwindcss"');
+		expect(css.length).toBeGreaterThan(10_000);
+	});
+});

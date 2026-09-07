@@ -28,9 +28,10 @@ Building and testing the repository needs `>=22.12.0`, because the dev toolchain
 
 ### Without a bundler (CDN)
 
-Two script tags, **the runtime first**:
+One stylesheet and two script tags, **the runtime first**:
 
 ```html
+<link rel="stylesheet" href="https://unpkg.com/sibujs-ui@latest/dist/sibujs-ui.css" />
 <script src="https://unpkg.com/sibujs@latest/dist/cdn.global.js"></script>
 <script src="https://unpkg.com/sibujs-ui@latest/dist/cdn.global.js"></script>
 <script>
@@ -38,6 +39,13 @@ Two script tags, **the runtime first**:
   document.body.appendChild(Button({ variant: "default" }, ["Click me"]));
 </script>
 ```
+
+That is the whole setup — no build step, and no separate theme import.
+
+This is what makes the components usable from a SibuJS **island**: build them
+inside a `registerIsland` setup and append them to the server-rendered markup.
+Components create their signals through the same runtime the island uses, so a
+click handler on a `Button` drives the island's own state with no wiring.
 
 SibuJS is **not** bundled into `sibujs-ui`'s CDN file. It stays a peer
 dependency there too: the build resolves `sibujs` to the `window.Sibu` that the
@@ -53,8 +61,20 @@ The CDN build carries the whole package — every component **and** the full ico
 set — because a `<script>` tag cannot tree-shake. Bundler users are unaffected
 and still pay only for what they import.
 
-Tailwind still has to be on the page for the components to look right; see
-**Setup** below.
+**The stylesheet is not optional.** Every component carries Tailwind utility
+classes — 29 of them on a single `Button` — and the theme files are custom
+properties only. Without `sibujs-ui.css`, the components behave correctly and
+render as raw browser defaults: nothing throws, so it looks like a styling bug
+rather than a missing file.
+
+It is 113.7 KB (17.7 KB gzip), contains the utilities the components actually
+use plus the base and default themes, and is reachable as `sibujs-ui/cdn-css`.
+It includes Tailwind's Preflight reset, exactly as the bundler setup below
+does — so it will restyle the surrounding page. Dark mode works by putting
+`class="dark"` on `<html>` or any ancestor.
+
+Using a different theme? Link the stylesheet and then override the tokens with
+one of `sibujs-ui/themes/*.css`, or your own values.
 
 ## Setup
 
