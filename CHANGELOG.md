@@ -6,6 +6,44 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.3] — 2026-09-07
+
+Verified against `sibujs@4.3.0`. No component, styling or API change — the
+published package is byte-identical in behaviour to 1.5.2.
+
+### Changed
+
+- Development dependency `sibujs` → `^4.3.0`, so the suite and the type
+  declarations build against the release consumers will actually install
+  alongside this package. It is a devDependency, so nothing changes for
+  consumers: the peer range `>=3.2.0 <5.0.0` already admitted 4.3.0.
+
+4.3.0 tightens two runtime behaviours — `enhance()` now throws when a setup
+returns a thenable, and `Suspense` recognises async work by shape rather than by
+`instanceof Promise`. Neither affects this library: the full suite (420 tests
+across 18 files), the lint pass and the declaration build are green against it.
+
+---
+
+## [1.5.2] — 2026-09-03
+
+Recorded retrospectively from the release commit; this entry was missing.
+
+### Changed
+
+- Development dependency `sibujs` → `^4.1.0`. No component or API change.
+
+---
+
+## [1.5.1] — 2026-08-31
+
+Recorded retrospectively from the release commit; this entry was missing.
+
+A version bump with no other change in the diff — published to refresh the
+registry entry, not to ship anything.
+
+---
+
 ## [1.5.0] — 2026-08-28
 
 ### Changed — Supports sibujs 4.x
