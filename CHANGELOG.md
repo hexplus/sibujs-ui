@@ -6,6 +6,49 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added — a copy-paste registry and CLI
+
+Components can now be copied into a project as source instead of imported from
+the package. The npm package is unchanged; this is a second way to consume the
+same components, and the two can be mixed.
+
+```bash
+npx sibujs-ui init
+npx sibujs-ui add button dialog
+```
+
+- **`sibujs-ui` CLI** (`bin/sibujs-ui.mjs`, no dependencies): `init`, `add`
+  (with `--all`, `--overwrite`, `--dry-run`, `--no-install`), `list` and
+  `diff`. `add` resolves registry dependencies, rewrites imports to the aliases
+  in `components.json`, adds `@import` lines for styles and themes to the
+  project stylesheet, and installs missing npm dependencies with the project's
+  package manager. Files that exist and differ are never overwritten without
+  `--overwrite`.
+- **Registry** in `dist/registry/`: `index.json` and one `<name>.json` per
+  item — 56 components, 8 library items (`utils`, `types`, `lifecycle`,
+  `controlled`, `aria`, `form-control`, `scroll-lock`, `icons`), the `base`
+  style and 10 themes — with JSON Schemas under `dist/registry/schema/`. Also
+  exported as `sibujs-ui/registry/*`.
+- **Generated from `src/` by `npm run build`** (`build:registry`), so the
+  registry and the npm build always come from the same sources. Copied files
+  differ from `src/` only in their import specifiers. `lib/icons.ts` carries
+  just the icons the components use.
+- `npm run registry:verify` installs every component into a scratch project
+  with a strict browser tsconfig, type-checks it, compiles its CSS with Tailwind
+  and renders components in jsdom. CI runs it.
+
+See [docs/registry.md](docs/registry.md).
+
+### Fixed
+
+- `components/types.ts` type-checks without `@types/node` (it declares the
+  `process` it reads), and `Toaster` no longer declares an unused local. Both
+  broke strict consumer projects that copy the source.
+
+---
+
 ## [1.6.0] — 2026-09-07
 
 ### Added — a CDN build

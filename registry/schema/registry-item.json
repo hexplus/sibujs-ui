@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "registry-item.json",
+  "title": "sibujs-ui registry item",
+  "description": "One installable unit of the sibujs-ui copy-paste registry: a component, a library file, the base stylesheet or a color theme. Generated from the package source by scripts/registry/build.mjs.",
+  "type": "object",
+  "required": ["name", "type", "dependencies", "registryDependencies", "files"],
+  "additionalProperties": false,
+  "definitions": {
+    "itemType": {
+      "type": "string",
+      "enum": ["registry:ui", "registry:lib", "registry:style", "registry:theme"]
+    },
+    "tailwind": {
+      "type": "object",
+      "description": "Tailwind CSS configuration the item relies on. Every utility and variant listed here is defined by the `base` item's stylesheet.",
+      "required": ["version", "utilities", "variants"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "integer", "description": "Required Tailwind CSS major version." },
+        "utilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Custom utilities (`@utility`, `--animate-*`) used by the item's source."
+        },
+        "variants": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Custom variants (`@custom-variant`) used by the item's source, without the trailing colon."
+        }
+      }
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Unique item name. Used by `sibujs-ui add <name>` and as the endpoint file name (`<name>.json`)."
+    },
+    "type": { "$ref": "#/definitions/itemType" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "npm packages the copied code imports, as `name@range`."
+    },
+    "devDependencies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "npm packages needed at build time only, as `name@range`."
+    },
+    "registryDependencies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Other items in the same registry that must be installed with this one."
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "type", "content"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path inside the registry. The first segment selects the install directory: `ui/` → the `ui` path, `lib/` → the `lib` path, `styles/` → the `styles` path of components.json."
+          },
+          "type": { "$ref": "#/definitions/itemType" },
+          "content": {
+            "type": "string",
+            "description": "Full file source. Imports of other registry files use the canonical aliases `@/components/ui/*` and `@/lib/*`."
+          }
+        }
+      }
+    },
+    "tailwind": { "$ref": "#/definitions/tailwind" },
+    "css": {
+      "type": "object",
+      "description": "Stylesheet wiring for style and theme items.",
+      "additionalProperties": false,
+      "properties": {
+        "imports": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Files to `@import` from the project stylesheet, in order, relative to the `styles` path."
+        },
+        "requires": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Stylesheets that must be imported before these (for example `tailwindcss`)."
+        }
+      }
+    },
+    "cssVars": {
+      "type": "object",
+      "description": "The CSS custom properties a theme sets, by color scheme. Informational: the theme file is authoritative.",
+      "additionalProperties": false,
+      "properties": {
+        "light": { "type": "object", "additionalProperties": { "type": "string" } },
+        "dark": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "categories": { "type": "array", "items": { "type": "string" } },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string", "description": "The sibujs-ui version this item was generated from." }
+      }
+    }
+  }
+}

@@ -11,8 +11,23 @@ A complete UI component library for [SibuJS](https://github.com/hexplus/sibujs).
 - **TypeScript** — full type definitions for all components and props
 - **Themeable** — 12 built-in color themes with CSS custom properties
 - **Bundler-friendly** — ships ESM and CJS builds and declares `"sideEffects": false`, so bundlers can drop the components you never import
+- **Package or copy-paste** — install the npm package, or copy individual components into your project with the CLI and own the code
 
 ## Installation
+
+There are two ways to use sibujs-ui. Both are built from the same source in every release, and they can be mixed in one project.
+
+| | [npm package](#npm-package) | [Copy-paste (CLI)](#copy-paste-cli) |
+|---|---|---|
+| Install | `npm install sibujs-ui sibujs` | `npx sibujs-ui add button` |
+| Code lives in | `node_modules` | your project |
+| Import from | `sibujs-ui` | `@/components/ui/button` |
+| Updates | bump the version | `npx sibujs-ui diff`, then `add --overwrite` |
+| Customise via | props, `class`, theme tokens | editing the file |
+
+**Choose the package** when you use the components as they are: upgrades are a version bump, and it is the only way to get the CDN build and the full icon set. **Choose copy-paste** when you want to change a component's markup, variants or behaviour directly and keep it in your repository — you then merge upstream changes yourself. Using the package for most components and copying the few you need to modify works too.
+
+### npm package
 
 ```bash
 npm install sibujs-ui sibujs
@@ -76,9 +91,38 @@ does — so it will restyle the surrounding page. Dark mode works by putting
 Using a different theme? Link the stylesheet and then override the tokens with
 one of `sibujs-ui/themes/*.css`, or your own values.
 
+### Copy-paste (CLI)
+
+Copy components into your own project instead of importing them from the
+package. Requires a TypeScript project with Tailwind CSS v4.
+
+```bash
+npx sibujs-ui init                 # components.json, base styles, cn()
+npx sibujs-ui add button dialog    # copies the files and what they depend on
+```
+
+```ts
+import { Button } from "@/components/ui/button";
+```
+
+`add` writes the component to `src/components/ui/`, its helpers to `src/lib/`
+and the theme CSS to `src/styles/sibujs-ui/`, adds the `@import` lines to your
+stylesheet, and installs any npm dependencies you do not have yet. Files that
+already exist and differ are skipped unless you pass `--overwrite`; `npx
+sibujs-ui diff` shows what changed upstream. Copied files import each other
+through the `@/` alias, which must be declared in your tsconfig `paths` and
+bundler — `init` tells you if it is missing.
+
+The registry behind the CLI is static JSON shipped in the package under
+`dist/registry/` (`index.json` plus one `<name>.json` per item), so it is also
+reachable at `https://unpkg.com/sibujs-ui@<version>/dist/registry/<name>.json`.
+Commands, `components.json`, the item format and how the registry is generated
+are documented in [docs/registry.md](docs/registry.md).
+
 ## Setup
 
-Add the required theme CSS to your project's stylesheet:
+For the npm package, add the required theme CSS to your project's stylesheet
+(the copy-paste CLI does this for you):
 
 ```css
 @import "tailwindcss";
@@ -324,6 +368,7 @@ npm test -- --run
 npm run lint
 npx tsc --noEmit
 npm run build
+npm run registry:verify
 npm pack --dry-run --json
 npm audit --omit=dev
 ```
@@ -333,7 +378,8 @@ npm audit --omit=dev
 and `filename`; confirm the reported version is the intended release version and
 that the file list holds the built entry points (`dist/index.js`,
 `dist/index.cjs`, `dist/index.d.ts`, `dist/index.d.cts`), the theme CSS under
-`src/themes/`, and `README.md`.
+`src/themes/`, the registry under `dist/registry/`, the CLI at
+`bin/sibujs-ui.mjs`, and `README.md`.
 
 **7. Publish — a manual owner action.** Only once every check above has passed:
 

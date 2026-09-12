@@ -61,6 +61,12 @@ jobs:
       - name: Test
         run: npm test -- --run
 
+      # The copy-paste registry as a consumer gets it: the CLI installs every
+      # component into a scratch project with a strict browser tsconfig, which
+      # is then type-checked, compiled with Tailwind and run in jsdom.
+      - name: Registry end-to-end
+        run: npm run registry:verify
+
       - name: Packaging check
         run: npm pack --dry-run
 

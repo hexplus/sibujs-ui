@@ -1,6 +1,10 @@
 import type { NodeChild, NodeChildren } from "sibujs";
 
 declare const __SIBU_DEV__: boolean | undefined;
+// Declared locally so this file type-checks without Node's type definitions:
+// it is also copied into consumer projects by the registry, and a browser
+// tsconfig does not load `@types/node`.
+declare const process: { env?: Record<string, string | undefined> } | undefined;
 
 // Dev-mode check, mirroring sibujs core's tree-shakeable `__SIBU_DEV__`
 // convention. Off in production browsers, on in test/dev Node.

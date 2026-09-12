@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "registry.json",
+  "title": "sibujs-ui registry index",
+  "description": "The full registry index (`index.json`): every item without file contents. Fetch `<name>.json` for an item's sources.",
+  "type": "object",
+  "required": ["name", "version", "aliases", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string" },
+    "homepage": { "type": "string" },
+    "version": { "type": "string", "description": "The sibujs-ui version the registry was generated from." },
+    "aliases": {
+      "type": "object",
+      "description": "Canonical import aliases used inside registry files.",
+      "required": ["ui", "lib"],
+      "additionalProperties": false,
+      "properties": {
+        "ui": { "type": "string" },
+        "lib": { "type": "string" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "dependencies", "registryDependencies", "files"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "enum": ["registry:ui", "registry:lib", "registry:style", "registry:theme"] },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "dependencies": { "type": "array", "items": { "type": "string" } },
+          "devDependencies": { "type": "array", "items": { "type": "string" } },
+          "registryDependencies": { "type": "array", "items": { "type": "string" } },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "type"],
+              "additionalProperties": false,
+              "properties": {
+                "path": { "type": "string" },
+                "type": { "type": "string" }
+              }
+            }
+          },
+          "tailwind": { "type": "object" },
+          "css": { "type": "object" },
+          "categories": { "type": "array", "items": { "type": "string" } },
+          "meta": { "type": "object" }
+        }
+      }
+    }
+  }
+}
