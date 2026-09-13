@@ -24,8 +24,10 @@ npx sibujs-ui add button dialog
   `diff`. `add` resolves registry dependencies, rewrites imports to the aliases
   in `components.json`, adds `@import` lines for styles and themes to the
   project stylesheet, and installs missing npm dependencies with the project's
-  package manager. Files that exist and differ are never overwritten without
-  `--overwrite`.
+  package manager — found from `packageManager` or a lockfile, searching up to
+  the repository root so workspace packages use the workspace's tool. A failed
+  install exits with status 1. Files that exist and differ are never
+  overwritten without `--overwrite`.
 - **Registry** in `dist/registry/`: `index.json` and one `<name>.json` per
   item — 56 components, 8 library items (`utils`, `types`, `lifecycle`,
   `controlled`, `aria`, `form-control`, `scroll-lock`, `icons`), the `base`

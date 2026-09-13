@@ -293,11 +293,46 @@ function wireCss(cwd, config, items, flags, report) {
 // npm dependencies
 // ---------------------------------------------------------------------------
 
+const PACKAGE_MANAGERS = new Set(["npm", "pnpm", "yarn", "bun"]);
+const LOCKFILES = [
+	["pnpm-lock.yaml", "pnpm"],
+	["yarn.lock", "yarn"],
+	["bun.lock", "bun"],
+	["bun.lockb", "bun"],
+	["package-lock.json", "npm"],
+	["npm-shrinkwrap.json", "npm"],
+];
+
+/**
+ * The package manager the project is actually managed with.
+ *
+ * Walks from `cwd` up to the repository root (the first directory holding
+ * `.git`) or the filesystem root. In each directory, a `packageManager` field
+ * in package.json wins over a lockfile, and the nearest directory with either
+ * signal wins overall. A package inside a monorepo usually has neither — the
+ * lockfile sits at the workspace root — which is why stopping at `cwd` picked
+ * npm for pnpm and yarn workspaces and left a stray package-lock.json behind.
+ */
 function detectPackageManager(cwd) {
-	if (existsSync(join(cwd, "pnpm-lock.yaml"))) return "pnpm";
-	if (existsSync(join(cwd, "yarn.lock"))) return "yarn";
-	if (existsSync(join(cwd, "bun.lock")) || existsSync(join(cwd, "bun.lockb"))) return "bun";
-	return "npm";
+	let dir = resolve(cwd);
+	for (;;) {
+		const pkgFile = join(dir, "package.json");
+		if (existsSync(pkgFile)) {
+			try {
+				const field = readJson(pkgFile).packageManager;
+				const name = typeof field === "string" ? field.split("@")[0] : "";
+				if (PACKAGE_MANAGERS.has(name)) return name;
+			} catch {
+				// An unreadable package.json is not a signal either way.
+			}
+		}
+		for (const [file, pm] of LOCKFILES) {
+			if (existsSync(join(dir, file))) return pm;
+		}
+		const parent = dirname(dir);
+		if (parent === dir || existsSync(join(dir, ".git"))) return "npm";
+		dir = parent;
+	}
 }
 
 /** Split `name@range` (the name may itself start with `@`). */
@@ -345,7 +380,10 @@ function installDependencies(cwd, items, flags, report) {
 			process.platform === "win32"
 				? spawnSync(printed, { cwd, stdio: "inherit", shell: true })
 				: spawnSync(pm, args, { cwd, stdio: "inherit" });
-		if (result.status !== 0) report.warnings.push(`dependency install failed; run it yourself: ${printed}`);
+		if (result.status !== 0) {
+			const reason = result.error ? result.error.message : `exit code ${result.status}`;
+			report.failures.push(`${printed} (${reason})`);
+		}
 	}
 }
 
@@ -364,11 +402,28 @@ function printReport(report, flags) {
 
 async function install(cwd, config, registry, names, flags) {
 	const items = await resolveTree(registry, names);
-	const report = { written: [], unchanged: [], skipped: [], warnings: [], notes: [], installed: new Set() };
+	const report = {
+		written: [],
+		unchanged: [],
+		skipped: [],
+		warnings: [],
+		notes: [],
+		failures: [],
+		installed: new Set(),
+	};
 	for (const item of items) writeItemFiles(cwd, config, item, flags, report);
 	wireCss(cwd, config, items, flags, report);
 	installDependencies(cwd, items, flags, report);
 	printReport(report, flags);
+	// The files are already written, and without their dependencies they do not
+	// compile. Exiting 0 here would let a script or CI job treat that as success.
+	if (report.failures.length) {
+		throw new CliError(
+			`dependency installation failed; the files above were copied but will not build until you run:\n${report.failures
+				.map((f) => `  ${f}`)
+				.join("\n")}`,
+		);
+	}
 	return items;
 }
 

@@ -334,6 +334,119 @@ describe("registry: CLI", () => {
 		expect(unknown.out).toContain('unknown item "nope"');
 	});
 
+	// -----------------------------------------------------------------------
+	// Dependency installation, against fake package managers on PATH. Each
+	// fake logs `{ pm, args, cwd }` and exits with FAKE_PM_EXIT, so these tests
+	// see exactly which tool the CLI ran, where, and what it did on failure.
+	// -----------------------------------------------------------------------
+
+	const fakeBin = () => {
+		const bin = join(work, "fake-bin");
+		if (existsSync(bin)) return bin;
+		mkdirSync(bin);
+		writeFileSync(
+			join(bin, "fake-pm.cjs"),
+			[
+				'const fs = require("fs");',
+				"const call = { pm: process.argv[2], args: process.argv.slice(3), cwd: process.cwd() };",
+				'fs.appendFileSync(process.env.FAKE_PM_LOG, JSON.stringify(call) + "\\n");',
+				"process.exit(Number(process.env.FAKE_PM_EXIT || 0));",
+				"",
+			].join("\n"),
+		);
+		for (const pm of ["npm", "pnpm", "yarn", "bun"]) {
+			writeFileSync(join(bin, `${pm}.cmd`), `@"${process.execPath}" "%~dp0fake-pm.cjs" ${pm} %*\r\n`);
+			writeFileSync(join(bin, pm), `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/fake-pm.cjs" ${pm} "$@"\n`, {
+				mode: 0o755,
+			});
+		}
+		return bin;
+	};
+
+	/** Run the CLI WITH installation enabled, resolving package managers to the fakes. */
+	const cliInstalling = (cwd: string, exitCode: number, ...args: string[]) => {
+		const log = join(work, `pm-${Math.random().toString(36).slice(2)}.log`);
+		writeFileSync(log, "");
+		const env: Record<string, string | undefined> = { ...process.env, NO_COLOR: "1", FAKE_PM_LOG: log, FAKE_PM_EXIT: String(exitCode) };
+		// Windows spells it `Path`; overwrite whichever key exists rather than
+		// adding a second one the child may or may not read.
+		const pathKey = Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+		env[pathKey] = [fakeBin(), env[pathKey]].join(process.platform === "win32" ? ";" : ":");
+		const r = spawnSync(process.execPath, [CLI, ...args, "--registry", registry], { cwd, encoding: "utf8", env });
+		const calls = readFileSync(log, "utf8")
+			.split("\n")
+			.filter(Boolean)
+			.map((line) => JSON.parse(line) as { pm: string; args: string[]; cwd: string });
+		return { code: r.status, out: `${r.stdout}${r.stderr}`, calls };
+	};
+
+	/** A repository root (`.git` bounds the lockfile search) containing `app/`. */
+	const repo = (name: string, rootFiles: Record<string, string>, appPackage: object = {}) => {
+		const root = join(work, name);
+		mkdirSync(join(root, ".git"), { recursive: true });
+		for (const [file, content] of Object.entries(rootFiles)) writeFileSync(join(root, file), content);
+		const app = join(root, "packages/app");
+		mkdirSync(join(app, "src"), { recursive: true });
+		writeFileSync(join(app, "package.json"), JSON.stringify({ name: "app", ...appPackage }));
+		expect(cli(app, "init").code).toBe(0);
+		return app;
+	};
+
+	it("exits non-zero when dependency installation fails, after copying the files", () => {
+		const dir = repo("install-fails", {});
+		const { code, out, calls } = cliInstalling(dir, 1, "add", "button");
+		expect(code, out).toBe(1);
+		expect(calls.map((c) => c.pm)).toEqual(["npm", "npm"]);
+		expect(out).toContain("error: dependency installation failed");
+		expect(out).toMatch(/npm install [^\n]*class-variance-authority@[^\n]*\(exit code 1\)/);
+		// The report still names what was written, so the user knows the state.
+		expect(out).toContain("wrote src/components/ui/button.ts");
+		expect(existsSync(join(dir, "src/components/ui/button.ts"))).toBe(true);
+	});
+
+	it("exits zero when installation succeeds, running in the project directory", () => {
+		const dir = repo("install-ok", {});
+		const { code, out, calls } = cliInstalling(dir, 0, "add", "button");
+		expect(code, out).toBe(0);
+		expect(calls).toHaveLength(2);
+		expect(calls[0].args[0]).toBe("install");
+		expect(calls[1].args.slice(0, 2)).toEqual(["install", "-D"]);
+		for (const call of calls) expect(resolve(call.cwd)).toBe(resolve(dir));
+	});
+
+	it.each([
+		["pnpm", "lockfile at the workspace root", { "pnpm-lock.yaml": "", "pnpm-workspace.yaml": "packages:\n  - packages/*\n" }, {}],
+		["yarn", "lockfile at the workspace root", { "yarn.lock": "", "package.json": JSON.stringify({ workspaces: ["packages/*"] }) }, {}],
+		["bun", "lockfile at the workspace root", { "bun.lock": "" }, {}],
+		["pnpm", "packageManager beats a lockfile in the same directory", { "package.json": JSON.stringify({ packageManager: "pnpm@9.12.0" }), "package-lock.json": "{}" }, {}],
+		["yarn", "the nearest signal wins", { "pnpm-lock.yaml": "" }, { packageManager: "yarn@4.5.0" }],
+	])("installs with %s: %s", (expected, _case, rootFiles, appPackage) => {
+		const dir = repo(`pm-${expected}-${Math.random().toString(36).slice(2, 8)}`, rootFiles, appPackage);
+		const { code, out, calls } = cliInstalling(dir, 0, "add", "skeleton");
+		expect(code, out).toBe(0);
+		expect(calls.length).toBeGreaterThan(0);
+		for (const call of calls) {
+			expect(call.pm).toBe(expected);
+			expect(call.args[0]).toBe("add");
+			expect(resolve(call.cwd)).toBe(resolve(dir));
+		}
+		expect(existsSync(join(dir, "package-lock.json"))).toBe(false);
+	});
+
+	it("does not look past the repository root for a lockfile", () => {
+		const outer = join(work, "outer");
+		mkdirSync(outer, { recursive: true });
+		writeFileSync(join(outer, "pnpm-lock.yaml"), "");
+		const dir = join(outer, "inner");
+		mkdirSync(join(dir, ".git"), { recursive: true });
+		mkdirSync(join(dir, "src"));
+		writeFileSync(join(dir, "package.json"), "{}");
+		expect(cli(dir, "init").code).toBe(0);
+		const { calls } = cliInstalling(dir, 0, "add", "skeleton");
+		expect(calls.map((c) => c.pm)).toContain("npm");
+		expect(calls.every((c) => c.pm === "npm")).toBe(true);
+	});
+
 	it("list shows components, library, styles and themes", () => {
 		const { code, out } = cli(work, "list");
 		expect(code).toBe(0);

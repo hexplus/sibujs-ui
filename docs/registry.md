@@ -78,8 +78,14 @@ Options for every command:
 
 - `--cwd <dir>` — project directory.
 - `--registry <dir|url>` — where to read items (see [Endpoints](#endpoints)).
-- `--no-install` — print the npm install command instead of running it. The
-  package manager is picked from your lockfile (npm, pnpm, yarn, bun).
+- `--no-install` — print the npm install command instead of running it.
+  Otherwise dependencies are installed in the project directory with the
+  package manager it uses: the nearest `packageManager` field in a
+  `package.json` or lockfile (`pnpm-lock.yaml`, `yarn.lock`, `bun.lock`,
+  `package-lock.json`), searching up to the repository root, so a package
+  inside a pnpm or yarn workspace uses the workspace's tool. npm is the
+  fallback. If the install fails, the command exits with status 1 — the files
+  are already copied, and the error repeats the command to run.
 - `--dry-run` (`init`, `add`) — report what would be written, write nothing.
 - `--overwrite` (`add`) — replace files that exist and differ. Without it they
   are skipped and reported, so local edits are never lost silently.
