@@ -1,6 +1,6 @@
 {
   "name": "sibujs-ui",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
   "keywords": [
     "sibujs",
@@ -27,8 +27,12 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "sibujs-ui": "bin/sibujs-ui.mjs"
+  },
   "files": [
     "dist",
+    "bin",
     "src/themes",
     "styles",
     "README.md",
@@ -49,12 +53,15 @@
     "./cdn-css": {
       "default": "./dist/sibujs-ui.css"
     },
-    "./themes/*": "./src/themes/*"
+    "./themes/*": "./src/themes/*",
+    "./registry/*": "./dist/registry/*"
   },
   "scripts": {
-    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist && npm run build:cdn && npm run build:css",
+    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist && npm run build:cdn && npm run build:css && npm run build:registry",
     "build:cdn": "tsup --config tsup.cdn.config.ts",
     "build:css": "tailwindcss -i styles/cdn.css -o dist/sibujs-ui.css --minify",
+    "build:registry": "node scripts/registry/build.mjs",
+    "registry:verify": "node scripts/registry/verify.mjs",
     "lint": "biome check --max-diagnostics=500 src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
@@ -73,6 +80,7 @@
     "@biomejs/biome": "2.4.7",
     "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^25.5.0",
+    "esbuild": "^0.27.7",
     "jsdom": "^25.0.0",
     "lucide": "^1.7.0",
     "sibujs": "^4.4.0",

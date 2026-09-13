@@ -276,7 +276,7 @@ export function Toaster(
 	// React to toast changes — owned by the toaster container so a disposed
 	// Toaster stops re-rendering into a detached node.
 	ownedEffect(container, () => {
-		const _toasts = toasts();
+		toasts(); // read to subscribe; renderToasts() reads the list itself
 		renderToasts();
 	});
 	nodeOwner(container).add(() => {

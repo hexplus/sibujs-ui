@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "components.json",
+  "title": "sibujs-ui project configuration",
+  "description": "Written by `npx sibujs-ui init`. Tells the CLI where copied files go and which import aliases they use.",
+  "type": "object",
+  "required": ["paths", "aliases"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "registry": {
+      "type": "string",
+      "description": "Registry directory, base URL, or URL template containing {name}. Defaults to the registry bundled with the sibujs-ui CLI."
+    },
+    "css": {
+      "type": ["string", "null"],
+      "description": "Project stylesheet that imports Tailwind. Style and theme `@import` lines are added to it. null: print them instead."
+    },
+    "paths": {
+      "type": "object",
+      "description": "Directories, relative to the project root.",
+      "required": ["ui", "lib", "styles"],
+      "additionalProperties": false,
+      "properties": {
+        "ui": { "type": "string", "description": "Components (registry:ui)." },
+        "lib": { "type": "string", "description": "Shared helpers, types and icons (registry:lib)." },
+        "styles": { "type": "string", "description": "Base stylesheet and themes (registry:style, registry:theme)." }
+      }
+    },
+    "aliases": {
+      "type": "object",
+      "description": "Import specifiers that resolve to `paths.ui` and `paths.lib`. Must be declared in tsconfig `paths` and your bundler.",
+      "required": ["ui", "lib"],
+      "additionalProperties": false,
+      "properties": {
+        "ui": { "type": "string", "default": "@/components/ui" },
+        "lib": { "type": "string", "default": "@/lib" }
+      }
+    }
+  }
+}
