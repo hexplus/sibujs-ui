@@ -6,7 +6,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [1.7.0] — 2026-09-12
 
 ### Added — a copy-paste registry and CLI
 

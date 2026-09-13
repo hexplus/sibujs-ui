@@ -202,7 +202,7 @@ Every item follows `schema/registry-item.json`. `dist/registry/button.json`
   ],
   "tailwind": { "version": 4, "utilities": [], "variants": ["dark"] },
   "categories": ["forms"],
-  "meta": { "version": "1.6.0" }
+  "meta": { "version": "1.7.0" }
 }
 ```
 
