@@ -6,6 +6,17 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.7.1] — 2026-09-18
+
+### Changed — built and tested against `sibujs@4.6.0`
+
+- The `sibujs` dev dependency (used to build and test the package) moves from
+  `^4.4.0` to `^4.6.0`, and `esbuild` from `^0.27.7` to `^0.28.2`.
+- The peer dependency range is unchanged (`sibujs >=3.2.0 <5.0.0`), and no
+  component source changed. The CDN bundle still reads the runtime from
+  `window.Sibu` rather than bundling it, so its contents do not depend on the
+  installed `sibujs`.
+
 ## [1.7.0] — 2026-09-12
 
 ### Added — a copy-paste registry and CLI
