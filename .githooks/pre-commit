@@ -1,0 +1,4 @@
+#!/bin/sh
+# Thin stub: the checks live in scripts/hooks/run.mjs so they run the same on
+# every platform. Installed by `npm run hooks:install` (also run by `prepare`).
+exec node scripts/hooks/run.mjs pre-commit

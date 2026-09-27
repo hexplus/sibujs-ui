@@ -64,9 +64,12 @@
     "registry:verify": "node scripts/registry/verify.mjs",
     "lint": "biome check --max-diagnostics=500 src/",
     "lint:fix": "biome check --write src/",
+    "typecheck": "tsc --noEmit",
     "format": "biome format --write src/",
     "test": "vitest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "hooks:install": "node scripts/hooks/install.mjs",
+    "prepare": "node scripts/hooks/install.mjs"
   },
   "peerDependencies": {
     "sibujs": ">=3.2.0 <5.0.0"
@@ -88,5 +91,9 @@
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
     "vitest": "^4.1.8"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.27.2": true
   }
 }
