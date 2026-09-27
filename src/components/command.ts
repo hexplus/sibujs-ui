@@ -60,6 +60,13 @@ export function Command(
 		applyQuery: (v: string) => {
 			setQuery(v);
 		},
+		/**
+		 * Announce a query a controlled input's user typed, without applying
+		 * it: the input's getter decides what the query becomes.
+		 */
+		proposeQuery: (v: string) => {
+			onValueChange?.(v);
+		},
 		selectedIndex,
 		setSelectedIndex,
 		getVisibleItems: () => {
@@ -147,8 +154,13 @@ export interface CommandInputProps extends BaseProps {
 	placeholder?: string;
 	disabled?: boolean;
 	/**
-	 * The search text. Filters the items on first render, and a getter keeps
-	 * the input and the filter in step with a parent signal.
+	 * The search text. Filters the items on first render.
+	 *
+	 * A plain string is the initial text; the user edits it freely. A getter
+	 * makes the input controlled and authoritative: the input and the filter
+	 * follow it, and a user edit is only proposed through the Command's
+	 * `onValueChange` — the getter is read again right after, and an edit the
+	 * owner did not commit is reverted.
 	 */
 	value?: string | (() => string);
 }
@@ -218,8 +230,23 @@ export function CommandInput(
 		if (!found) return;
 		ctx = found;
 		owner.listen(inputEl, "input", () => {
-			found.setQuery((inputEl as HTMLInputElement).value);
-			found.filter();
+			const input = inputEl as HTMLInputElement;
+			const proposed = input.value;
+			if (typeof value !== "function") {
+				found.setQuery(proposed);
+				found.filter();
+				return;
+			}
+			// Controlled: propose the edit, then settle on whatever the owner
+			// committed. A getter backed by a signal has already been applied by
+			// the effect above when the owner accepted; a rejection changes no
+			// signal, so nothing else would put the committed text back. Filter
+			// only if the query actually moves — a rejected proposal is never
+			// filtered, and an accepted one is filtered once.
+			found.proposeQuery(proposed);
+			const committed = untracked(value);
+			if (untracked(found.query) !== committed) apply(committed);
+			else if (input.value !== committed) input.value = committed;
 		});
 
 		// Items exist now: filter them by the value the input already shows.

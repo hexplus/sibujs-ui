@@ -1428,3 +1428,355 @@ describe("regression: item registration does not re-render labels per item", () 
 		expect(valueEl.textContent).toBe("Renamed");
 	});
 });
+
+describe("regression: NativeSelect — a getter is controlled, a plain value is initial", () => {
+	const change = (sel: HTMLSelectElement, next: string) => {
+		sel.value = next;
+		sel.dispatchEvent(new Event("change", { bubbles: true }));
+	};
+
+	it("regression: a plain `value` is the initial value, and the user can change it", async () => {
+		const onChange = vi.fn();
+		const root = mount(
+			NativeSelect({ value: "a", onChange }, [
+				NativeSelectOption({ value: "a" }, "A"),
+				NativeSelectOption({ value: "b" }, "B"),
+			]),
+		);
+		const select = nativeSelect(root);
+		expect(select.value).toBe("a");
+
+		change(select, "b");
+		expect(onChange).toHaveBeenCalledWith("b");
+		expect(select.value).toBe("b");
+
+		await settle();
+		expect(select.value).toBe("b");
+	});
+
+	it("regression: a plain `value` selects a late option and form reset returns to it", async () => {
+		const [opts, setOpts] = signal<string[]>([]);
+		const form = document.createElement("form");
+		const root = NativeSelect({ name: "f", value: "b" }, () =>
+			opts().map((v) => NativeSelectOption({ value: v }, v)),
+		);
+		form.appendChild(root);
+		mount(form);
+		await settle();
+
+		setOpts(["a", "b", "c"]);
+		await settle();
+		const sel = nativeSelect(root);
+		expect(sel.value).toBe("b");
+
+		sel.value = "c";
+		form.reset();
+		expect(sel.value).toBe("b");
+	});
+
+	it("guard: a late option matching a plain `value` does not take the selection from the user", async () => {
+		const root = mount(
+			NativeSelect({ value: "b" }, [
+				NativeSelectOption({ value: "a" }, "a"),
+				NativeSelectOption({ value: "c" }, "c"),
+			]),
+		);
+		await settle();
+		const sel = nativeSelect(root);
+		change(sel, "c");
+
+		sel.appendChild(NativeSelectOption({ value: "b" }, "b"));
+		await settle();
+		expect(sel.value).toBe("c");
+	});
+
+	it("regression: a getter-controlled NativeSelect reverts a rejected change synchronously", () => {
+		const [v] = signal("a");
+		const onChange = vi.fn();
+		const root = mount(
+			NativeSelect({ value: () => v(), onChange }, [
+				NativeSelectOption({ value: "a" }, "A"),
+				NativeSelectOption({ value: "b" }, "B"),
+			]),
+		);
+		const select = nativeSelect(root);
+		change(select, "b");
+		expect(onChange).toHaveBeenCalledTimes(1);
+		expect(onChange).toHaveBeenCalledWith("b");
+		expect(select.value).toBe("a");
+	});
+
+	it("regression: a getter-controlled NativeSelect shows an accepted change", () => {
+		const [v, setV] = signal("a");
+		const root = mount(
+			NativeSelect({ value: () => v(), onChange: (next) => setV(next) }, [
+				NativeSelectOption({ value: "a" }, "A"),
+				NativeSelectOption({ value: "b" }, "B"),
+			]),
+		);
+		const select = nativeSelect(root);
+		change(select, "b");
+		expect(v()).toBe("b");
+		expect(select.value).toBe("b");
+	});
+
+	it("regression: a programmatic getter change updates the selection", () => {
+		const [v, setV] = signal("a");
+		const root = mount(
+			NativeSelect({ value: () => v() }, [
+				NativeSelectOption({ value: "a" }, "A"),
+				NativeSelectOption({ value: "b" }, "B"),
+			]),
+		);
+		const select = nativeSelect(root);
+		setV("b");
+		expect(select.value).toBe("b");
+	});
+
+	it("guard: a getter value selects an option that mounts later", async () => {
+		const [v] = signal("c");
+		const root = mount(
+			NativeSelect({ value: () => v() }, [
+				NativeSelectOption({ value: "a" }, "a"),
+				NativeSelectOption({ value: "b" }, "b"),
+			]),
+		);
+		await settle();
+		const sel = nativeSelect(root);
+		sel.appendChild(NativeSelectOption({ value: "c" }, "c"));
+		await settle();
+		expect(sel.value).toBe("c");
+	});
+});
+
+describe("regression: a getter-controlled CommandInput reconciles user edits with the getter", () => {
+	const visible = (root: HTMLElement) =>
+		Array.from(root.querySelectorAll("[data-slot=command-item]"))
+			.filter((i) => i.getAttribute("data-hidden") !== "true")
+			.map((i) => i.textContent);
+
+	const items = () =>
+		CommandList([
+			CommandItem("Apple"),
+			CommandItem("Banana"),
+			CommandItem("Cherry"),
+		]);
+
+	const commandInput = (root: HTMLElement) =>
+		root.querySelector("[data-slot=command-input]") as HTMLInputElement;
+
+	const type = (input: HTMLInputElement, text: string) => {
+		input.value = text;
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+	};
+
+	/** Count filter passes by wrapping the context's filter. */
+	function countFilters(root: HTMLElement) {
+		const ctx = (root as unknown as { __command: { filter: () => void } })
+			.__command;
+		const filter = ctx.filter;
+		let filters = 0;
+		ctx.filter = () => {
+			filters++;
+			filter();
+		};
+		return () => filters;
+	}
+
+	const commandQuery = (root: HTMLElement) =>
+		(root as unknown as { __command: { query: () => string } }).__command.query();
+
+	it("regression: a rejected edit reverts the input, the query and the filter", async () => {
+		const [q] = signal("ban");
+		const onValueChange = vi.fn();
+		const root = mount(
+			Command({ onValueChange }, [CommandInput({ value: () => q() }), items()]),
+		);
+		await settle();
+		const input = commandInput(root);
+		const filters = countFilters(root);
+
+		type(input, "ch");
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenCalledWith("ch");
+		expect(input.value).toBe("ban");
+		expect(commandQuery(root)).toBe("ban");
+		expect(visible(root)).toEqual(["Banana"]);
+		// The rejected proposal was never filtered.
+		expect(filters()).toBe(0);
+	});
+
+	it("regression: an accepted edit is shown and filtered once", async () => {
+		const [q, setQ] = signal("ban");
+		const onValueChange = vi.fn((next: string) => setQ(next));
+		const root = mount(
+			Command({ onValueChange }, [CommandInput({ value: () => q() }), items()]),
+		);
+		await settle();
+		const input = commandInput(root);
+		const filters = countFilters(root);
+
+		type(input, "ch");
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(q()).toBe("ch");
+		expect(input.value).toBe("ch");
+		expect(commandQuery(root)).toBe("ch");
+		expect(visible(root)).toEqual(["Cherry"]);
+		expect(filters()).toBe(1);
+
+		await settle();
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(filters()).toBe(1);
+	});
+
+	it("regression: an edit the owner transforms shows the committed value", async () => {
+		const [q, setQ] = signal("ban");
+		const onValueChange = vi.fn((next: string) =>
+			setQ(next.trim().toLowerCase()),
+		);
+		const root = mount(
+			Command({ onValueChange }, [CommandInput({ value: () => q() }), items()]),
+		);
+		await settle();
+		const input = commandInput(root);
+		const filters = countFilters(root);
+
+		type(input, " CH ");
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenCalledWith(" CH ");
+		expect(q()).toBe("ch");
+		expect(input.value).toBe("ch");
+		expect(commandQuery(root)).toBe("ch");
+		expect(visible(root)).toEqual(["Cherry"]);
+		expect(filters()).toBe(1);
+	});
+
+	it("regression: a getter that is not a signal is re-read after the callback", async () => {
+		let committed = "ban";
+		const onValueChange = vi.fn((next: string) => {
+			committed = next.toLowerCase();
+		});
+		const root = mount(
+			Command({ onValueChange }, [
+				CommandInput({ value: () => committed }),
+				items(),
+			]),
+		);
+		await settle();
+		const input = commandInput(root);
+		const filters = countFilters(root);
+
+		type(input, "CH");
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(input.value).toBe("ch");
+		expect(commandQuery(root)).toBe("ch");
+		expect(visible(root)).toEqual(["Cherry"]);
+		expect(filters()).toBe(1);
+	});
+
+	it("guard: an uncontrolled CommandInput keeps what the user typed", async () => {
+		const onValueChange = vi.fn();
+		const root = mount(
+			Command({ onValueChange }, [CommandInput({ value: "ban" }), items()]),
+		);
+		await settle();
+		const input = commandInput(root);
+
+		type(input, "ch");
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenCalledWith("ch");
+		expect(input.value).toBe("ch");
+		expect(commandQuery(root)).toBe("ch");
+		expect(visible(root)).toEqual(["Cherry"]);
+	});
+});
+
+describe("guard: a plain value stays fixed where it always was", () => {
+	it("guard: Select with a plain `value` only reports a click", async () => {
+		const onValueChange = vi.fn();
+		const root = mount(
+			Select({ value: "a", onValueChange }, [
+				SelectTrigger({ placeholder: "Pick a fruit" }),
+				SelectContent(fruitItems()),
+			]),
+		);
+		await settle();
+
+		selectTrigger(root).click();
+		selectItem(root, "b").click();
+		await settle();
+
+		expect(onValueChange).toHaveBeenCalledWith("b");
+		expect(selectLabel(root)).toBe("Apple");
+		expect(selectItem(root, "a").getAttribute("aria-selected")).toBe("true");
+	});
+
+	it("guard: Combobox with a plain `value` only reports a click", async () => {
+		const onValueChange = vi.fn();
+		const root = mount(
+			Combobox({ value: "a", onValueChange }, [
+				ComboboxInput(),
+				ComboboxContent([ComboboxList(comboItems())]),
+			]),
+		);
+		await settle();
+
+		comboItem(root, "c").click();
+		await settle();
+		expect(onValueChange).toHaveBeenCalledWith("c");
+		expect(comboInput(root).value).toBe("Apple");
+		expect(comboItem(root, "c").getAttribute("aria-selected")).toBe("false");
+	});
+
+	it("guard: InputOTP with a plain `value` only reports input", async () => {
+		const onValueChange = vi.fn();
+		const root = mount(
+			InputOTP({ maxLength: 4, value: "12", onValueChange }, [
+				InputOTPGroup([
+					InputOTPSlot({ index: 0 }),
+					InputOTPSlot({ index: 1 }),
+					InputOTPSlot({ index: 2 }),
+					InputOTPSlot({ index: 3 }),
+				]),
+			]),
+		);
+		await settle();
+		const hidden = root.querySelector(
+			"[data-slot=input-otp-hidden]",
+		) as HTMLInputElement;
+
+		hidden.value = "123";
+		hidden.dispatchEvent(new Event("input"));
+		await settle();
+		expect(onValueChange).toHaveBeenCalledWith("123");
+		expect(
+			Array.from(root.querySelectorAll("[data-slot=input-otp-char]"))
+				.map((c) => c.textContent)
+				.join(""),
+		).toBe("12");
+		expect(hidden.value).toBe("12");
+	});
+
+	it("guard: MenubarRadioGroup with a plain `value` only reports a click", async () => {
+		const onValueChange = vi.fn();
+		const root = mount(
+			MenubarRadioGroup({ value: "top", onValueChange }, [
+				MenubarRadioItem({ value: "top" }, "Top"),
+				MenubarRadioItem({ value: "bottom" }, "Bottom"),
+			]),
+		);
+		await settle();
+		const items = () =>
+			Array.from(
+				root.querySelectorAll("[data-slot=menubar-radio-item]"),
+			) as HTMLElement[];
+
+		items()[1].click();
+		await settle();
+		expect(onValueChange).toHaveBeenCalledWith("bottom");
+		expect(items().map((i) => i.getAttribute("aria-checked"))).toEqual([
+			"true",
+			"false",
+		]);
+	});
+});

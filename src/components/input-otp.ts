@@ -11,7 +11,11 @@ import {
 
 export interface InputOTPProps extends BaseProps {
 	maxLength?: number;
-	/** Controlled value. Accepts a getter so a parent signal can drive it. */
+	/**
+	 * Controlled value: typing only calls `onValueChange`. A plain string is a
+	 * fixed value, as it has always been here; a getter lets a parent signal
+	 * drive it. Use `defaultValue` for an uncontrolled InputOTP.
+	 */
 	value?: string | (() => string);
 	defaultValue?: string;
 	onValueChange?: (value: string) => void;

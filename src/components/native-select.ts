@@ -1,6 +1,6 @@
 import { div, type NodeChildren, optgroup, option, select } from "sibujs";
 import { ChevronDownIcon } from "../icons";
-import { bindControlled } from "../lib/controlled";
+import { bindGetterControlled } from "../lib/controlled";
 import { nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
@@ -9,8 +9,14 @@ export interface NativeSelectProps extends BaseProps {
 	disabled?: boolean;
 	required?: boolean;
 	name?: string;
-	/** Controlled value. Accepts a getter so a parent signal can drive it. */
+	/**
+	 * A getter makes the select controlled: it shows what the getter returns,
+	 * and a user change only calls `onChange` — if the owner does not update
+	 * the getter, the selection reverts to it. A plain string is the initial
+	 * value, exactly like `defaultValue` (and wins over it when both are given).
+	 */
 	value?: string | (() => string);
+	/** Initial value when uncontrolled, and the value a form reset returns to. */
 	defaultValue?: string;
 	onChange?: (value: string) => void;
 	multiple?: boolean;
@@ -37,11 +43,12 @@ export function NativeSelect(
 		...rest
 	} = props;
 
-	const isControlled = value !== undefined;
-	const [current, , , stopControlled] = bindControlled<string>(
-		value,
-		defaultValue ?? "",
-	);
+	const [current, , isControlled, stopControlled] =
+		bindGetterControlled<string>(value, defaultValue ?? "");
+	/** Uncontrolled starting value: a plain `value`, else `defaultValue`. */
+	const initial = isControlled
+		? undefined
+		: ((value as string | undefined) ?? defaultValue);
 
 	/**
 	 * Select `v` among the options that exist right now.
@@ -111,9 +118,9 @@ export function NativeSelect(
 				mo.observe(selectEl, { childList: true, subtree: true });
 				owner.observer(mo);
 			}
-		} else if (defaultValue !== undefined) {
+		} else if (initial !== undefined) {
 			/**
-			 * Mark the default option so a form reset returns to it, as a native
+			 * Mark the initial option so a form reset returns to it, as a native
 			 * `selected` attribute would, and select it.
 			 *
 			 * Options rendered later (a reactive list) get the same treatment as
@@ -123,11 +130,11 @@ export function NativeSelect(
 			 */
 			const applyDefault = () => {
 				for (const opt of Array.from((selectEl as HTMLSelectElement).options)) {
-					const isDefault = opt.value === defaultValue;
+					const isDefault = opt.value === initial;
 					if (opt.defaultSelected !== isDefault)
 						opt.defaultSelected = isDefault;
 				}
-				applyValue(defaultValue);
+				applyValue(initial);
 			};
 			applyDefault();
 			if (typeof MutationObserver !== "undefined") {

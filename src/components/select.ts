@@ -19,6 +19,11 @@ import {
 } from "./types";
 
 export interface SelectProps extends BaseProps {
+	/**
+	 * Controlled value: a click only calls `onValueChange`. A plain string is
+	 * a fixed value, as it has always been here; a getter lets a parent signal
+	 * drive it. Use `defaultValue` for an uncontrolled Select.
+	 */
 	value?: string | (() => string);
 	defaultValue?: string;
 	onValueChange?: (value: string) => void;

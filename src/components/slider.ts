@@ -5,6 +5,11 @@ import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface SliderProps extends BaseProps {
+	/**
+	 * Controlled value: moving a thumb only calls `onValueChange`. A plain
+	 * array is a fixed value, as it has always been here; a getter lets a
+	 * parent signal drive it. Use `defaultValue` for an uncontrolled Slider.
+	 */
 	value?: number[] | (() => number[]);
 	defaultValue?: number[];
 	min?: number;

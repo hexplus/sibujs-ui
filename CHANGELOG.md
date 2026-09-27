@@ -13,6 +13,23 @@ This project follows [Semantic Versioning](https://semver.org/).
 Several components accepted a value but did not show later changes to it, or
 changed on their own while their owner was in charge.
 
+Every component listed below accepts a getter, and a getter always makes it
+controlled: it shows what the getter returns, and a user action only reports
+the proposed value through its callback, so a change the owner does not
+commit is reverted. What a plain (non-getter) value means is unchanged from
+1.7.x, and it is not the same for every component:
+
+- **Initial value** — the user can change it, as before:
+  `DropdownMenuCheckboxItem`, `ContextMenuCheckboxItem`,
+  `MenubarCheckboxItem` (`checked`), `DropdownMenuRadioGroup`,
+  `ContextMenuRadioGroup`, `ToggleGroup`, `NativeSelect`, `CommandInput`
+  (`value`) and `Calendar` (`selected`).
+- **Fixed value** — a user action only calls the callback, as before:
+  `Select`, `Combobox`, `Slider`, `InputOTP` and `MenubarRadioGroup`
+  (`value`). Use `defaultValue` for uncontrolled use. The `Select` label,
+  the `InputOTP` hidden input and `InputOTP`'s `onComplete` no longer
+  follow a click or keystroke away from that fixed value.
+
 - **`Select` label follows the value.** The trigger label lived in separate
   state. Only a click wrote it, and the selected item filled it once. After
   that, changing the value from code (A → B) moved the checkmark but not the
@@ -58,11 +75,16 @@ changed on their own while their owner was in charge.
   fixed by the initial array. Thumbs are now added and removed to match the
   value. A range with several thumbs fills between the lowest and highest one.
 - **`NativeSelect` keeps its initial `value`.** The value was applied before
-  the options existed, so the first option always won. `value` now also
-  accepts a getter. A controlled select that the owner does not update after
-  `onChange` reverts to the owner's value. `defaultValue` marks its option as
-  the form-reset default, including an option rendered later (a reactive
-  list), until the user picks something else.
+  the options existed, so the first option always won. A plain `value` is
+  the initial value, exactly like `defaultValue` (and wins when both are
+  given): it is selected, the user can change it, and a form reset returns to
+  it. The initial option is marked as the form-reset default, including an
+  option rendered later (a reactive list), until the user picks something
+  else. `value` now also accepts a getter, which makes the select
+  controlled: external changes update the selection, a user change only calls
+  `onChange`, and a select the owner does not update reverts to the getter
+  right away. A controlled value whose option is rendered later is selected
+  when that option mounts.
 - **`ToggleGroup`** accepts a getter `value`: the group then shows what the
   getter returns, and a click only calls `onValueChange`. A plain `value` is
   still the initial value, like `defaultValue`.
@@ -82,7 +104,12 @@ changed on their own while their owner was in charge.
 - **`CommandInput`** `value` now filters the items as well as filling the
   input, and it accepts a getter; getter changes apply right away, filtering
   once each. The input shows `value` from construction on, also outside a
-  `Command`. `CommandDialog`'s `open` is typed to accept a getter, which
+  `Command`. A plain `value` is the initial text. A getter is
+  authoritative: a user edit is proposed once through the `Command`'s
+  `onValueChange`, the getter is read again right after, and the input and
+  the filter settle on what it returns. An edit the owner rejects is
+  reverted and never filtered; an accepted or transformed one is filtered
+  once. `CommandDialog`'s `open` is typed to accept a getter, which
   `Dialog` already supported.
 
 ---

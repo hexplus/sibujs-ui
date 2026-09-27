@@ -32,7 +32,11 @@ export interface ComboboxProps extends BaseProps {
 	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
-	/** Controlled value. Accepts a getter so a parent signal can drive it. */
+	/**
+	 * Controlled value: a selection only calls `onValueChange`. A plain value
+	 * is fixed, as it has always been here; a getter lets a parent signal drive
+	 * it. Use `defaultValue` for an uncontrolled Combobox.
+	 */
 	value?: string | string[] | (() => string | string[]);
 	defaultValue?: string | string[];
 	onValueChange?: (value: string | string[]) => void;
