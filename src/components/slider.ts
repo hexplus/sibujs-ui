@@ -5,6 +5,11 @@ import { cn, cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
 export interface SliderProps extends BaseProps {
+	/**
+	 * Controlled value: moving a thumb only calls `onValueChange`. A plain
+	 * array is a fixed value, as it has always been here; a getter lets a
+	 * parent signal drive it. Use `defaultValue` for an uncontrolled Slider.
+	 */
 	value?: number[] | (() => number[]);
 	defaultValue?: number[];
 	min?: number;
@@ -33,16 +38,9 @@ export function Slider(
 		...rest
 	} = props;
 
-	// Determine initial array length for thumb creation. If the controlled prop
-	// is a reactive getter, read it once up front to size the thumbs; otherwise
-	// use the literal or `defaultValue`.
-	const controlledInitial =
-		typeof controlledValue === "function" ? controlledValue() : controlledValue;
-	const initial = controlledInitial ?? defaultValue ?? [min];
-	const [values, setValues, , stopControlled] = bindControlled<number[]>(
-		controlledValue,
-		initial,
-	);
+	const [values, setValues, isControlled, stopControlled] = bindControlled<
+		number[]
+	>(controlledValue, defaultValue ?? [min]);
 
 	const range = div({
 		"data-slot": "slider-range",
@@ -64,21 +62,6 @@ export function Slider(
 		[range],
 	) as HTMLElement;
 
-	const thumbs: HTMLElement[] = initial.map(
-		(_, i) =>
-			div({
-				"data-slot": "slider-thumb",
-				tabindex: disabled ? undefined : "0",
-				role: "slider",
-				"aria-valuemin": String(min),
-				"aria-valuemax": String(max),
-				"aria-valuenow": () => String(values()[i] ?? min),
-				"aria-orientation": orientation,
-				class:
-					"block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",
-			}) as HTMLElement,
-	);
-
 	const el = div(
 		{
 			"data-slot": "slider",
@@ -91,39 +74,41 @@ export function Slider(
 			),
 			...rest,
 		},
-		[track, ...thumbs],
+		[track],
 	) as HTMLElement;
 
 	// The controlled-prop subscription dies with this element.
 	nodeOwner(el).add(stopControlled);
 
-	// Update range and thumb positions — owned so a disposed slider stops
-	// writing styles into detached thumbs.
-	ownedEffect(el, () => {
-		const vals = values();
-		const rangePercent = (((vals[0] ?? min) - min) / (max - min)) * 100;
-		if (orientation === "horizontal") {
-			range.style.width = `${rangePercent}%`;
-		} else {
-			range.style.height = `${rangePercent}%`;
-		}
-		thumbs.forEach((thumb, i) => {
-			const val = vals[i] ?? min;
-			const percent = ((val - min) / (max - min)) * 100;
-			if (orientation === "horizontal") {
-				thumb.style.position = "absolute";
-				thumb.style.left = `${percent}%`;
-				thumb.style.transform = "translateX(-50%)";
-			} else {
-				thumb.style.position = "absolute";
-				thumb.style.bottom = `${percent}%`;
-				thumb.style.transform = "translateY(50%)";
-			}
-		});
-	});
+	const commit = (index: number, next: number) => {
+		const newVals = [...values()];
+		newVals[index] = next;
+		if (!isControlled) setValues(newVals);
+		onValueChange?.(newVals);
+	};
 
-	// Pointer drag interaction
-	thumbs.forEach((thumb, i) => {
+	const percentOf = (val: number) => ((val - min) / (max - min)) * 100;
+
+	/**
+	 * Build the thumb for `values()[i]`.
+	 *
+	 * Thumbs are created on demand rather than once from the initial array, so
+	 * a value that grows or shrinks (one thumb to a range, say) gets exactly one
+	 * thumb per entry. Its state is written by the positioning effect below, not
+	 * bound per thumb, so a removed thumb leaves no subscription behind.
+	 */
+	const createThumb = (i: number): HTMLElement => {
+		const thumb = div({
+			"data-slot": "slider-thumb",
+			tabindex: disabled ? undefined : "0",
+			role: "slider",
+			"aria-valuemin": String(min),
+			"aria-valuemax": String(max),
+			"aria-orientation": orientation,
+			class:
+				"block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",
+		}) as HTMLElement;
+
 		let dragging = false;
 
 		const updateValue = (clientPos: number) => {
@@ -139,11 +124,7 @@ export function Slider(
 			}
 			const raw = min + ratio * (max - min);
 			const stepped = Math.round(raw / step) * step;
-			const clamped = Math.max(min, Math.min(max, stepped));
-			const newVals = [...values()];
-			newVals[i] = clamped;
-			if (controlledValue === undefined) setValues(newVals);
-			onValueChange?.(newVals);
+			commit(i, Math.max(min, Math.min(max, stepped)));
 		};
 
 		thumb.addEventListener("pointerdown", (ev: PointerEvent) => {
@@ -166,18 +147,56 @@ export function Slider(
 			const current = values()[i] ?? min;
 			if (ev.key === "ArrowRight" || ev.key === "ArrowUp") {
 				ev.preventDefault();
-				const newVal = Math.min(max, current + step);
-				const newVals = [...values()];
-				newVals[i] = newVal;
-				if (controlledValue === undefined) setValues(newVals);
-				onValueChange?.(newVals);
+				commit(i, Math.min(max, current + step));
 			} else if (ev.key === "ArrowLeft" || ev.key === "ArrowDown") {
 				ev.preventDefault();
-				const newVal = Math.max(min, current - step);
-				const newVals = [...values()];
-				newVals[i] = newVal;
-				if (controlledValue === undefined) setValues(newVals);
-				onValueChange?.(newVals);
+				commit(i, Math.max(min, current - step));
+			}
+		});
+
+		return thumb;
+	};
+
+	const thumbs: HTMLElement[] = [];
+
+	// Keep one thumb per value, then position range and thumbs — owned so a
+	// disposed slider stops writing into detached thumbs.
+	ownedEffect(el, () => {
+		const vals = values();
+		const count = Math.max(vals.length, 1);
+		while (thumbs.length < count) {
+			const thumb = createThumb(thumbs.length);
+			thumbs.push(thumb);
+			el.appendChild(thumb);
+		}
+		while (thumbs.length > count) {
+			thumbs.pop()?.remove();
+		}
+
+		// One value fills from `min`; several span from the lowest to the highest.
+		const start = vals.length > 1 ? percentOf(Math.min(...vals)) : 0;
+		const end = percentOf(
+			vals.length > 1 ? Math.max(...vals) : (vals[0] ?? min),
+		);
+		if (orientation === "horizontal") {
+			range.style.left = `${start}%`;
+			range.style.width = `${end - start}%`;
+		} else {
+			range.style.bottom = `${start}%`;
+			range.style.height = `${end - start}%`;
+		}
+
+		thumbs.forEach((thumb, i) => {
+			const val = vals[i] ?? min;
+			const percent = percentOf(val);
+			thumb.setAttribute("aria-valuenow", String(val));
+			thumb.style.position = "absolute";
+			if (orientation === "horizontal") {
+				thumb.style.left = `${percent}%`;
+				thumb.style.transform = "translateX(-50%)";
+			} else {
+				thumb.style.bottom = `${percent}%`;
+				thumb.style.transform = "translateY(50%)";
 			}
 		});
 	});

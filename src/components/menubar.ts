@@ -7,7 +7,7 @@ import {
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
-import { bindControlled } from "../lib/controlled";
+import { bindControlled, bindGetterControlled } from "../lib/controlled";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -373,7 +373,14 @@ export function MenubarShortcut(
 // ── MenubarCheckboxItem ──────────────────────────────────────────────────────
 
 export interface MenubarCheckboxItemProps extends BaseProps {
-	checked?: boolean;
+	/**
+	 * A plain boolean is the initial state: a click toggles it and reports
+	 * through `onCheckedChange`. A getter makes the item controlled — it shows
+	 * what the getter returns, and a click only calls `onCheckedChange`.
+	 */
+	checked?: boolean | (() => boolean);
+	/** Initial state when uncontrolled — the explicit form of a plain `checked`. */
+	defaultChecked?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
 	disabled?: boolean;
 }
@@ -385,16 +392,18 @@ export function MenubarCheckboxItem(
 	const props = normalizeArgs<MenubarCheckboxItemProps>(first, second);
 	const {
 		class: className,
-		checked = false,
+		checked,
+		defaultChecked = false,
 		onCheckedChange,
 		disabled,
 		nodes,
 		on,
 		...rest
 	} = props;
-	const [isChecked, setIsChecked] = signal(checked);
+	const [isChecked, setIsChecked, isControlled, stopControlled] =
+		bindGetterControlled<boolean>(checked, defaultChecked);
 
-	return div(
+	const el = div(
 		{
 			"data-slot": "menubar-checkbox-item",
 			role: "menuitemcheckbox",
@@ -410,7 +419,7 @@ export function MenubarCheckboxItem(
 				click: (ev: Event) => {
 					if (disabled) return;
 					const next = !isChecked();
-					setIsChecked(next);
+					if (!isControlled) setIsChecked(next);
 					onCheckedChange?.(next);
 					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 				},
@@ -428,12 +437,24 @@ export function MenubarCheckboxItem(
 			...toChildren(nodes),
 		],
 	) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
+	return el;
 }
 
 // ── MenubarRadioGroup ────────────────────────────────────────────────────────
 
 export interface MenubarRadioGroupProps extends BaseProps {
-	value?: string;
+	/**
+	 * Controlled value. A plain string is a fixed value, as it has always been
+	 * here: a click only calls `onValueChange`. A getter lets a parent signal
+	 * drive it. Use `defaultValue` for an uncontrolled group.
+	 */
+	value?: string | (() => string);
+	/** Initial value when uncontrolled. */
+	defaultValue?: string;
 	onValueChange?: (value: string) => void;
 }
 
@@ -442,8 +463,15 @@ export function MenubarRadioGroup(
 	second?: NodeChildren,
 ): HTMLElement {
 	const props = normalizeArgs<MenubarRadioGroupProps>(first, second);
-	const { value: controlledValue, onValueChange, nodes, ...rest } = props;
-	const [value, setValue] = signal(controlledValue ?? "");
+	const {
+		value: controlledValue,
+		defaultValue = "",
+		onValueChange,
+		nodes,
+		...rest
+	} = props;
+	const [value, setValue, isControlled, stopControlled] =
+		bindControlled<string>(controlledValue, defaultValue);
 
 	const el = div({
 		"data-slot": "menubar-radio-group",
@@ -455,10 +483,13 @@ export function MenubarRadioGroup(
 	(el as ElementWithContext).__menubarRadioGroup = {
 		value,
 		setValue: (v: string) => {
-			if (controlledValue === undefined) setValue(v);
+			if (!isControlled) setValue(v);
 			onValueChange?.(v);
 		},
 	};
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	return el;
 }

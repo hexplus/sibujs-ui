@@ -1,5 +1,6 @@
 import type { VariantProps } from "class-variance-authority";
-import { button as buttonTag, div, type NodeChildren, signal } from "sibujs";
+import { button as buttonTag, div, type NodeChildren } from "sibujs";
+import { bindGetterControlled } from "../lib/controlled";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn } from "../lib/utils";
 import { toggleVariants } from "./toggle";
@@ -13,7 +14,13 @@ export interface ToggleGroupProps
 	extends BaseProps,
 		VariantProps<typeof toggleVariants> {
 	type?: "single" | "multiple";
-	value?: string | string[];
+	/**
+	 * A plain value is the initial value: a click toggles items and reports
+	 * through `onValueChange`. A getter makes the group controlled — it shows
+	 * what the getter returns, and a click only calls `onValueChange`.
+	 */
+	value?: string | string[] | (() => string | string[]);
+	/** Initial value when uncontrolled — the explicit form of a plain `value`. */
 	defaultValue?: string | string[];
 	onValueChange?: (value: string | string[]) => void;
 	spacing?: number;
@@ -46,9 +53,9 @@ export function ToggleGroup(
 		...rest
 	} = props;
 
-	const initial =
-		controlledValue ?? defaultValue ?? (type === "multiple" ? [] : "");
-	const [value, setValue] = signal<string | string[]>(initial);
+	const [value, setValue, isControlled, stopControlled] = bindGetterControlled<
+		string | string[]
+	>(controlledValue, defaultValue ?? (type === "multiple" ? [] : ""));
 
 	const el = div({
 		"data-slot": "toggle-group",
@@ -66,6 +73,9 @@ export function ToggleGroup(
 		...rest,
 	}) as HTMLElement;
 
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
 	(el as ElementWithContext).__toggleGroup = {
 		variant,
 		size,
@@ -73,8 +83,11 @@ export function ToggleGroup(
 		type,
 		disabled,
 		value,
-		setValue,
-		onValueChange,
+		/** Ask for `next`; only an uncontrolled group changes on its own. */
+		commit: (next: string | string[]) => {
+			if (!isControlled) setValue(next);
+			onValueChange?.(next);
+		},
 	};
 
 	return el as HTMLElement;
@@ -156,12 +169,9 @@ export function ToggleGroupItem(
 			const idx = arr.indexOf(itemValue);
 			if (idx >= 0) arr.splice(idx, 1);
 			else arr.push(itemValue);
-			ctx.setValue(arr);
-			ctx.onValueChange?.(arr);
+			ctx.commit(arr);
 		} else {
-			const next = current === itemValue ? "" : itemValue;
-			ctx.setValue(next);
-			ctx.onValueChange?.(next);
+			ctx.commit(current === itemValue ? "" : itemValue);
 		}
 		(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 	});

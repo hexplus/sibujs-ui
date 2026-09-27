@@ -7,7 +7,7 @@ import {
 	span,
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
-import { bindControlled } from "../lib/controlled";
+import { bindControlled, bindGetterControlled } from "../lib/controlled";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -348,7 +348,14 @@ export function DropdownMenuItem(
 }
 
 export interface DropdownMenuCheckboxItemProps extends BaseProps {
-	checked?: boolean;
+	/**
+	 * A plain boolean is the initial state: a click toggles it and reports
+	 * through `onCheckedChange`. A getter makes the item controlled — it shows
+	 * what the getter returns, and a click only calls `onCheckedChange`.
+	 */
+	checked?: boolean | (() => boolean);
+	/** Initial state when uncontrolled — the explicit form of a plain `checked`. */
+	defaultChecked?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
 	disabled?: boolean;
 }
@@ -360,16 +367,18 @@ export function DropdownMenuCheckboxItem(
 	const props = normalizeArgs<DropdownMenuCheckboxItemProps>(first, second);
 	const {
 		class: className,
-		checked = false,
+		checked,
+		defaultChecked = false,
 		onCheckedChange,
 		disabled,
 		nodes,
 		on,
 		...rest
 	} = props;
-	const [isChecked, setIsChecked] = signal(checked);
+	const [isChecked, setIsChecked, isControlled, stopControlled] =
+		bindGetterControlled<boolean>(checked, defaultChecked);
 
-	return div(
+	const el = div(
 		{
 			"data-slot": "dropdown-menu-checkbox-item",
 			role: "menuitemcheckbox",
@@ -385,7 +394,7 @@ export function DropdownMenuCheckboxItem(
 				click: (ev: Event) => {
 					if (disabled) return;
 					const next = !isChecked();
-					setIsChecked(next);
+					if (!isControlled) setIsChecked(next);
 					onCheckedChange?.(next);
 					(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 				},
@@ -403,6 +412,11 @@ export function DropdownMenuCheckboxItem(
 			...toChildren(nodes),
 		],
 	) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
+
+	return el;
 }
 
 export interface DropdownMenuLabelProps extends BaseProps {
@@ -459,7 +473,14 @@ export function DropdownMenuShortcut(
 }
 
 export interface DropdownMenuRadioGroupProps extends BaseProps {
-	value?: string;
+	/**
+	 * A plain string is the initial value: a click selects the item and reports
+	 * through `onValueChange`. A getter makes the group controlled — it shows
+	 * what the getter returns, and a click only calls `onValueChange`.
+	 */
+	value?: string | (() => string);
+	/** Initial value when uncontrolled — the explicit form of a plain `value`. */
+	defaultValue?: string;
 	onValueChange?: (value: string) => void;
 }
 
@@ -468,8 +489,15 @@ export function DropdownMenuRadioGroup(
 	second?: NodeChildren,
 ): HTMLElement {
 	const props = normalizeArgs<DropdownMenuRadioGroupProps>(first, second);
-	const { value: val, onValueChange, nodes, ...rest } = props;
-	const [currentValue, setCurrentValue] = signal(val ?? "");
+	const {
+		value: controlledValue,
+		defaultValue = "",
+		onValueChange,
+		nodes,
+		...rest
+	} = props;
+	const [currentValue, setCurrentValue, isControlled, stopControlled] =
+		bindGetterControlled<string>(controlledValue, defaultValue);
 
 	const el = div({
 		"data-slot": "dropdown-menu-radio-group",
@@ -481,10 +509,13 @@ export function DropdownMenuRadioGroup(
 	(el as ElementWithContext).__radioGroup = {
 		value: currentValue,
 		setValue: (v: string) => {
-			setCurrentValue(v);
+			if (!isControlled) setCurrentValue(v);
 			onValueChange?.(v);
 		},
 	};
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(el).add(stopControlled);
 
 	return el as HTMLElement;
 }

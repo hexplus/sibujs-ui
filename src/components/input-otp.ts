@@ -1,6 +1,7 @@
 import { div, type NodeChildren, signal, span } from "sibujs";
 import { MinusIcon } from "../icons";
-import { deferOwned, ownedEffect } from "../lib/lifecycle";
+import { bindControlled } from "../lib/controlled";
+import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -10,7 +11,12 @@ import {
 
 export interface InputOTPProps extends BaseProps {
 	maxLength?: number;
-	value?: string;
+	/**
+	 * Controlled value: typing only calls `onValueChange`. A plain string is a
+	 * fixed value, as it has always been here; a getter lets a parent signal
+	 * drive it. Use `defaultValue` for an uncontrolled InputOTP.
+	 */
+	value?: string | (() => string);
 	defaultValue?: string;
 	onValueChange?: (value: string) => void;
 	onComplete?: (value: string) => void;
@@ -36,9 +42,8 @@ export function InputOTP(
 		...rest
 	} = props;
 
-	const [currentValue, setCurrentValue] = signal(
-		controlledValue ?? defaultValue,
-	);
+	const [currentValue, setCurrentValue, isControlled, stopControlled] =
+		bindControlled<string>(controlledValue, defaultValue);
 	const [focusedIndex, setFocusedIndex] = signal(-1);
 	const [isFocused, setIsFocused] = signal(false);
 
@@ -51,7 +56,6 @@ export function InputOTP(
 	if (pattern) hiddenInput.setAttribute("pattern", pattern);
 	if (disabled) hiddenInput.disabled = true;
 	hiddenInput.maxLength = maxLength;
-	hiddenInput.value = controlledValue ?? defaultValue;
 	hiddenInput.style.cssText =
 		"position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:1;";
 	if (disabled) hiddenInput.style.cursor = "not-allowed";
@@ -59,11 +63,20 @@ export function InputOTP(
 	hiddenInput.addEventListener("input", () => {
 		const val = hiddenInput.value.slice(0, maxLength);
 		hiddenInput.value = val;
-		if (controlledValue === undefined) setCurrentValue(val);
+		const before = currentValue();
+		if (!isControlled) setCurrentValue(val);
 		onValueChange?.(val);
-		setFocusedIndex(Math.min(val.length, maxLength - 1));
-		if (val.length === maxLength) {
-			onComplete?.(val);
+		// Controlled: the owner has had its chance to accept, adjust or reject
+		// the input, so everything below follows what it committed — a rejected
+		// paste must neither complete the code nor move the caret.
+		const committed = isControlled ? currentValue() : val;
+		if (hiddenInput.value !== committed) hiddenInput.value = committed;
+		setFocusedIndex(Math.min(committed.length, maxLength - 1));
+		if (
+			committed.length === maxLength &&
+			(!isControlled || committed !== before)
+		) {
+			onComplete?.(committed);
 		}
 	});
 
@@ -99,6 +112,15 @@ export function InputOTP(
 						: []),
 		],
 	) as HTMLElement;
+
+	// The controlled-prop subscription dies with this element.
+	nodeOwner(container).add(stopControlled);
+
+	// The hidden input is what the user types into; keep it on the value.
+	ownedEffect(container, () => {
+		const val = currentValue();
+		if (hiddenInput.value !== val) hiddenInput.value = val;
+	});
 
 	(container as ElementWithContext).__inputOtp = {
 		value: currentValue,
