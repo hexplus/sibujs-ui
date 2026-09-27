@@ -6,6 +6,87 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed — controlled values now reach the DOM
+
+Several components accepted a value but did not show later changes to it, or
+changed on their own while their owner was in charge.
+
+- **`Select` label follows the value.** The trigger label lived in separate
+  state. Only a click wrote it, and the selected item filled it once. After
+  that, changing the value from code (A → B) moved the checkmark but not the
+  label, clearing it or setting an unknown value left the old label in place,
+  and a click that a controlled owner rejected still showed the rejected item.
+  Items now register their label with the `Select`, and the trigger and
+  `SelectValue` render the item that matches the current value. With no match
+  they show the placeholder. The label is right on first render without
+  opening the menu, and it updates when a matching item mounts later or when
+  the selected item's own content changes (a translated label switching
+  locale while its value stays selected). Mounting many items does not
+  re-render the label once per item: only the selected item's label is
+  watched.
+  `SelectValue` inside a `SelectTrigger` no longer has its placeholder
+  overwritten by the trigger. With no placeholder, it clears when the value
+  clears.
+- **`Select` takes part in forms.** `name` and `required` used to land on the
+  wrapper `div`. A visually hidden native input now submits the value under
+  `name`, enforces `required` through `checkValidity()`, and returns the
+  control to `defaultValue` on form reset. That input cannot be edited:
+  focus that lands on it (the browser reporting a failed `required` check)
+  moves to the trigger, and any edit is reverted to the `Select` value.
+- **`Combobox` accepts a getter `value`.** The value was copied into local
+  state, so a getter was stored as the value itself (the input showed its
+  source text, and a multiple `ComboboxValue` threw). It is now bound like
+  `open`, and the input text, `ComboboxValue` and the checkmarks follow it.
+  Those labels also follow changes to an item's own content. Label lookup no
+  longer builds a selector from the item value or scans every item, and
+  mounting many items does not re-render the labels once per item.
+- **`DropdownMenuRadioGroup`, `ContextMenuRadioGroup`** accept a getter
+  `value`: the group then shows what the getter returns, follows external
+  changes, and a click only calls `onValueChange`. A plain `value` is still
+  the initial value, and the new `defaultValue` is its explicit form.
+- **`MenubarRadioGroup`** accepts a getter `value` and follows external
+  changes. A plain `value` stays fixed, as before; the new `defaultValue`
+  covers uncontrolled use.
+- **`DropdownMenuCheckboxItem`, `ContextMenuCheckboxItem`,
+  `MenubarCheckboxItem`** accept a getter `checked`: the item then shows what
+  the getter returns, follows external changes, and a click only calls
+  `onCheckedChange`. A plain `checked` is still the initial state and keeps
+  toggling on click; the new `defaultChecked` is its explicit form.
+- **`Slider` follows a value whose length changes.** The number of thumbs was
+  fixed by the initial array. Thumbs are now added and removed to match the
+  value. A range with several thumbs fills between the lowest and highest one.
+- **`NativeSelect` keeps its initial `value`.** The value was applied before
+  the options existed, so the first option always won. `value` now also
+  accepts a getter. A controlled select that the owner does not update after
+  `onChange` reverts to the owner's value. `defaultValue` marks its option as
+  the form-reset default, including an option rendered later (a reactive
+  list), until the user picks something else.
+- **`ToggleGroup`** accepts a getter `value`: the group then shows what the
+  getter returns, and a click only calls `onValueChange`. A plain `value` is
+  still the initial value, like `defaultValue`.
+- **`InputOTP`** accepts a getter `value`. The hidden input stays in step with
+  it, including when the owner rejects typed input. `onComplete` and the
+  active slot follow the value the owner committed, so a rejected paste
+  neither completes the code nor moves the caret.
+- **`Calendar`** accepts a getter `selected` (single or range). With a getter
+  the Calendar shows what it returns, and a click only calls `onSelect`.
+  Changes are rendered right away, once each. It opens on the selected month
+  when there is no `defaultMonth`. When the selection is changed from outside
+  and none of it is visible, the view moves to show it; a selection made by
+  clicking in the Calendar never moves the view, and browsing to other months
+  afterwards is not undone. Building a Calendar inside a reactive scope does
+  not subscribe that scope to the selection. A plain `selected` is still the
+  initial selection.
+- **`CommandInput`** `value` now filters the items as well as filling the
+  input, and it accepts a getter; getter changes apply right away, filtering
+  once each. The input shows `value` from construction on, also outside a
+  `Command`. `CommandDialog`'s `open` is typed to accept a getter, which
+  `Dialog` already supported.
+
+---
+
 ## [1.7.1] — 2026-09-18
 
 ### Changed — built and tested against `sibujs@4.6.0`

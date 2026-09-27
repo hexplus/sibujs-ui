@@ -8,6 +8,7 @@ import {
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, XIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
+import { createItemLabelRegistry } from "../lib/item-labels";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
@@ -31,7 +32,8 @@ export interface ComboboxProps extends BaseProps {
 	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
-	value?: string | string[];
+	/** Controlled value. Accepts a getter so a parent signal can drive it. */
+	value?: string | string[] | (() => string | string[]);
 	defaultValue?: string | string[];
 	onValueChange?: (value: string | string[]) => void;
 	multiple?: boolean;
@@ -57,11 +59,20 @@ export function Combobox(
 		...rest
 	} = props;
 
-	const initValue = controlledValue ?? defaultValue ?? (multiple ? [] : "");
 	const [isOpen, setIsOpen, isControlled, stopControlled] =
 		bindControlled<boolean>(controlledOpen, defaultOpen);
 	const [query, setQuery] = signal("");
-	const [selectedValue, setSelectedValue] = signal(initValue);
+	// Routed through bindControlled like `open`, so a getter drives the value
+	// instead of being stored as the value itself.
+	const [
+		selectedValue,
+		setSelectedValue,
+		isValueControlled,
+		stopValueControlled,
+	] = bindControlled<string | string[]>(
+		controlledValue,
+		defaultValue ?? (multiple ? [] : ""),
+	);
 	const [highlightedIndex, setHighlightedIndex] = signal(-1);
 
 	const el = div({
@@ -72,8 +83,28 @@ export function Combobox(
 		...rest,
 	}) as HTMLElement;
 
-	// The controlled-prop subscription dies with this element.
+	// The controlled-prop subscriptions die with this element.
 	nodeOwner(el).add(stopControlled);
+	nodeOwner(el).add(stopValueControlled);
+
+	/** The current selection as a list, whatever shape the value arrived in. */
+	const selectedList = (): string[] => {
+		const cur = selectedValue();
+		if (Array.isArray(cur)) return cur;
+		return cur ? [cur] : [];
+	};
+
+	const commitValue = (next: string | string[]) => {
+		if (!isValueControlled) setSelectedValue(next);
+		onValueChange?.(next);
+	};
+
+	/**
+	 * Mounted items by value, so labels derived from the value are recomputed
+	 * when the item that carries a label appears later or its content changes.
+	 * Only changes that concern a selected value are announced.
+	 */
+	const itemLabels = createItemLabelRegistry(el, selectedList);
 
 	const openCb = () => {
 		if (disabled) return;
@@ -94,42 +125,37 @@ export function Combobox(
 
 	const selectCb = (value: string) => {
 		if (multiple) {
-			const cur = selectedValue() as string[];
+			const cur = selectedList();
 			const next = cur.includes(value)
 				? cur.filter((v: string) => v !== value)
 				: [...cur, value];
-			if (controlledValue === undefined) setSelectedValue(next);
-			onValueChange?.(next);
+			commitValue(next);
 		} else {
-			if (controlledValue === undefined) setSelectedValue(value);
-			onValueChange?.(value);
+			commitValue(value);
 			closeCb();
 		}
 	};
 
-	/** Look up an item's visible label from its DOM element. */
-	const getItemLabel = (value: string): string => {
-		const item = el.querySelector(
-			`[data-slot=combobox-item][data-value="${value}"]`,
-		);
-		return item?.textContent?.trim() ?? value;
-	};
+	/**
+	 * Look up an item's visible label. Reactive on the registry, so a label
+	 * shown before its item mounted is corrected once it does. A map lookup
+	 * rather than a scan of every item, and no selector is built from the
+	 * value, since item values are arbitrary strings.
+	 */
+	const getItemLabel = (value: string): string =>
+		itemLabels.label(value)?.textContent?.trim() || value;
 
 	const clearCb = () => {
-		if (controlledValue === undefined) setSelectedValue(multiple ? [] : "");
-		onValueChange?.(multiple ? [] : "");
+		commitValue(multiple ? [] : "");
 	};
 
 	const removeChip = (value: string) => {
-		const cur = selectedValue() as string[];
-		const next = cur.filter((v: string) => v !== value);
-		if (controlledValue === undefined) setSelectedValue(next);
-		onValueChange?.(next);
+		commitValue(selectedList().filter((v: string) => v !== value));
 	};
 
 	const isSelected = (value: string): boolean => {
-		const cur = selectedValue();
-		return multiple ? (cur as string[]).includes(value) : cur === value;
+		if (multiple) return selectedList().includes(value);
+		return selectedValue() === value;
 	};
 
 	const filterItems = () => {
@@ -193,6 +219,7 @@ export function Combobox(
 		isOpen,
 		query,
 		selectedValue,
+		selectedList,
 		highlightedIndex,
 		multiple,
 		open: openCb,
@@ -206,6 +233,15 @@ export function Combobox(
 		filter: filterItems,
 		getVisibleItems,
 		getItemLabel,
+		/**
+		 * Register a mounted item. Its label is read from the DOM, so a change
+		 * to the item's content (a translated label switching locale, say)
+		 * re-derives the labels shown for the current value. Mutations inside
+		 * `ignore` — the check indicator, rewritten on every selection — are
+		 * not label changes.
+		 */
+		registerItem: (value: string, item: HTMLElement, ignore: Node) =>
+			itemLabels.register(value, item, ignore),
 		setHighlightedIndex: (idx: number) => {
 			setHighlightedIndex(idx);
 			updateHighlight();
@@ -283,17 +319,11 @@ export function ComboboxValue(
 			const ctx = (comboEl as ElementWithContext).__combobox;
 			if (ctx) {
 				ownedEffect(el, () => {
-					const val = ctx.selectedValue();
 					const placeholder = el.getAttribute("data-placeholder") ?? "";
-					if (typeof val === "string") {
-						el.textContent = val ? ctx.getItemLabel(val) : placeholder;
-					} else {
-						const labels = (val as string[]).map((v: string) =>
-							ctx.getItemLabel(v),
-						);
-						el.textContent =
-							labels.length > 0 ? labels.join(", ") : placeholder;
-					}
+					const labels = (ctx.selectedList() as string[]).map((v: string) =>
+						ctx.getItemLabel(v),
+					);
+					el.textContent = labels.length > 0 ? labels.join(", ") : placeholder;
 				});
 			}
 		}
@@ -490,7 +520,7 @@ export function ComboboxInput(
 					// For multi-select, clear the input (chips show the values)
 					inputEl.value = "";
 				} else {
-					const strVal = val as string;
+					const strVal = typeof val === "string" ? val : "";
 					inputEl.value = strVal ? ctx.getItemLabel(strVal) : "";
 				}
 				ctx.setQuery("");
@@ -713,11 +743,12 @@ export function ComboboxItem(
 	});
 
 	// Bind check indicator reactively
-	deferOwned(el, () => {
+	deferOwned(el, (owner) => {
 		const comboEl = el.closest("[data-slot=combobox]");
 		if (comboEl) {
 			const ctx = (comboEl as ElementWithContext).__combobox;
 			if (ctx) {
+				owner.add(ctx.registerItem(value, el, indicator));
 				ownedEffect(el, () => {
 					const selected = ctx.isSelected(value);
 					el.setAttribute("aria-selected", String(selected));
@@ -914,8 +945,7 @@ export function ComboboxChipsInput(
 				});
 				// Hide placeholder when chips are present
 				ownedEffect(inputEl, () => {
-					const val = ctx.selectedValue();
-					const hasValues = Array.isArray(val) && val.length > 0;
+					const hasValues = ctx.selectedList().length > 0;
 					(inputEl as HTMLInputElement).placeholder = hasValues
 						? ""
 						: (origPlaceholder ?? "");

@@ -91,3 +91,27 @@ export function bindControlled<T>(
 
 	return [value, setValue, isControlled, teardown];
 }
+
+/**
+ * Like {@link bindControlled}, but only a getter makes the prop controlled.
+ *
+ * For components whose plain-value prop has always meant "initial value" —
+ * menu checkbox items, menu radio groups, ToggleGroup — where treating a
+ * literal as controlled would silently freeze existing code such as
+ * `DropdownMenuCheckboxItem({ checked: true, onCheckedChange: save })`.
+ *
+ *  - `undefined`  → uncontrolled, seeded with `defaultValue`
+ *  - a literal    → uncontrolled, seeded with the literal (it wins over
+ *                   `defaultValue`, as it always did)
+ *  - a getter     → controlled; changes flow in, clicks only report
+ */
+export function bindGetterControlled<T>(
+	prop: T | (() => T) | undefined,
+	defaultValue: T,
+	owner?: Node,
+): ControlledBinding<T> {
+	if (typeof prop === "function") {
+		return bindControlled<T>(prop as () => T, defaultValue, owner);
+	}
+	return bindControlled<T>(undefined, (prop as T | undefined) ?? defaultValue);
+}

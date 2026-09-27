@@ -176,6 +176,103 @@ export function attachGroupValidityBridge(
 	return { refresh };
 }
 
+export interface ValueBridgeOptions {
+	/** `data-slot` given to the native input, e.g. `"select-form-bridge"`. */
+	slot: string;
+	/** Form field name. Without one the value is validated but not submitted. */
+	name?: string;
+	required?: boolean;
+	disabled?: boolean;
+	/** Value the control returns to on form reset. */
+	defaultValue: string;
+	/** Current value of the custom control. */
+	value: () => string;
+	/**
+	 * Called after a form reset with the value the browser restored, so the
+	 * component can follow (or, when controlled, ask its owner to).
+	 */
+	onReset: (value: string) => void;
+	/**
+	 * The control's own focusable element — a Select's trigger. Focus that
+	 * lands on the bridge is forwarded there.
+	 */
+	focusTarget?: () => HTMLElement | null;
+}
+
+/**
+ * Attach a single-value native bridge next to `root`, for custom controls
+ * whose state is one string — Select, for example.
+ *
+ * A visually hidden text input rather than `type="hidden"`: hidden inputs are
+ * barred from constraint validation, so `required` would never block a submit.
+ * `readOnly` is ruled out for the same reason. Does nothing unless `name` or
+ * `required` is set.
+ *
+ * ## Not editable
+ *
+ * A text input is something a user can type into, and the browser focuses the
+ * first invalid control when a submit fails validation — so the bridge could
+ * receive typed text and submit a value that matches no item. Two guards keep
+ * it a pure mirror:
+ *
+ *  - Focus never stays on it: whatever focuses it (the browser reporting a
+ *    failed `required` check, a script) is forwarded to `focusTarget`. This is
+ *    done on `focus` rather than `invalid`, because `checkValidity()` fires
+ *    `invalid` too, and a mere validity check must not move focus.
+ *  - Any edit that still reaches it (autofill, a script dispatching `input`)
+ *    is reverted to the control's value on the spot.
+ */
+export function attachValueBridge(
+	root: HTMLElement,
+	opts: ValueBridgeOptions,
+): () => void {
+	if (!opts.name && !opts.required) return () => {};
+
+	const input = document.createElement("input");
+	input.type = "text";
+	input.setAttribute("data-slot", opts.slot);
+	input.setAttribute("aria-hidden", "true");
+	input.setAttribute("autocomplete", "off");
+	input.tabIndex = -1;
+	input.setAttribute("style", VISUALLY_HIDDEN);
+	if (opts.name) input.name = opts.name;
+	if (opts.required) input.required = true;
+	if (opts.disabled) input.disabled = true;
+	// The content attribute is what form reset restores.
+	input.defaultValue = opts.defaultValue;
+
+	const sync = () => {
+		const next = opts.value();
+		if (input.value !== next) input.value = next;
+	};
+
+	const stopMirror = scopedEffect(root, sync);
+
+	// Revert edits, and hand focus to the real control.
+	const owner = nodeOwner(root);
+	owner.listen(input, "input", sync);
+	owner.listen(input, "change", sync);
+	owner.listen(input, "focus", () => {
+		const target = opts.focusTarget?.();
+		if (target && target !== input) target.focus();
+	});
+
+	const stopPlacement = bindPlacement(root, input, () => {
+		opts.onReset(input.value);
+		// A controlled owner may ignore the reset; nothing reactive would then
+		// re-run, so re-read the authoritative value explicitly.
+		sync();
+	});
+
+	let released = false;
+	return () => {
+		if (released) return;
+		released = true;
+		stopMirror();
+		stopPlacement();
+	};
+}
+
 /**
  * Handle for a bridge whose owner may outlive a single binding.
  *

@@ -7,6 +7,8 @@ import {
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
+import { attachValueBridge } from "../lib/form-control";
+import { createItemLabelRegistry } from "../lib/item-labels";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -21,9 +23,14 @@ export interface SelectProps extends BaseProps {
 	defaultValue?: string;
 	onValueChange?: (value: string) => void;
 	disabled?: boolean;
+	/** Form field name. Submitted through a hidden native input. */
 	name?: string;
+	/** Enforced through a hidden native input, so `checkValidity()` works. */
 	required?: boolean;
 }
+
+/** Placeholder each SelectTrigger was given, for SelectValues inside it. */
+const triggerPlaceholders = new WeakMap<Element, string | undefined>();
 
 export function Select(
 	first?: SelectProps | NodeChildren,
@@ -35,6 +42,8 @@ export function Select(
 		defaultValue = "",
 		onValueChange,
 		disabled,
+		name,
+		required,
 		nodes,
 		...rest
 	} = props;
@@ -42,8 +51,6 @@ export function Select(
 	const [value, setValue, isControlled, stopControlled] =
 		bindControlled<string>(controlledValue, defaultValue);
 	const [isOpen, setIsOpen] = signal(false);
-	const [displayText, setDisplayText] = signal("");
-	const [displayNode, setDisplayNode] = signal<Node | null>(null);
 	const [highlightedIndex, setHighlightedIndex] = signal(-1);
 
 	const el = div({
@@ -54,8 +61,49 @@ export function Select(
 		...rest,
 	}) as HTMLElement;
 
+	/**
+	 * Label content of every SelectItem, keyed by item value.
+	 *
+	 * The trigger label is a pure function of `value()` and this registry. It
+	 * used to live in its own signals, written on click and filled once by the
+	 * selected item, so a programmatic change moved the checkmark but not the
+	 * label, and a click a controlled owner rejected still showed the rejected
+	 * item. Items register themselves once they find this context, so the label
+	 * is right on first render without the menu ever being opened.
+	 */
+	const itemLabels = createItemLabelRegistry(el, () => {
+		const current = value();
+		return current ? [current] : [];
+	});
+
+	const selectedLabel = (): HTMLElement | null => {
+		const current = value();
+		if (!current) return null;
+		return itemLabels.label(current) ?? null;
+	};
+
 	// The controlled-prop subscription dies with this element.
 	nodeOwner(el).add(stopControlled);
+
+	const commit = (v: string) => {
+		if (!isControlled) setValue(v);
+		onValueChange?.(v);
+	};
+
+	// Hidden native input so the value is submitted and `required` validates.
+	attachValueBridge(el, {
+		slot: "select-form-bridge",
+		name,
+		required,
+		disabled,
+		defaultValue,
+		value,
+		onReset: (v) => {
+			if (value() !== v) commit(v);
+		},
+		focusTarget: () =>
+			el.querySelector<HTMLElement>("[data-slot=select-trigger]"),
+	});
 
 	const getVisibleItems = () =>
 		Array.from(
@@ -78,15 +126,23 @@ export function Select(
 	(el as ElementWithContext).__select = {
 		value,
 		isOpen,
-		displayText,
-		displayNode,
-		setDisplayText,
-		setDisplayNode,
-		select: (v: string, text: string, node?: Node) => {
-			if (!isControlled) setValue(v);
-			setDisplayText(text);
-			setDisplayNode(node ?? null);
-			onValueChange?.(v);
+		selectedLabel,
+		/** Register an item's label content; returns the unregister handle. */
+		registerItem: (itemValue: string, label: HTMLElement) =>
+			itemLabels.register(itemValue, label),
+		// Derived views of the label, kept for code that read them directly.
+		displayText: () => selectedLabel()?.textContent ?? "",
+		displayNode: () => selectedLabel(),
+		// The label is derived from the value now; writing it is a no-op kept so
+		// older code that patched the label keeps working.
+		setDisplayText: () => {},
+		setDisplayNode: () => {},
+		/**
+		 * Select an item. Only the value changes — the label follows it — so a
+		 * controlled owner that rejects the change keeps the correct label.
+		 */
+		select: (v: string) => {
+			commit(v);
 			setIsOpen(false);
 			setHighlightedIndex(-1);
 		},
@@ -199,14 +255,15 @@ export function SelectTrigger(
 			(n as HTMLElement).getAttribute?.("data-slot") === "select-value",
 	);
 
+	// Without children, the trigger renders (and owns) a default value slot.
+	// A SelectValue child renders itself instead.
+	let ownValueEl: HTMLElement | null = null;
 	if (!hasSelectValue && childNodes.length === 0) {
-		// Create a default SelectValue with the placeholder
-		childNodes.push(
-			span({
-				"data-slot": "select-value",
-				class: "line-clamp-1 flex items-center gap-2",
-			}) as Node,
-		);
+		ownValueEl = span({
+			"data-slot": "select-value",
+			class: "line-clamp-1 flex items-center gap-2",
+		}) as HTMLElement;
+		childNodes.push(ownValueEl);
 	}
 
 	const el = buttonTag(
@@ -230,39 +287,49 @@ export function SelectTrigger(
 		(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 	});
 
-	// Update display text reactively + bind aria-expanded
+	triggerPlaceholders.set(el, placeholder);
+
+	// Render the label from the value + bind aria-expanded
 	deferOwned(el, () => {
 		const selectEl = el.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
 
-		const valueEl = el.querySelector(
-			"[data-slot=select-value]",
-		) as HTMLElement | null;
-		if (!valueEl) return;
-
 		ownedEffect(el, () => {
-			const node = ctx.displayNode();
-			const text = ctx.displayText();
-			const open = ctx.isOpen();
+			el.setAttribute("aria-expanded", String(ctx.isOpen()));
+		});
 
-			if (node) {
-				valueEl.textContent = "";
-				valueEl.appendChild(node.cloneNode(true));
-				el.removeAttribute("data-placeholder");
-			} else if (text) {
-				valueEl.textContent = text;
-				el.removeAttribute("data-placeholder");
-			} else {
+		const valueEl = ownValueEl;
+		if (!valueEl) return;
+		ownedEffect(el, () => {
+			renderSelectLabel(valueEl, el, ctx.selectedLabel(), () => {
 				valueEl.textContent = placeholder ?? "";
-				if (placeholder) el.setAttribute("data-placeholder", "");
-			}
-			el.setAttribute("aria-expanded", String(open));
+			});
 		});
 	});
 
 	return el;
+}
+
+/**
+ * Show the selected item's label in `target`, or run `renderEmpty` when
+ * nothing (or a value matching no item) is selected. The trigger carries
+ * `data-placeholder` exactly while nothing is selected.
+ */
+function renderSelectLabel(
+	target: HTMLElement,
+	trigger: Element | null,
+	label: HTMLElement | null,
+	renderEmpty: () => void,
+): void {
+	if (label) {
+		target.replaceChildren(label.cloneNode(true));
+		trigger?.removeAttribute("data-placeholder");
+	} else {
+		renderEmpty();
+		trigger?.setAttribute("data-placeholder", "");
+	}
 }
 
 export interface SelectContentProps extends BaseProps {
@@ -403,6 +470,9 @@ export function SelectItem(
 		class: "absolute right-2 flex size-3.5 items-center justify-center",
 	});
 
+	// The item's label content — what the trigger shows while it is selected.
+	const labelEl = span({ nodes }) as HTMLElement;
+
 	const el = div(
 		{
 			"data-slot": "select-item",
@@ -415,21 +485,14 @@ export function SelectItem(
 			),
 			...rest,
 		},
-		[indicator, span({ nodes })],
+		[indicator, labelEl],
 	) as HTMLElement;
 
 	// Click to select
 	el.addEventListener("click", (ev: Event) => {
 		if (disabled) return;
 		const selectEl = el.closest("[data-slot=select]");
-		if (selectEl) {
-			const contentSpan = el.querySelector("span:last-child");
-			const text = contentSpan?.textContent ?? "";
-			const clone = contentSpan
-				? (contentSpan.cloneNode(true) as Node)
-				: undefined;
-			(selectEl as ElementWithContext).__select?.select(itemValue, text, clone);
-		}
+		if (selectEl) (selectEl as ElementWithContext).__select?.select(itemValue);
 		(on as Record<string, (ev: Event) => void>)?.click?.(ev);
 	});
 
@@ -445,31 +508,21 @@ export function SelectItem(
 		}
 	});
 
-	// Show check icon for selected item and sync displayText
-	deferOwned(el, () => {
+	// Register the label with the Select and show the check icon when selected
+	deferOwned(el, (owner) => {
 		const selectEl = el.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
+
+		owner.add(ctx.registerItem(itemValue, labelEl));
 
 		ownedEffect(el, () => {
 			const isSelected = ctx.value() === itemValue;
 			el.setAttribute("aria-selected", String(isSelected));
 			el.setAttribute("data-state", isSelected ? "checked" : "unchecked");
 			indicator.innerHTML = "";
-			if (isSelected) {
-				indicator.appendChild(CheckIcon({ class: "size-4" }));
-				if (!ctx.displayText()) {
-					const contentSpan = el.querySelector("span:last-child");
-					const text = contentSpan?.textContent ?? "";
-					if (text) {
-						ctx.setDisplayText(text);
-						ctx.setDisplayNode(
-							contentSpan ? (contentSpan.cloneNode(true) as Node) : null,
-						);
-					}
-				}
-			}
+			if (isSelected) indicator.appendChild(CheckIcon({ class: "size-4" }));
 		});
 	});
 
@@ -511,29 +564,25 @@ export function SelectValue(
 		nodes ?? (placeholder ? placeholder : undefined),
 	) as HTMLElement;
 
-	// Sync display reactively — prefer cloned node tree, fall back to text
+	// Children passed explicitly are what shows while nothing is selected.
+	const emptyChildren = nodes != null ? Array.from(el.childNodes) : null;
+
+	// Render the selected item's label, derived from the Select's value
 	deferOwned(el, () => {
 		const selectEl = el.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
 
-		ownedEffect(el, () => {
-			const node = ctx.displayNode();
-			const text = ctx.displayText();
-			const trigger = el.closest("[data-slot=select-trigger]");
+		const trigger = el.closest("[data-slot=select-trigger]");
+		const fallback =
+			placeholder ?? (trigger ? triggerPlaceholders.get(trigger) : undefined);
 
-			if (node) {
-				el.textContent = "";
-				el.appendChild(node.cloneNode(true));
-				trigger?.removeAttribute("data-placeholder");
-			} else if (text) {
-				el.textContent = text;
-				trigger?.removeAttribute("data-placeholder");
-			} else if (placeholder) {
-				el.textContent = placeholder;
-				trigger?.setAttribute("data-placeholder", "");
-			}
+		ownedEffect(el, () => {
+			renderSelectLabel(el, trigger, ctx.selectedLabel(), () => {
+				if (emptyChildren) el.replaceChildren(...emptyChildren);
+				else el.textContent = fallback ?? "";
+			});
 		});
 	});
 

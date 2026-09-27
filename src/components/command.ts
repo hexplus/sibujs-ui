@@ -5,9 +5,10 @@ import {
 	type NodeChildren,
 	signal,
 	span,
+	untracked,
 } from "sibujs";
 import { SearchIcon } from "../icons";
-import { deferOwned } from "../lib/lifecycle";
+import { deferOwned, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	Dialog,
@@ -54,6 +55,10 @@ export function Command(
 		setQuery: (v: string) => {
 			setQuery(v);
 			onValueChange?.(v);
+		},
+		/** Set the query from a controlled input without announcing it back. */
+		applyQuery: (v: string) => {
+			setQuery(v);
 		},
 		selectedIndex,
 		setSelectedIndex,
@@ -141,7 +146,11 @@ export function Command(
 export interface CommandInputProps extends BaseProps {
 	placeholder?: string;
 	disabled?: boolean;
-	value?: string;
+	/**
+	 * The search text. Filters the items on first render, and a getter keeps
+	 * the input and the filter in step with a parent signal.
+	 */
+	value?: string | (() => string);
 }
 
 export function CommandInput(
@@ -156,7 +165,6 @@ export function CommandInput(
 		type: "text",
 		placeholder,
 		disabled,
-		value,
 		class: cnReactive(
 			"flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
 			className,
@@ -172,17 +180,50 @@ export function CommandInput(
 		[SearchIcon({ class: "size-4 shrink-0 opacity-50" }), inputEl],
 	) as HTMLElement;
 
+	/** The parent Command's context, once this input has found it. */
+	let ctx: ElementWithContext["__command"] | null = null;
+
+	/**
+	 * Apply `next` to the input and, once connected to a Command, to the
+	 * filter too — setting only the input left every item visible until the
+	 * user typed.
+	 */
+	const apply = (next: string) => {
+		const input = inputEl as HTMLInputElement;
+		if (input.value !== next) input.value = next;
+		if (!ctx) return;
+		ctx.applyQuery(next);
+		ctx.filter();
+	};
+
+	// The input shows the value from construction on, with or without a
+	// Command around it.
+	if (typeof value === "function") {
+		// Only the getter is tracked. Filtering reads the query and selection
+		// signals, so it runs untracked — synchronously, once per change.
+		ownedEffect(wrapper, () => {
+			const next = value();
+			untracked(() => apply(next));
+		});
+	} else if (value !== undefined) {
+		apply(value);
+	}
+
 	// Wire to parent command — skipped if this input was disposed first, so a
 	// dead component never attaches a listener.
 	deferOwned(wrapper, (owner) => {
 		const cmdEl = wrapper.closest("[data-slot=command]");
 		if (!cmdEl) return;
-		const ctx = (cmdEl as ElementWithContext).__command;
-		if (!ctx) return;
+		const found = (cmdEl as ElementWithContext).__command;
+		if (!found) return;
+		ctx = found;
 		owner.listen(inputEl, "input", () => {
-			ctx.setQuery((inputEl as HTMLInputElement).value);
-			ctx.filter();
+			found.setQuery((inputEl as HTMLInputElement).value);
+			found.filter();
 		});
+
+		// Items exist now: filter them by the value the input already shows.
+		if (value !== undefined) apply((inputEl as HTMLInputElement).value);
 	});
 
 	return wrapper as HTMLElement;
@@ -358,7 +399,8 @@ export function CommandSeparator(
 // ── CommandDialog ────────────────────────────────────────────────────────────
 
 export interface CommandDialogProps extends BaseProps {
-	open?: boolean;
+	/** Accepts a getter so a parent signal can drive the dialog reactively. */
+	open?: boolean | (() => boolean);
 	onOpenChange?: (open: boolean) => void;
 	title?: string;
 	description?: string;

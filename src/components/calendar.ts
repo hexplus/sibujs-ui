@@ -5,9 +5,10 @@ import {
 	registerDisposer,
 	signal,
 	span,
+	untracked,
 } from "sibujs";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "../icons";
-import { nodeOwner } from "../lib/lifecycle";
+import { nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn } from "../lib/utils";
 import { buttonVariants } from "./button";
 import { type BaseProps, normalizeArgs } from "./types";
@@ -79,10 +80,20 @@ export type CalendarProps = BaseProps & {
 	startYear?: number;
 	endYear?: number;
 } & (
-		| { mode?: "single"; selected?: Date; onSelect?: (date: Date) => void }
+		| {
+				mode?: "single";
+				/**
+				 * A `Date` is the initial selection. A getter makes the Calendar
+				 * controlled: it shows whatever the getter returns, and a click only
+				 * calls `onSelect`.
+				 */
+				selected?: Date | (() => Date | undefined);
+				onSelect?: (date: Date) => void;
+		  }
 		| {
 				mode: "range";
-				selected?: DateRange;
+				/** A `DateRange` is the initial range; a getter makes it controlled. */
+				selected?: DateRange | (() => DateRange | undefined);
 				onSelect?: (range: DateRange) => void;
 		  }
 	);
@@ -107,32 +118,45 @@ export function Calendar(
 		...rest
 	} = props;
 
+	/**
+	 * `selected` as a getter is controlled: the Calendar renders what it
+	 * returns and a click only reports through `onSelect`. A plain value keeps
+	 * its long-standing meaning — the initial selection, updated on click.
+	 */
+	const isControlled = typeof selected === "function";
+	const readSelected = (): Date | DateRange | undefined =>
+		typeof selected === "function" ? selected() : selected;
+
+	// Selection state. Plain variables: they are only ever read while
+	// rendering, which happens imperatively.
+	let selectedDate: Date | null = null;
+	let rangeFrom: Date | undefined;
+	let rangeTo: Date | undefined;
+
+	const applySelection = (next: Date | DateRange | undefined) => {
+		if (mode === "single") {
+			selectedDate = next instanceof Date ? next : null;
+		} else {
+			const range = next && !(next instanceof Date) ? next : undefined;
+			rangeFrom = range?.from;
+			rangeTo = range?.to;
+		}
+	};
+
+	// Untracked: an enclosing reactive scope must not subscribe to the
+	// selection, or it would rebuild the whole Calendar on every date change.
+	const initialSelection = untracked(readSelected);
+	applySelection(initialSelection);
+
 	const initial =
 		defaultMonth ??
-		(mode === "single" && selected instanceof Date ? selected : undefined) ??
-		(mode === "range" && selected && !(selected instanceof Date)
-			? selected.from
+		(initialSelection instanceof Date ? initialSelection : undefined) ??
+		(initialSelection && !(initialSelection instanceof Date)
+			? initialSelection.from
 			: undefined) ??
 		new Date();
 	const [currentYear, setCurrentYear] = signal(initial.getFullYear());
 	const [currentMonth, setCurrentMonth] = signal(initial.getMonth());
-
-	// Single mode state
-	const [selectedDate, setSelectedDate] = signal<Date | null>(
-		mode === "single" && selected instanceof Date ? selected : null,
-	);
-
-	// Range mode state
-	const [rangeFrom, setRangeFrom] = signal<Date | undefined>(
-		mode === "range" && selected && !(selected instanceof Date)
-			? selected.from
-			: undefined,
-	);
-	const [rangeTo, setRangeTo] = signal<Date | undefined>(
-		mode === "range" && selected && !(selected instanceof Date)
-			? selected.to
-			: undefined,
-	);
 
 	// ── Custom dropdown builder ──
 	function createCustomDropdown(
@@ -310,7 +334,9 @@ export function Calendar(
 		let captionEl: HTMLElement;
 
 		if (captionLayout === "dropdown") {
-			captionEl = createDropdownCaption(i);
+			// Reads the month signals — untracked for the same reason as above.
+			const panelIndex = i;
+			captionEl = untracked(() => createDropdownCaption(panelIndex));
 		} else {
 			const label = span({
 				"data-slot": "calendar-caption-label",
@@ -381,9 +407,9 @@ export function Calendar(
 		year: number,
 		month: number,
 	) {
-		const sel = selectedDate();
-		const rFrom = rangeFrom();
-		const rTo = rangeTo();
+		const sel = selectedDate;
+		const rFrom = rangeFrom;
+		const rTo = rangeTo;
 		const totalDays = daysInMonth(year, month);
 		const firstDay = new Date(year, month, 1).getDay();
 
@@ -520,12 +546,16 @@ export function Calendar(
 					click: () => {
 						if (dayDisabled) return;
 						if (mode === "single") {
-							setSelectedDate(date);
+							if (isControlled) proposal = { value: date };
+							else selectedDate = date;
 							(onSelect as ((d: Date) => void) | undefined)?.(date);
 						} else {
 							handleRangeClick(date);
 						}
-						renderGrids();
+						// Controlled: the grid is rendered by the selection effect when
+						// (and only when) the owner accepts — rendering here as well drew
+						// the grid twice per click.
+						if (!isControlled) renderGrids();
 					},
 				},
 			},
@@ -550,29 +580,79 @@ export function Calendar(
 	}
 
 	function handleRangeClick(date: Date) {
-		const from = rangeFrom();
-		const to = rangeTo();
+		const from = rangeFrom;
+		const to = rangeTo;
 
-		if (!from || (from && to)) {
-			setRangeFrom(date);
-			setRangeTo(undefined);
-			(onSelect as ((r: DateRange) => void) | undefined)?.({ from: date });
-		} else {
-			if (date < from) {
-				setRangeFrom(date);
-				setRangeTo(from);
-				(onSelect as ((r: DateRange) => void) | undefined)?.({
-					from: date,
-					to: from,
-				});
-			} else {
-				setRangeTo(date);
-				(onSelect as ((r: DateRange) => void) | undefined)?.({
-					from,
-					to: date,
-				});
-			}
+		let next: DateRange;
+		if (!from || (from && to)) next = { from: date };
+		else if (date < from) next = { from: date, to: from };
+		else next = { from, to: date };
+
+		if (isControlled) proposal = { value: next };
+		else applySelection(next);
+		(onSelect as ((r: DateRange) => void) | undefined)?.(next);
+	}
+
+	/**
+	 * The selection a click in this Calendar last reported through
+	 * `onSelect`, while the owner has not answered yet. When the controlled
+	 * selection then changes to exactly that, the change came from the user's
+	 * own click, and — as in uncontrolled mode — the view stays where it is:
+	 * finishing a range in a later month, or picking an outside day, must not
+	 * throw the view to another month.
+	 */
+	let proposal: { value: Date | DateRange } | null = null;
+
+	const sameDay = (a?: Date, b?: Date) => (a && b ? isSameDay(a, b) : a === b);
+
+	function isProposal(next: Date | DateRange | undefined): boolean {
+		const proposed = proposal?.value;
+		if (!proposed || !next) return false;
+		if (proposed instanceof Date || next instanceof Date) {
+			return (
+				proposed instanceof Date &&
+				next instanceof Date &&
+				isSameDay(proposed, next)
+			);
 		}
+		return sameDay(proposed.from, next.from) && sameDay(proposed.to, next.to);
+	}
+
+	/** Whether `date` lies in one of the visible months (outside days excluded). */
+	function isVisible(date: Date): boolean {
+		const offset =
+			date.getFullYear() * 12 +
+			date.getMonth() -
+			(currentYear() * 12 + currentMonth());
+		return offset >= 0 && offset < numberOfMonths;
+	}
+
+	/**
+	 * Bring the selection into view when none of it is visible.
+	 *
+	 * Called only for a programmatic change of the controlled selection —
+	 * never for user navigation or the user's own clicks — so browsing away
+	 * from the selected date is not undone. If any endpoint is already
+	 * visible the view stays. There is no controlled `month` prop to defer
+	 * to: `defaultMonth` only sets the first month shown.
+	 */
+	function revealSelection() {
+		const endpoints = (
+			mode === "single" ? [selectedDate] : [rangeFrom, rangeTo]
+		).filter((d): d is Date => d instanceof Date);
+		if (endpoints.length === 0 || endpoints.some(isVisible)) return;
+		const target = endpoints[0];
+		setCurrentYear(target.getFullYear());
+		setCurrentMonth(target.getMonth());
+	}
+
+	/** Show a new controlled selection: synchronously, rendering once. */
+	function followSelection(next: Date | DateRange | undefined) {
+		const fromClick = isProposal(next);
+		proposal = null;
+		applySelection(next);
+		if (!fromClick) revealSelection();
+		updateAll();
 	}
 
 	// ── Navigate ──
@@ -655,8 +735,27 @@ export function Calendar(
 		[root],
 	) as HTMLElement;
 
-	updateCaptions();
-	renderGrids();
+	if (isControlled) {
+		// Follow the getter. Only the getter is tracked: the render runs
+		// untracked, so month navigation or a `disabled` callback that reads
+		// signals never re-runs this effect — and it runs synchronously, once
+		// per change, rather than a microtask later.
+		let first = true;
+		ownedEffect(el, () => {
+			const next = readSelected();
+			if (first) {
+				// Already applied and about to be rendered below.
+				first = false;
+				return;
+			}
+			untracked(() => followSelection(next));
+		});
+	}
+
+	untracked(() => {
+		updateCaptions();
+		renderGrids();
+	});
 
 	return el as HTMLElement;
 }

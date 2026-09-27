@@ -76,6 +76,7 @@ export const LIB_META = {
 	controlled: "Controlled/uncontrolled state binding for component props.",
 	aria: "Wires aria-labelledby / aria-describedby references by id.",
 	"form-control": "Pairs custom controls (checkbox, switch, radio) with hidden native inputs so forms see them.",
+	"item-labels": "Tracks the labels of list items (Select, Combobox) so the selected label stays live.",
 	"scroll-lock": "Reference-counted body scroll locking for overlays.",
 	icons: "The inline SVG icons used by the components (a subset of lucide).",
 };
