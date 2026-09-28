@@ -8,6 +8,7 @@ import {
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
 import { bindControlled, bindGetterControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -174,12 +175,6 @@ export function DropdownMenuContent(
 		}
 	};
 
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") {
-			if (menuEl) (menuEl as ElementWithContext).__dropdown?.close();
-		}
-	};
-
 	deferOwned(content, () => {
 		menuEl = content.closest("[data-slot=dropdown-menu]") as HTMLElement | null;
 		if (!menuEl) return;
@@ -195,6 +190,8 @@ export function DropdownMenuContent(
 		// be reached by dispose().
 		const anchor: HTMLElement = menuEl;
 		document.body.appendChild(content);
+
+		const escapeLayer = createDismissableLayer(() => ctx.close());
 
 		ownedEffect(anchor, () => {
 			const open = ctx.isOpen();
@@ -247,11 +244,11 @@ export function DropdownMenuContent(
 					content.style.left = `${left}px`;
 				}
 				document.addEventListener("mousedown", handleOutsideClick);
-				document.addEventListener("keydown", handleKeydown);
+				escapeLayer.activate();
 			} else {
 				content.style.display = "none";
 				document.removeEventListener("mousedown", handleOutsideClick);
-				document.removeEventListener("keydown", handleKeydown);
+				escapeLayer.deactivate();
 			}
 		});
 
@@ -262,7 +259,7 @@ export function DropdownMenuContent(
 		// orphaned portaled node.
 		nodeOwner(anchor).add(() => {
 			document.removeEventListener("mousedown", handleOutsideClick);
-			document.removeEventListener("keydown", handleKeydown);
+			escapeLayer.deactivate();
 			// Dispose the portaled subtree's own bindings before detaching it —
 			// dispose(anchor) cannot walk into it any more.
 			dispose(content);

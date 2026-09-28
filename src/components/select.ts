@@ -7,6 +7,7 @@ import {
 } from "sibujs";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { attachValueBridge } from "../lib/form-control";
 import { createItemLabelRegistry } from "../lib/item-labels";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
@@ -389,18 +390,13 @@ export function SelectContent(
 		}
 	};
 
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") {
-			const selectEl = content.closest("[data-slot=select]");
-			if (selectEl) (selectEl as ElementWithContext).__select?.close();
-		}
-	};
-
 	deferOwned(content, (owner) => {
 		const selectEl = content.closest("[data-slot=select]");
 		if (!selectEl) return;
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
+
+		const escapeLayer = createDismissableLayer(() => ctx.close());
 
 		ownedEffect(content, () => {
 			const open = ctx.isOpen();
@@ -408,15 +404,15 @@ export function SelectContent(
 			content.setAttribute("data-state", open ? "open" : "closed");
 			if (open) {
 				document.addEventListener("mousedown", handleOutsideClick);
-				document.addEventListener("keydown", handleKeydown);
+				escapeLayer.activate();
 			} else {
 				document.removeEventListener("mousedown", handleOutsideClick);
-				document.removeEventListener("keydown", handleKeydown);
+				escapeLayer.deactivate();
 			}
 		});
 		owner.add(() => {
 			document.removeEventListener("mousedown", handleOutsideClick);
-			document.removeEventListener("keydown", handleKeydown);
+			escapeLayer.deactivate();
 		});
 	});
 

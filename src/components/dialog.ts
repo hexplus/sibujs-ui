@@ -10,6 +10,7 @@ import {
 import { XIcon } from "../icons";
 import { bindAriaRefs } from "../lib/aria";
 import { bindControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { createScrollLock } from "../lib/scroll-lock";
 import { cn, cnReactive } from "../lib/utils";
@@ -266,11 +267,6 @@ export function DialogContent(
 	}
 	overlay.addEventListener("click", closeFn);
 
-	// Escape key
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") closeFn();
-	};
-
 	const scrollLock = createScrollLock();
 	const portalInBody = () => portal.parentNode !== anchor;
 	/** Put the portal back where it lives while closed. */
@@ -297,18 +293,7 @@ export function DialogContent(
 		dialogCtx = ctx;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
-		let keydownBound = false;
-
-		const bindKeydown = () => {
-			if (keydownBound) return;
-			keydownBound = true;
-			document.addEventListener("keydown", handleKeydown);
-		};
-		const unbindKeydown = () => {
-			if (!keydownBound) return;
-			keydownBound = false;
-			document.removeEventListener("keydown", handleKeydown);
-		};
+		const escapeLayer = createDismissableLayer(closeFn);
 
 		ownedEffect(anchor, () => {
 			const open = ctx.isOpen();
@@ -328,12 +313,12 @@ export function DialogContent(
 				portal.style.display = "contents";
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				bindKeydown();
+				escapeLayer.activate();
 				scrollLock.acquire();
 			} else {
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				unbindKeydown();
+				escapeLayer.deactivate();
 				scrollLock.release();
 				// The close animation plays where the dialog is shown; only then
 				// does the portal go back into the tree.
@@ -347,7 +332,7 @@ export function DialogContent(
 
 		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
-			unbindKeydown();
+			escapeLayer.deactivate();
 			// Release only the lock this instance holds.
 			scrollLock.release();
 		});

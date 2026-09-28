@@ -7,6 +7,7 @@ import {
 	signal,
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -64,17 +65,15 @@ export function NavigationMenu(
 	const handleOutsideClick = (ev: MouseEvent) => {
 		if (!el.contains(ev.target as Node)) setActiveItem(null);
 	};
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") setActiveItem(null);
-	};
+	const escapeLayer = createDismissableLayer(() => setActiveItem(null));
 
 	ownedEffect(el, () => {
 		if (activeItem() !== null) {
 			document.addEventListener("mousedown", handleOutsideClick);
-			document.addEventListener("keydown", handleKeydown);
+			escapeLayer.activate();
 		} else {
 			document.removeEventListener("mousedown", handleOutsideClick);
-			document.removeEventListener("keydown", handleKeydown);
+			escapeLayer.deactivate();
 		}
 	});
 
@@ -82,7 +81,7 @@ export function NavigationMenu(
 	// menu is still open — otherwise they'd leak.
 	nodeOwner(el).add(() => {
 		document.removeEventListener("mousedown", handleOutsideClick);
-		document.removeEventListener("keydown", handleKeydown);
+		escapeLayer.deactivate();
 	});
 
 	return el;

@@ -1,5 +1,6 @@
 import { button as buttonTag, div, h2, type NodeChildren, p } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { createScrollLock } from "../lib/scroll-lock";
 import { cnReactive } from "../lib/utils";
@@ -165,10 +166,6 @@ export function DrawerContent(
 	(content as ElementWithContext).__drawerClose = closeFn;
 	overlay.addEventListener("click", closeFn);
 
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") closeFn();
-	};
-
 	const scrollLock = createScrollLock();
 
 	deferOwned(container, (owner) => {
@@ -190,17 +187,7 @@ export function DrawerContent(
 			typeof resolvedClass === "function" ? resolvedClass() : resolvedClass;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
-		let keydownBound = false;
-		const bindKeydown = () => {
-			if (keydownBound) return;
-			keydownBound = true;
-			document.addEventListener("keydown", handleKeydown);
-		};
-		const unbindKeydown = () => {
-			if (!keydownBound) return;
-			keydownBound = false;
-			document.removeEventListener("keydown", handleKeydown);
-		};
+		const escapeLayer = createDismissableLayer(closeFn);
 
 		ownedEffect(container, () => {
 			const open = ctx.isOpen();
@@ -214,13 +201,13 @@ export function DrawerContent(
 				container.style.display = "contents";
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				bindKeydown();
+				escapeLayer.activate();
 				scrollLock.acquire();
 			} else {
 				// Trigger exit animation first, then hide after it completes
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				unbindKeydown();
+				escapeLayer.deactivate();
 				scrollLock.release();
 				closeTimer = setTimeout(() => {
 					container.style.display = "none";
@@ -231,7 +218,7 @@ export function DrawerContent(
 
 		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
-			unbindKeydown();
+			escapeLayer.deactivate();
 			scrollLock.release();
 		});
 	});
