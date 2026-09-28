@@ -48,6 +48,11 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      # The suite itself: Vitest strips types rather than checking them, so a
+      # test calling a component with props its signature rejects would pass.
+      - name: Type-check tests
+        run: npm run typecheck:tests
+
       # BUILD BEFORE TEST, deliberately. `tests/cdn-artifacts.test.ts` asserts
       # properties of the published artifacts that source cannot show — that
       # SibuJS is absent from the CDN bundle's bytes, that diagnostics are

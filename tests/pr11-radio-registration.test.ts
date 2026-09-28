@@ -243,9 +243,9 @@ describe("nameless required-group validity follows membership", () => {
 
 	it("follows reactive-child removal of the selected item", async () => {
 		const [items, setItems] = signal(["a", "b"]);
-		const group = RadioGroup({ required: true, defaultValue: "a" }, [
-			() => items().map((v) => RadioGroupItem({ value: v })),
-		]) as HTMLElement;
+		const group = RadioGroup({ required: true, defaultValue: "a" }, () =>
+			items().map((v) => RadioGroupItem({ value: v })),
+		) as HTMLElement;
 		const f = newForm(group);
 		await settle();
 		expect(f.checkValidity()).toBe(true);

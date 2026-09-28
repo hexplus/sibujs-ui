@@ -6,6 +6,20 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.8.1] — 2026-09-28
+
+### Changed — built and tested against `sibujs@4.8.0`
+
+- The `sibujs` dev dependency (used to build and test the package) moves from
+  `^4.7.0` to `^4.8.0`.
+- The peer dependency range is unchanged (`sibujs >=3.2.0 <5.0.0`), and no
+  component source changed. The CDN bundle still reads the runtime from
+  `window.Sibu` rather than bundling it, so its contents do not depend on the
+  installed `sibujs`.
+- The test suite is type-checked (`npm run typecheck:tests`, also run in CI).
+  Vitest strips types rather than checking them, so a test calling a component
+  with props its signature rejects used to pass.
+
 ## [1.8.0] — 2026-09-26
 
 ### Fixed — controlled values now reach the DOM

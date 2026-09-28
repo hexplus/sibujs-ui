@@ -427,9 +427,9 @@ describe("DEFECT 3 — roving tabindex with dynamic items", () => {
 
 	it("normalizes items added and removed through reactive children", async () => {
 		const [items, setItems] = signal(["a", "b"]);
-		const group = RadioGroup({ defaultValue: "a" }, [
-			() => items().map((v) => RadioGroupItem({ value: v })),
-		]) as HTMLElement;
+		const group = RadioGroup({ defaultValue: "a" }, () =>
+			items().map((v) => RadioGroupItem({ value: v })),
+		) as HTMLElement;
 		document.body.appendChild(group);
 		await settle();
 		expectSingleTabStop(group);

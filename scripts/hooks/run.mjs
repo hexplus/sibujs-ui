@@ -10,7 +10,7 @@
 //
 // pre-push mirrors CI's `verify` job, so a push does not start a CI run that is
 // already known to fail:
-//   lint -> typecheck -> build -> full unit suite -> registry end-to-end
+//   lint -> typecheck -> typecheck tests -> build -> full unit suite -> registry end-to-end
 //   -> packaging check
 //
 // The build comes before the suite for the same reason it does in CI: the CDN
@@ -136,6 +136,7 @@ if (hook === "pre-commit") {
 } else if (hook === "pre-push") {
   runNpm("lint", "run lint");
   runNpm("typecheck", "run typecheck");
+  runNpm("typecheck tests", "run typecheck:tests");
   runNpm("build", "run build");
   run("unit suite", process.execPath, [VITEST_CLI, "run", "--reporter=dot"]);
   // The copy-paste registry as a consumer gets it: every component installed

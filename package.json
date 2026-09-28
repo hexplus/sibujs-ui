@@ -1,6 +1,6 @@
 {
   "name": "sibujs-ui",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
   "keywords": [
     "sibujs",
@@ -65,6 +65,7 @@
     "lint": "biome check --max-diagnostics=500 src/",
     "lint:fix": "biome check --write src/",
     "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
     "format": "biome format --write src/",
     "test": "vitest",
     "prepublishOnly": "npm run build",
@@ -86,7 +87,7 @@
     "esbuild": "^0.28.2",
     "jsdom": "^25.0.0",
     "lucide": "^1.7.0",
-    "sibujs": "^4.7.0",
+    "sibujs": "^4.8.0",
     "tailwindcss": "^4.3.3",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",
