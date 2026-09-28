@@ -154,6 +154,7 @@ export function PopoverContent(
 
 	const handleKeydown = (ev: KeyboardEvent) => {
 		if (ev.key === "Escape") {
+			ev.preventDefault();
 			const popoverEl = content.closest("[data-slot=popover]");
 			if (popoverEl) (popoverEl as ElementWithContext).__popover?.close();
 		}

@@ -6,6 +6,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.9.1] — 2026-09-28
+
+### Fixed — Escape handling in overlays
+
+- `Dialog`, `Sheet`, `Drawer`, `DropdownMenu` and `Popover` now call
+  `preventDefault()` on the Escape keydown that closes them, as `Select`
+  already did, so the rest of the page can tell the key was consumed. An
+  Escape pressed while they are closed is left untouched.
+- With nested (or several simultaneous) dialogs open, one Escape now closes
+  only the most recently opened dialog instead of all of them. Open dialogs
+  share a single document listener that dismisses the topmost one.
+
 ## [1.9.0] — 2026-09-28
 
 ### Changed — `Dialog` renders into a body-level portal while open

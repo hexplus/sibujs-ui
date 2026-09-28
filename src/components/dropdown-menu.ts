@@ -176,6 +176,7 @@ export function DropdownMenuContent(
 
 	const handleKeydown = (ev: KeyboardEvent) => {
 		if (ev.key === "Escape") {
+			ev.preventDefault();
 			if (menuEl) (menuEl as ElementWithContext).__dropdown?.close();
 		}
 	};

@@ -24,6 +24,33 @@ import {
 // Auto-incrementing ID for accessible linkage
 let dialogIdCounter = 0;
 
+// Close functions of the open dialogs, in open order. One shared document
+// listener serves them all and closes only the topmost, so a single Escape
+// dismisses one nested dialog instead of every open one.
+const escapeStack: Array<() => void> = [];
+
+const handleEscape = (ev: KeyboardEvent) => {
+	if (ev.key !== "Escape") return;
+	const top = escapeStack[escapeStack.length - 1];
+	if (!top) return;
+	ev.preventDefault();
+	top();
+};
+
+function pushEscape(close: () => void): void {
+	if (escapeStack.length === 0)
+		document.addEventListener("keydown", handleEscape);
+	escapeStack.push(close);
+}
+
+function removeEscape(close: () => void): void {
+	const idx = escapeStack.lastIndexOf(close);
+	if (idx === -1) return;
+	escapeStack.splice(idx, 1);
+	if (escapeStack.length === 0)
+		document.removeEventListener("keydown", handleEscape);
+}
+
 export interface DialogProps extends BaseProps {
 	open?: boolean | (() => boolean);
 	defaultOpen?: boolean;
@@ -266,11 +293,6 @@ export function DialogContent(
 	}
 	overlay.addEventListener("click", closeFn);
 
-	// Escape key
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") closeFn();
-	};
-
 	const scrollLock = createScrollLock();
 	const portalInBody = () => portal.parentNode !== anchor;
 	/** Put the portal back where it lives while closed. */
@@ -302,12 +324,12 @@ export function DialogContent(
 		const bindKeydown = () => {
 			if (keydownBound) return;
 			keydownBound = true;
-			document.addEventListener("keydown", handleKeydown);
+			pushEscape(closeFn);
 		};
 		const unbindKeydown = () => {
 			if (!keydownBound) return;
 			keydownBound = false;
-			document.removeEventListener("keydown", handleKeydown);
+			removeEscape(closeFn);
 		};
 
 		ownedEffect(anchor, () => {

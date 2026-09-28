@@ -197,7 +197,9 @@ export function SheetContent(
 	overlay.addEventListener("click", closeFn);
 
 	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") closeFn();
+		if (ev.key !== "Escape") return;
+		ev.preventDefault();
+		closeFn();
 	};
 
 	const scrollLock = createScrollLock();
