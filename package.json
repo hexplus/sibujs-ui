@@ -1,6 +1,6 @@
 {
   "name": "sibujs-ui",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "UI components for SibuJS — Tailwind-styled, signal-driven, zero VDOM.",
   "keywords": [
     "sibujs",
@@ -87,7 +87,7 @@
     "esbuild": "^0.28.2",
     "jsdom": "^25.0.0",
     "lucide": "^1.7.0",
-    "sibujs": "^4.8.0",
+    "sibujs": "^4.10.0",
     "tailwindcss": "^4.3.3",
     "tsup": "^8.5.1",
     "typescript": "^5.8.3",

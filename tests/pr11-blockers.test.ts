@@ -26,6 +26,7 @@ import {
 } from "../src/components/dialog";
 import { RadioGroup, RadioGroupItem } from "../src/components/radio-group";
 import { __resetScrollLock } from "../src/lib/scroll-lock";
+import { dialogContent } from "./helpers/dialog";
 
 const settle = async () => {
 	for (let i = 0; i < 12; i++) await Promise.resolve();
@@ -389,8 +390,11 @@ for (const fam of FAMILIES) {
 		document.body.appendChild(root);
 		return root;
 	};
+	// An open Dialog's content is portaled to <body> (see tests/helpers/dialog).
 	const contentOf = (root: HTMLElement) =>
-		root.querySelector(fam.contentSlot) as HTMLElement;
+		fam.name === "Dialog"
+			? dialogContent(root)
+			: (root.querySelector(fam.contentSlot) as HTMLElement);
 
 	describe(`${fam.name} keeps caller-supplied ARIA references`, () => {
 		it("keeps an explicit external aria-labelledby", async () => {

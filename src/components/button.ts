@@ -1,5 +1,9 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { button as buttonTag, type NodeChildren } from "sibujs";
+import {
+	button as buttonTag,
+	type ButtonProps as NativeButtonProps,
+	type NodeChildren,
+} from "sibujs";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -40,7 +44,11 @@ export const buttonVariants = cva(
 export interface ButtonProps
 	extends BaseProps,
 		VariantProps<typeof buttonVariants> {
-	disabled?: boolean;
+	/**
+	 * A boolean, or a getter the button follows reactively — the same value
+	 * the native `button()` factory accepts. `false` removes the attribute.
+	 */
+	disabled?: NativeButtonProps["disabled"];
 	type?: "button" | "submit" | "reset";
 }
 

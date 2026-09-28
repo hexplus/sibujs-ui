@@ -6,6 +6,48 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.9.0] — 2026-09-28
+
+### Changed — `Dialog` renders into a body-level portal while open
+
+`DialogContent` built a `data-slot="dialog-portal"` container but left it in
+the caller's tree, so an open dialog was clipped by an ancestor's `overflow`,
+trapped in its stacking context, and — under a `transform`, `filter` or
+`contain` ancestor — its `fixed` overlay was positioned against that ancestor
+instead of the viewport.
+
+- While open, and while its close animation plays, the portal (overlay +
+  content) is a child of `document.body`. Each open appends it again, so the
+  most recently opened dialog — a nested one included — stacks on top.
+- Closed, the portal is back inside the element `DialogContent` returns, which
+  is also what server rendering and a never-opened dialog show. Nothing touches
+  `document.body` before the first open or under SSR.
+- `DialogContent` now returns an in-tree `data-slot="dialog-anchor"` element
+  (`display: contents`) wrapping the portal. It never moves, so disposing it —
+  directly, or through a route change or any ancestor — removes the portal from
+  `<body>` and releases the keydown listener, the scroll lock and the content's
+  bindings, even while the dialog is open.
+- The dialog context is resolved once from the anchor and carried from there:
+  the close button, the overlay, `DialogClose` and `DialogFooter`'s close
+  button inside the portal close their own dialog, with several dialogs open.
+  `aria-labelledby` / `aria-describedby` keep resolving to the portaled title
+  and description.
+
+**Upgrade note:** an open dialog's content is no longer a descendant of the
+`Dialog` element. Code that finds it with `dialogEl.querySelector(...)` while
+the dialog is open should query the document instead (`[role=dialog]`,
+`[data-slot=dialog-content]`). `AlertDialog`, `Sheet` and `Drawer` are
+unchanged.
+
+### Changed — `Button`'s `disabled` accepts a getter
+
+`ButtonProps.disabled` was typed `boolean`, narrower than the native SibuJS
+`button()` factory it is passed to, so a reactive disabled state needed a cast.
+It is now the native prop type (`ButtonProps["disabled"]` from `sibujs`:
+`boolean | (() => boolean)`). A getter updates both the `disabled` property and
+the attribute; `false` removes the attribute; server rendering writes the
+current value. Static booleans behave as before.
+
 ## [1.8.1] — 2026-09-28
 
 ### Changed — built and tested against `sibujs@4.8.0`

@@ -237,6 +237,25 @@ Dialog({ open }, [
 ]);
 ```
 
+`Button`'s `disabled` takes the same values as the native `button()` factory —
+a boolean or a getter:
+
+```ts
+const [saving, setSaving] = signal(false);
+Button({ disabled: saving, on: { click: save } }, "Save");
+```
+
+### Dialog portal
+
+While a `Dialog` is open, its overlay and content are rendered in a portal
+appended to `document.body`, so no ancestor's `overflow`, `transform`,
+`contain` or stacking context can clip or reposition the fixed overlay. The
+most recently opened dialog is appended last and stacks on top. Once the close
+animation ends the portal returns inside the `DialogContent`, which is where
+server rendering and a never-opened dialog keep it. To find an open dialog's
+content, query the document (`[role=dialog]`,
+`[data-slot=dialog-content]`) rather than the `Dialog` element.
+
 ### Reactive children
 
 Children may be reactive getters anywhere `NodeChildren` is accepted, including
