@@ -10,6 +10,7 @@ import {
 import { XIcon } from "../icons";
 import { bindAriaRefs } from "../lib/aria";
 import { bindControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { createScrollLock } from "../lib/scroll-lock";
 import { cn, cnReactive } from "../lib/utils";
@@ -23,33 +24,6 @@ import {
 
 // Auto-incrementing ID for accessible linkage
 let dialogIdCounter = 0;
-
-// Close functions of the open dialogs, in open order. One shared document
-// listener serves them all and closes only the topmost, so a single Escape
-// dismisses one nested dialog instead of every open one.
-const escapeStack: Array<() => void> = [];
-
-const handleEscape = (ev: KeyboardEvent) => {
-	if (ev.key !== "Escape") return;
-	const top = escapeStack[escapeStack.length - 1];
-	if (!top) return;
-	ev.preventDefault();
-	top();
-};
-
-function pushEscape(close: () => void): void {
-	if (escapeStack.length === 0)
-		document.addEventListener("keydown", handleEscape);
-	escapeStack.push(close);
-}
-
-function removeEscape(close: () => void): void {
-	const idx = escapeStack.lastIndexOf(close);
-	if (idx === -1) return;
-	escapeStack.splice(idx, 1);
-	if (escapeStack.length === 0)
-		document.removeEventListener("keydown", handleEscape);
-}
 
 export interface DialogProps extends BaseProps {
 	open?: boolean | (() => boolean);
@@ -319,18 +293,7 @@ export function DialogContent(
 		dialogCtx = ctx;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
-		let keydownBound = false;
-
-		const bindKeydown = () => {
-			if (keydownBound) return;
-			keydownBound = true;
-			pushEscape(closeFn);
-		};
-		const unbindKeydown = () => {
-			if (!keydownBound) return;
-			keydownBound = false;
-			removeEscape(closeFn);
-		};
+		const escapeLayer = createDismissableLayer(closeFn);
 
 		ownedEffect(anchor, () => {
 			const open = ctx.isOpen();
@@ -350,12 +313,12 @@ export function DialogContent(
 				portal.style.display = "contents";
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				bindKeydown();
+				escapeLayer.activate();
 				scrollLock.acquire();
 			} else {
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				unbindKeydown();
+				escapeLayer.deactivate();
 				scrollLock.release();
 				// The close animation plays where the dialog is shown; only then
 				// does the portal go back into the tree.
@@ -369,7 +332,7 @@ export function DialogContent(
 
 		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
-			unbindKeydown();
+			escapeLayer.deactivate();
 			// Release only the lock this instance holds.
 			scrollLock.release();
 		});

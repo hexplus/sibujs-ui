@@ -8,6 +8,7 @@ import {
 } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
 import { bindControlled, bindGetterControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -205,33 +206,27 @@ export function MenubarContent(
 		}
 	};
 
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") {
-			const menuEl = content.closest("[data-slot=menubar-menu]");
-			if (menuEl) (menuEl as ElementWithContext).__menubarMenu?.close();
-		}
-	};
-
 	deferOwned(content, (owner) => {
 		const menuEl = content.closest("[data-slot=menubar-menu]");
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__menubarMenu;
 			if (ctx) {
+				const escapeLayer = createDismissableLayer(() => ctx.close());
 				ownedEffect(content, () => {
 					const open = ctx.isOpen();
 					content.style.display = open ? "" : "none";
 					content.setAttribute("data-state", open ? "open" : "closed");
 					if (open) {
 						document.addEventListener("mousedown", handleOutsideClick);
-						document.addEventListener("keydown", handleKeydown);
+						escapeLayer.activate();
 					} else {
 						document.removeEventListener("mousedown", handleOutsideClick);
-						document.removeEventListener("keydown", handleKeydown);
+						escapeLayer.deactivate();
 					}
 				});
 				owner.add(() => {
 					document.removeEventListener("mousedown", handleOutsideClick);
-					document.removeEventListener("keydown", handleKeydown);
+					escapeLayer.deactivate();
 				});
 			}
 		}

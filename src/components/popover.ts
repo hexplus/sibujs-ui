@@ -1,5 +1,6 @@
 import { button as buttonTag, div, type NodeChildren, p } from "sibujs";
 import { bindControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
@@ -152,14 +153,6 @@ export function PopoverContent(
 		}
 	};
 
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") {
-			ev.preventDefault();
-			const popoverEl = content.closest("[data-slot=popover]");
-			if (popoverEl) (popoverEl as ElementWithContext).__popover?.close();
-		}
-	};
-
 	deferOwned(content, (owner) => {
 		const popoverEl = content.closest("[data-slot=popover]");
 		if (!popoverEl) return;
@@ -167,6 +160,7 @@ export function PopoverContent(
 		if (!ctx) return;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
+		const escapeLayer = createDismissableLayer(() => ctx.close());
 
 		ownedEffect(content, () => {
 			const open = ctx.isOpen();
@@ -178,11 +172,11 @@ export function PopoverContent(
 				content.style.display = "";
 				content.setAttribute("data-state", "open");
 				document.addEventListener("mousedown", handleOutsideClick);
-				document.addEventListener("keydown", handleKeydown);
+				escapeLayer.activate();
 			} else {
 				content.setAttribute("data-state", "closed");
 				document.removeEventListener("mousedown", handleOutsideClick);
-				document.removeEventListener("keydown", handleKeydown);
+				escapeLayer.deactivate();
 				closeTimer = setTimeout(() => {
 					content.style.display = "none";
 					closeTimer = undefined;
@@ -194,7 +188,7 @@ export function PopoverContent(
 		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
 			document.removeEventListener("mousedown", handleOutsideClick);
-			document.removeEventListener("keydown", handleKeydown);
+			escapeLayer.deactivate();
 		});
 	});
 

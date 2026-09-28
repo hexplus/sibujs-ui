@@ -78,5 +78,6 @@ export const LIB_META = {
 	"form-control": "Pairs custom controls (checkbox, switch, radio) with hidden native inputs so forms see them.",
 	"item-labels": "Tracks the labels of list items (Select, Combobox) so the selected label stays live.",
 	"scroll-lock": "Reference-counted body scroll locking for overlays.",
+	"dismissable-layer": "A shared Escape stack so one key press closes only the topmost overlay.",
 	icons: "The inline SVG icons used by the components (a subset of lucide).",
 };

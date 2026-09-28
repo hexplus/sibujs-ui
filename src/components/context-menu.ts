@@ -1,6 +1,7 @@
 import { div, type NodeChildren, signal, span } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
 import { bindGetterControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
@@ -109,18 +110,12 @@ export function ContextMenuContent(
 		}
 	};
 
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key === "Escape") {
-			const menuEl = content.closest("[data-slot=context-menu]");
-			if (menuEl) (menuEl as ElementWithContext).__contextMenu?.close();
-		}
-	};
-
 	deferOwned(content, (owner) => {
 		const menuEl = content.closest("[data-slot=context-menu]");
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__contextMenu;
 			if (ctx) {
+				const escapeLayer = createDismissableLayer(() => ctx.close());
 				ownedEffect(content, () => {
 					const open = ctx.isOpen();
 					content.style.display = open ? "" : "none";
@@ -129,15 +124,15 @@ export function ContextMenuContent(
 						content.style.left = `${ctx.posX()}px`;
 						content.style.top = `${ctx.posY()}px`;
 						document.addEventListener("mousedown", handleOutsideClick);
-						document.addEventListener("keydown", handleKeydown);
+						escapeLayer.activate();
 					} else {
 						document.removeEventListener("mousedown", handleOutsideClick);
-						document.removeEventListener("keydown", handleKeydown);
+						escapeLayer.deactivate();
 					}
 				});
 				owner.add(() => {
 					document.removeEventListener("mousedown", handleOutsideClick);
-					document.removeEventListener("keydown", handleKeydown);
+					escapeLayer.deactivate();
 				});
 			}
 		}

@@ -8,15 +8,25 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [1.9.1] — 2026-09-28
 
-### Fixed — Escape handling in overlays
+### Fixed — one Escape closes exactly one overlay
 
-- `Dialog`, `Sheet`, `Drawer`, `DropdownMenu` and `Popover` now call
-  `preventDefault()` on the Escape keydown that closes them, as `Select`
-  already did, so the rest of the page can tell the key was consumed. An
-  Escape pressed while they are closed is left untouched.
-- With nested (or several simultaneous) dialogs open, one Escape now closes
-  only the most recently opened dialog instead of all of them. Open dialogs
-  share a single document listener that dismisses the topmost one.
+Every dismissable overlay attached its own `document` `keydown` listener while
+open, so with overlays nested — a `DropdownMenu` in a `Popover` in a `Dialog`,
+or two dialogs — a single Escape closed all of them. Most also closed without
+`preventDefault()`, so the rest of the page could not tell the key had been
+consumed.
+
+- `Dialog`, `Sheet`, `Drawer`, `DropdownMenu`, `Popover`, `Select`,
+  `ContextMenu`, `Menubar` and `NavigationMenu` now share one Escape stack
+  (`src/lib/dismissable-layer.ts`) with a single `document` listener, attached
+  while at least one overlay is open.
+- Each Escape closes only the most recently opened overlay and calls
+  `preventDefault()`. Nested overlays close one layer per press, innermost
+  first. With nothing open, Escape is left untouched.
+- An Escape already handled closer to the focus — `Select`'s trigger,
+  `Combobox`'s input — closes only that component, not the overlay around it.
+- The registry has a new library item, `dismissable-layer`, installed with the
+  overlays that use it.
 
 ## [1.9.0] — 2026-09-28
 

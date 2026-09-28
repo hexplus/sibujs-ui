@@ -127,7 +127,7 @@ src/components/ui/dialog.ts
 src/components/ui/button.ts          ← dialog uses Button
 src/lib/utils.ts                     ← cn(), cnReactive()
 src/lib/types.ts                     ← BaseProps, normalizeArgs, toChildren
-src/lib/lifecycle.ts  controlled.ts  aria.ts  scroll-lock.ts
+src/lib/lifecycle.ts  controlled.ts  aria.ts  scroll-lock.ts  dismissable-layer.ts
 src/lib/icons.ts                     ← the icons components use
 src/styles/sibujs-ui/base.css  default.css
 ```
@@ -224,7 +224,8 @@ The items:
 - **Components** — one per file in `src/components/`, named after it (`button`,
   `dropdown-menu`, …). Run `npx sibujs-ui list` for all of them.
 - **Library** — `utils` (`cn`, `cnReactive`), `types`, `lifecycle`,
-  `controlled`, `aria`, `form-control`, `scroll-lock`, `icons`.
+  `controlled`, `aria`, `form-control`, `scroll-lock`, `dismissable-layer`,
+  `icons`.
 - **Style** — `base`: `base.css` (Tailwind theme bridge, keyframes, custom
   utilities and variants) and `default.css` (neutral light and dark tokens).
 - **Themes** — `theme-amber`, `theme-blue`, `theme-green`, `theme-orange`,

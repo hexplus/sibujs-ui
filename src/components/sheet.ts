@@ -8,6 +8,7 @@ import {
 } from "sibujs";
 import { XIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
+import { createDismissableLayer } from "../lib/dismissable-layer";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { createScrollLock } from "../lib/scroll-lock";
 import { cnReactive } from "../lib/utils";
@@ -196,12 +197,6 @@ export function SheetContent(
 	if (closeBtn) closeBtn.addEventListener("click", closeFn);
 	overlay.addEventListener("click", closeFn);
 
-	const handleKeydown = (ev: KeyboardEvent) => {
-		if (ev.key !== "Escape") return;
-		ev.preventDefault();
-		closeFn();
-	};
-
 	const scrollLock = createScrollLock();
 
 	deferOwned(container, (owner) => {
@@ -211,17 +206,7 @@ export function SheetContent(
 		if (!ctx) return;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
-		let keydownBound = false;
-		const bindKeydown = () => {
-			if (keydownBound) return;
-			keydownBound = true;
-			document.addEventListener("keydown", handleKeydown);
-		};
-		const unbindKeydown = () => {
-			if (!keydownBound) return;
-			keydownBound = false;
-			document.removeEventListener("keydown", handleKeydown);
-		};
+		const escapeLayer = createDismissableLayer(closeFn);
 
 		ownedEffect(container, () => {
 			const open = ctx.isOpen();
@@ -235,12 +220,12 @@ export function SheetContent(
 				container.style.display = "contents";
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				bindKeydown();
+				escapeLayer.activate();
 				scrollLock.acquire();
 			} else {
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
-				unbindKeydown();
+				escapeLayer.deactivate();
 				scrollLock.release();
 				closeTimer = setTimeout(() => {
 					container.style.display = "none";
@@ -251,7 +236,7 @@ export function SheetContent(
 
 		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);
-			unbindKeydown();
+			escapeLayer.deactivate();
 			scrollLock.release();
 		});
 	});
