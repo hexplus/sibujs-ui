@@ -40,6 +40,7 @@ import { Sheet, SheetContent } from "../src/components/sheet";
 import { Tooltip, TooltipContent } from "../src/components/tooltip";
 import { toChildren, toNodes } from "../src/components/types";
 import { __resetScrollLock } from "../src/lib/scroll-lock";
+import { dialogContent } from "./helpers/dialog";
 
 const flush = () => Promise.resolve().then(() => undefined);
 
@@ -113,9 +114,7 @@ describe("reactive children render and update", () => {
 		document.body.appendChild(dlg);
 		await flush();
 
-		const content = dlg.querySelector(
-			"[data-slot=dialog-content]",
-		) as HTMLElement;
+		const content = dialogContent(dlg);
 		expect(content.textContent).toContain("first");
 
 		setText("second");
@@ -131,9 +130,7 @@ describe("reactive children render and update", () => {
 		document.body.appendChild(dlg);
 		await flush();
 
-		const content = dlg.querySelector(
-			"[data-slot=dialog-content]",
-		) as HTMLElement;
+		const content = dialogContent(dlg);
 		const closeBtn = content.querySelector(
 			"[data-slot=dialog-close]",
 		) as HTMLElement;
@@ -376,9 +373,7 @@ describe("reactive children render and update", () => {
 		document.body.appendChild(dlg);
 		await flush();
 
-		const content = dlg.querySelector(
-			"[data-slot=dialog-content]",
-		) as HTMLElement;
+		const content = dialogContent(dlg);
 		expect(content.textContent).toBe("abcd");
 	});
 
@@ -396,9 +391,7 @@ describe("reactive children render and update", () => {
 		document.body.appendChild(dlg);
 		await flush();
 
-		const content = dlg.querySelector(
-			"[data-slot=dialog-content]",
-		) as HTMLElement;
+		const content = dialogContent(dlg);
 		expect(content.textContent).toBe("ab");
 	});
 });

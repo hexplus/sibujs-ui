@@ -1,5 +1,6 @@
 import {
 	button as buttonTag,
+	dispose,
 	div,
 	h2,
 	type NodeChildren,
@@ -202,8 +203,12 @@ export function DialogContent(
 		contentNodes,
 	) as HTMLElement;
 
-	// Container that portals overlay + content
-	const container = div(
+	// The portal: overlay + content. While the dialog is open (and while its
+	// close animation plays) it is a child of document.body, so no ancestor's
+	// overflow clipping, stacking context, transform or containment applies to
+	// the fixed overlay. Closed, it lives inside `anchor`, in the caller's tree —
+	// which is also what server rendering and a never-opened dialog show.
+	const portal = div(
 		{
 			"data-slot": "dialog-portal",
 			style: "display: none",
@@ -211,10 +216,26 @@ export function DialogContent(
 		[overlay, content],
 	) as HTMLElement;
 
+	// The node DialogContent returns. It never moves, so it is what `dispose()`
+	// reaches — through an ancestor (a route change, a `when()` branch) or
+	// directly — and it owns every subscription, timer, global listener, the
+	// scroll lock and the portal itself.
+	const anchor = div(
+		{
+			"data-slot": "dialog-anchor",
+			style: "display: contents",
+		},
+		[portal],
+	) as HTMLElement;
+
+	// Internal bridge from the in-tree anchor to its portal, which is not a
+	// descendant while the dialog is open (see ElementWithContext).
+	(anchor as ElementWithContext).__dialogPortal = portal;
+
 	// Keep the generated references pointing at real, owned children — adding,
 	// re-pointing and removing them as titles mount, move and unmount. A
 	// caller-supplied reference is left strictly alone.
-	bindAriaRefs(container, content, "[data-slot=dialog-content]", [
+	bindAriaRefs(anchor, content, "[data-slot=dialog-content]", [
 		{
 			attr: "aria-labelledby",
 			claimant: "[data-slot=dialog-title]",
@@ -229,11 +250,14 @@ export function DialogContent(
 		},
 	]);
 
-	// Wire close behavior
+	// The dialog this content belongs to. Resolved once, from the anchor's place
+	// in the tree — the anchor never moves — and carried from then on, so
+	// nothing inside the portaled overlay/content depends on DOM ancestry to
+	// find its dialog. DialogClose and DialogFooter reach it through
+	// `__dialogClose` on the content element, which travels with the portal.
+	let dialogCtx: ElementWithContext["__dialog"] | null = null;
 	const closeFn = () => {
-		// Walk up to find dialog context
-		const dialogEl = container.parentElement?.closest?.("[data-slot=dialog]");
-		if (dialogEl) (dialogEl as ElementWithContext).__dialog?.close();
+		dialogCtx?.close();
 	};
 
 	(content as ElementWithContext).__dialogClose = closeFn;
@@ -247,16 +271,30 @@ export function DialogContent(
 		if (ev.key === "Escape") closeFn();
 	};
 
-	// Bind visibility reactively after insertion. `container` is the node that
-	// lives in the caller's tree, so it owns every subscription, timer, global
-	// listener and the scroll lock.
 	const scrollLock = createScrollLock();
+	const portalInBody = () => portal.parentNode !== anchor;
+	/** Put the portal back where it lives while closed. */
+	const returnPortal = () => {
+		if (portalInBody()) anchor.appendChild(portal);
+	};
 
-	deferOwned(container, (owner) => {
-		const dialogEl = container.parentElement?.closest?.("[data-slot=dialog]");
+	// Registered now, not in the deferred setup: a dialog disposed while open
+	// must never leave its overlay in <body>. The portal is not a descendant of
+	// the anchor while it is in <body>, so the anchor's disposal would not
+	// reach it — dispose it explicitly, then remove it.
+	nodeOwner(anchor).add(() => {
+		if (!portalInBody()) return;
+		dispose(portal);
+		portal.remove();
+	});
+
+	// Bind visibility reactively after insertion.
+	deferOwned(anchor, (owner) => {
+		const dialogEl = anchor.parentElement?.closest?.("[data-slot=dialog]");
 		if (!dialogEl) return;
 		const ctx = (dialogEl as ElementWithContext).__dialog;
 		if (!ctx) return;
+		dialogCtx = ctx;
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 		let keydownBound = false;
@@ -272,7 +310,7 @@ export function DialogContent(
 			document.removeEventListener("keydown", handleKeydown);
 		};
 
-		ownedEffect(container, () => {
+		ownedEffect(anchor, () => {
 			const open = ctx.isOpen();
 			const state = open ? "open" : "closed";
 
@@ -281,7 +319,13 @@ export function DialogContent(
 					clearTimeout(closeTimer);
 					closeTimer = undefined;
 				}
-				container.style.display = "contents";
+				// Appending (again) makes this the last portal in <body>, so the
+				// most recently opened dialog — a nested one included — paints on
+				// top of the others at the same z-index.
+				if (typeof document !== "undefined" && document.body) {
+					document.body.appendChild(portal);
+				}
+				portal.style.display = "contents";
 				overlay.setAttribute("data-state", state);
 				content.setAttribute("data-state", state);
 				bindKeydown();
@@ -291,8 +335,11 @@ export function DialogContent(
 				content.setAttribute("data-state", state);
 				unbindKeydown();
 				scrollLock.release();
+				// The close animation plays where the dialog is shown; only then
+				// does the portal go back into the tree.
 				closeTimer = setTimeout(() => {
-					container.style.display = "none";
+					portal.style.display = "none";
+					returnPortal();
 					closeTimer = undefined;
 				}, 200);
 			}
@@ -306,7 +353,7 @@ export function DialogContent(
 		});
 	});
 
-	return container;
+	return anchor;
 }
 
 export function DialogHeader(

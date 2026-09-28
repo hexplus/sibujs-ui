@@ -20,6 +20,7 @@ import {
 	DialogTitle,
 } from "../src/components/dialog";
 import { __resetScrollLock } from "../src/lib/scroll-lock";
+import { dialogContent } from "./helpers/dialog";
 
 const settle = async () => {
 	for (let i = 0; i < 12; i++) await Promise.resolve();
@@ -86,8 +87,11 @@ for (const fam of FAMILIES) {
 		document.body.appendChild(root);
 		return root;
 	};
+	// An open Dialog's content is portaled to <body> (see tests/helpers/dialog).
 	const contentOf = (root: HTMLElement) =>
-		root.querySelector(fam.contentSlot) as HTMLElement;
+		fam.name === "Dialog"
+			? dialogContent(root)
+			: (root.querySelector(fam.contentSlot) as HTMLElement);
 	const titlesIn = (content: HTMLElement) =>
 		[...content.querySelectorAll<HTMLElement>(fam.titleSlot)];
 	const descsIn = (content: HTMLElement) =>
@@ -255,9 +259,7 @@ for (const fam of FAMILIES) {
 			await settle();
 
 			const outerContent = contentOf(root);
-			const innerContent = innerRoot.querySelector(
-				fam.contentSlot,
-			) as HTMLElement;
+			const innerContent = contentOf(innerRoot);
 
 			expect(resolvesTo(outerContent, "aria-labelledby")?.textContent).toBe(
 				"Outer title",

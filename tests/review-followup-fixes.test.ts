@@ -31,6 +31,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "../src/components/radio-group";
 import { nodeOwner } from "../src/lib/lifecycle";
 import { __resetScrollLock } from "../src/lib/scroll-lock";
+import { dialogContent } from "./helpers/dialog";
 
 const settle = async () => {
 	for (let i = 0; i < 8; i++) await Promise.resolve();
@@ -310,8 +311,8 @@ describe("Dialog ARIA references always resolve", () => {
 		document.body.appendChild(root);
 		return root;
 	};
-	const contentOf = (root: HTMLElement) =>
-		root.querySelector("[data-slot=dialog-content]") as HTMLElement;
+	// An open Dialog's content is portaled to <body> (see tests/helpers/dialog).
+	const contentOf = (root: HTMLElement) => dialogContent(root);
 
 	it("re-points the content at a caller-supplied title id", async () => {
 		const root = build([
