@@ -6,7 +6,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [1.9.0] — 2026-09-28
 
 ### Changed — `Dialog` renders into a body-level portal while open
 
