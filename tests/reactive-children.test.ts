@@ -1,4 +1,4 @@
-import { dispose, signal } from "sibujs";
+import { dispose, type NodeChildren, signal } from "sibujs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	Accordion,
@@ -367,12 +367,11 @@ describe("reactive children render and update", () => {
 	});
 
 	it("renders nested arrays of children in order", async () => {
+		// Deliberately nested DEEPER than `NodeChildren` declares: the components
+		// flatten any depth, and this test pins that. The cast is the point.
+		const deep = ["a", ["b", ["c"]], () => "d"] as unknown as NodeChildren;
 		const dlg = Dialog({ defaultOpen: true }, [
-			DialogContent({ showCloseButton: false }, [
-				"a",
-				["b", ["c"]],
-				() => "d",
-			]),
+			DialogContent({ showCloseButton: false }, deep),
 		]) as HTMLElement;
 		document.body.appendChild(dlg);
 		await flush();

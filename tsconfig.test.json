@@ -1,0 +1,30 @@
+{
+  // The main tsconfig only includes `src`, so nothing type-checked the test
+  // suite. Vitest strips types rather than checking them, so a test could call a
+  // component with props its signature rejects and still pass — which is how a
+  // getter nested inside a children array (`NodeChild[]` does not allow one)
+  // sat unnoticed in tests/regressions/controlled-values.test.ts.
+  //
+  // Run with `npm run typecheck:tests`; CI and the pre-push hook run it too.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    // The base config's `rootDir: "src"` would reject every file under tests/.
+    "rootDir": ".",
+    // Tests run on Node >= 22 (see CI), not in the ES2020 browsers `src`
+    // targets, so they may use newer built-ins such as `Array.prototype.at`.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // The registry tests import the build scripts (`scripts/registry/*.mjs`);
+    // allowJs lets TypeScript read their types instead of treating them as any.
+    "allowJs": true,
+    "types": ["vitest/globals", "node"],
+    // Tests legitimately declare fixtures they only partly consume.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src", "tests"],
+  "exclude": ["node_modules", "dist", "ui"]
+}
