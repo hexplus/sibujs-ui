@@ -221,11 +221,32 @@ describe.skipIf(!hasServerDom)("server markup carries component state", () => {
 		expect(html).not.toContain("data-scope-id");
 	});
 
-	it("ChartContainer carries its colors inline, since the server emits no <style>", async () => {
+	// The inline color must be the one ChartStyle's stylesheet resolves in the
+	// browser for the light theme, or the chart changes color on takeover. The
+	// stylesheet writes `color` first and a nonempty `theme.light` after it,
+	// under the same selector, so `theme.light` wins and an empty one does not.
+	it.each([
+		{ name: "base color only", entry: { color: "#2563eb" }, expected: "#2563eb" },
+		{ name: "theme only", entry: { theme: { light: "#16a34a", dark: "#123456" } }, expected: "#16a34a" },
+		{
+			name: "theme.light overrides the base color",
+			entry: { color: "#000000", theme: { light: "#ffffff", dark: "#123456" } },
+			expected: "#ffffff",
+		},
+		{
+			name: "an empty theme.light falls back to the base color",
+			entry: { color: "#000000", theme: { light: "", dark: "#123456" } },
+			expected: "#000000",
+		},
+	])("ChartContainer carries its light color inline, as its stylesheet resolves it: $name", async ({
+		entry,
+		expected,
+	}) => {
 		const html = await serverRender(() =>
-			ChartContainer({ config: { desktop: { label: "Desktop", color: "#2563eb" } } }, []),
+			ChartContainer({ config: { desktop: { label: "Desktop", ...entry } } }, []),
 		);
-		expect(tagWith(html, 'data-slot="chart"')).toContain("--color-desktop: #2563eb");
+		const chart = tagWith(html, 'data-slot="chart"');
+		expect(/--color-desktop:\s*([^;"]+)/.exec(chart)?.[1]?.trim()).toBe(expected);
 	});
 
 	it("InputOTP carries its maxlength, value and characters", async () => {

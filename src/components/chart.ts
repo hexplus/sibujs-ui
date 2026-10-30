@@ -58,10 +58,13 @@ export function ChartContainer(
 
 	// A server render never emits the <style> element ChartStyle builds, so
 	// the server markup carries the light colors inline instead; the browser
-	// uses the stylesheet (with its dark-mode rules) once it takes over.
+	// uses the stylesheet (with its dark-mode rules) once it takes over. The
+	// color is the one that stylesheet resolves: it writes `color` first and a
+	// nonempty `theme.light` after it under the same selector, so a nonempty
+	// `theme.light` wins — hence `||`, not `??`.
 	if (inServerRender()) {
 		for (const [key, value] of Object.entries(config)) {
-			const color = value.color ?? value.theme?.light;
+			const color = value.theme?.light || value.color;
 			if (color) el.style.setProperty(`--color-${key}`, color);
 		}
 	}
