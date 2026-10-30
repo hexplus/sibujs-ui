@@ -6,6 +6,40 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.9.2] — 2026-10-30
+
+### Fixed — server rendering without a browser DOM
+
+Rendered on a server with no jsdom or happy-dom registered — SibuJS's built-in
+server DOM, which has no `window`, no HTML parser and no animation frames —
+six components threw while being built:
+
+- `Calendar` cleared its day grid with `innerHTML = ""`. It now uses
+  `replaceChildren()`.
+- `Checkbox`, `Switch` and `RadioGroup` set `defaultChecked` on their hidden
+  form input, and `NativeSelect` set `defaultSelected` on its default option.
+  They now set the `checked` / `selected` attribute those properties reflect,
+  which is the same thing in a browser; the server markup of a `NativeSelect`
+  now marks its default option `selected`. `RadioGroup` did this in a
+  microtask, so the error escaped the render as an uncaught exception.
+- `ToggleGroupItem` applied the group's `variant`, `size` and `spacing` in a
+  `requestAnimationFrame`. Where there is none, that work now runs in a
+  microtask, so the server markup carries them.
+
+Browser behaviour is unchanged. In the registry, `calendar`, `native-select`
+and the `lifecycle` and `form-control` library items changed.
+
+### Changed — built and tested against `sibujs@4.14.1`
+
+- The `sibujs` dev dependency (used to build and test the package) moves from
+  `^4.10.0` to `^4.14.1`. The peer dependency range is unchanged
+  (`sibujs >=3.2.0 <5.0.0`). On 4.14.0, whose server DOM has no
+  `defaultChecked` / `defaultSelected` setters, the fixes above are what keep
+  these components rendering on the server.
+- `tests/regressions/server-render.test.ts` server-renders the components
+  above on the built-in server DOM. It is skipped against a SibuJS without
+  `renderToStringAsync` (before 4.14).
+
 ## [1.9.1] — 2026-09-28
 
 ### Fixed — one Escape closes exactly one overlay

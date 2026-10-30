@@ -84,8 +84,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Floor, middle and current top of the declared peer range
-        # (`sibujs >=3.2.0 <5.0.0`). Keep in sync with the README.
+        # Floor, a 3.x midpoint and the first 4.x release of the declared peer
+        # range (`sibujs >=3.2.0 <5.0.0`); the `verify` job covers the lockfile
+        # version. Keep in sync with the README.
         sibujs: ['3.2.0', '3.4.1', '4.0.1']
 
     steps:

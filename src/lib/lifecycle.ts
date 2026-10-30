@@ -64,7 +64,8 @@ export interface Owner {
 	interval(fn: () => void, ms: number): ReturnType<typeof setInterval>;
 	/**
 	 * `requestAnimationFrame` that is cancelled on disposal, and whose teardown
-	 * is dropped once the frame has run.
+	 * is dropped once the frame has run. Where there is no
+	 * `requestAnimationFrame` (a server render) it runs as {@link defer} does.
 	 */
 	raf(fn: FrameRequestCallback): number;
 	/** Track a disconnectable observer (Mutation/Resize/Intersection). */
@@ -177,6 +178,13 @@ export function nodeOwner(node: Node): Owner {
 			return id;
 		},
 		raf(fn) {
+			// A server render has no frames (and no `requestAnimationFrame`): run
+			// the work in a microtask instead, so it still lands before the markup
+			// is serialized. Browsers never take this branch.
+			if (typeof requestAnimationFrame !== "function") {
+				owner.defer(() => fn(performance.now()));
+				return 0;
+			}
 			// Same one-shot contract as `timeout`: release the cancellation once
 			// the frame has run, and make the callback inert after disposal, since
 			// a frame already dequeued by the browser cannot be cancelled.
