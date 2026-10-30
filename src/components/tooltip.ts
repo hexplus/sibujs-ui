@@ -7,7 +7,12 @@ import {
 	span,
 } from "sibujs";
 import { bindControlled } from "../lib/controlled";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -315,30 +320,42 @@ export function TooltipContent(
 		// When portaled, `content` leaves the caller's tree, so the tooltip root
 		// becomes the only node dispose() can reach — it must own the cleanup.
 		const anchor: HTMLElement = portal ? tooltipEl : content;
-		if (portal) {
+		// A server render keeps it in place (<body> is not part of its output)
+		// and takes only the state: nothing listens or waits.
+		const server = inServerRender();
+		if (portal && !server) {
 			document.body.appendChild(content);
 		}
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
-		ownedEffect(anchor, () => {
-			const open = ctx.isOpen();
-			if (open) {
-				if (closeTimer) {
-					clearTimeout(closeTimer);
-					closeTimer = undefined;
+		ownedEffect(
+			anchor,
+			() => {
+				const open = ctx.isOpen();
+				if (server) {
+					content.style.display = open ? "" : "none";
+					content.setAttribute("data-state", open ? "open" : "closed");
+					return;
 				}
-				content.style.display = "";
-				content.setAttribute("data-state", "open");
-				if (portal && trigger) computePortalPosition(trigger);
-			} else {
-				content.setAttribute("data-state", "closed");
-				closeTimer = setTimeout(() => {
-					content.style.display = "none";
-					closeTimer = undefined;
-				}, 150);
-			}
-		});
+				if (open) {
+					if (closeTimer) {
+						clearTimeout(closeTimer);
+						closeTimer = undefined;
+					}
+					content.style.display = "";
+					content.setAttribute("data-state", "open");
+					if (portal && trigger) computePortalPosition(trigger);
+				} else {
+					content.setAttribute("data-state", "closed");
+					closeTimer = setTimeout(() => {
+						content.style.display = "none";
+						closeTimer = undefined;
+					}, 150);
+				}
+			},
+			{ server: true },
+		);
 
 		// Unmount-safe cleanup: the effect and pending timer both go away
 		// when the tooltip content is removed from the DOM, so stale

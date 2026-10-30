@@ -1,4 +1,5 @@
-import { div, type NodeChildren } from "sibujs";
+import { createId, div, type NodeChildren } from "sibujs";
+import { inServerRender } from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import { type BaseProps, normalizeArgs } from "./types";
 
@@ -22,8 +23,6 @@ export interface ChartContainerProps extends BaseProps {
 	config: ChartConfig;
 }
 
-let chartCounter = 0;
-
 export function ChartContainer(
 	first?: ChartContainerProps | NodeChildren,
 	second?: NodeChildren,
@@ -31,7 +30,7 @@ export function ChartContainer(
 	const props = normalizeArgs<ChartContainerProps>(first, second);
 	const { class: className, config, nodes, ...rest } = props;
 
-	const chartId = `chart-${++chartCounter}`;
+	const chartId = createId("chart");
 
 	// Inject ChartStyle as first child (like shadcn)
 	const styleEl = ChartStyle({ id: chartId, config });
@@ -56,6 +55,19 @@ export function ChartContainer(
 		},
 		childNodes,
 	) as HTMLElement;
+
+	// A server render never emits the <style> element ChartStyle builds, so
+	// the server markup carries the light colors inline instead; the browser
+	// uses the stylesheet (with its dark-mode rules) once it takes over. The
+	// color is the one that stylesheet resolves: it writes `color` first and a
+	// nonempty `theme.light` after it under the same selector, so a nonempty
+	// `theme.light` wins — hence `||`, not `??`.
+	if (inServerRender()) {
+		for (const [key, value] of Object.entries(config)) {
+			const color = value.theme?.light || value.color;
+			if (color) el.style.setProperty(`--color-${key}`, color);
+		}
+	}
 
 	return el;
 }

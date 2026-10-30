@@ -2,6 +2,7 @@ import { cva } from "class-variance-authority";
 import {
 	a as aTag,
 	button as buttonTag,
+	createId,
 	div,
 	li,
 	main as mainTag,
@@ -13,7 +14,12 @@ import {
 } from "sibujs";
 import { PanelLeftIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import { Input } from "./input";
@@ -132,18 +138,24 @@ export function SidebarProvider(
 
 	// Reactive data-sidebar-state
 	deferOwned(el, () => {
-		ownedEffect(el, () => {
-			el.setAttribute(
-				"data-sidebar-state",
-				isOpen() ? "expanded" : "collapsed",
-			);
-		});
+		ownedEffect(
+			el,
+			() => {
+				el.setAttribute(
+					"data-sidebar-state",
+					isOpen() ? "expanded" : "collapsed",
+				);
+			},
+			{ server: true },
+		);
 	});
 
 	// Mobile breakpoint detection + keyboard shortcut — all cleanup tied
 	// to the element's disposer so the listeners go away when the
 	// SidebarProvider is unmounted.
-	if (typeof window !== "undefined") {
+	// Not during a server render, even one with a browser-like DOM registered:
+	// there is no viewport to match and no keyboard to listen to.
+	if (typeof window !== "undefined" && !inServerRender()) {
 		const mql = window.matchMedia("(max-width: 768px)");
 		setIsMobile(mql.matches);
 		const onMqlChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
@@ -327,14 +339,18 @@ export function Sidebar(
 		sidebarEl.parentElement?.insertBefore(mobileSheet, sidebarEl);
 
 		// Desktop: reactive data-state and data-collapsible
-		ownedEffect(sidebarEl, () => {
-			const state = ctx.isOpen() ? "expanded" : "collapsed";
-			sidebarEl.setAttribute("data-state", state);
-			sidebarEl.setAttribute(
-				"data-collapsible",
-				state === "collapsed" ? collapsible : "",
-			);
-		});
+		ownedEffect(
+			sidebarEl,
+			() => {
+				const state = ctx.isOpen() ? "expanded" : "collapsed";
+				sidebarEl.setAttribute("data-state", state);
+				sidebarEl.setAttribute(
+					"data-collapsible",
+					state === "collapsed" ? collapsible : "",
+				);
+			},
+			{ server: true },
+		);
 
 		// Mobile: sync sheet open state with provider's openMobile signal
 		if (mobileSheetCtx) {
@@ -827,7 +843,11 @@ export function SidebarMenuSkeleton(
 	const props = normalizeArgs<SidebarMenuSkeletonProps>(first, second);
 	const { class: className, showIcon = false, ...rest } = props;
 
-	const width = `${Math.floor(Math.random() * 40) + 50}%`;
+	// Between 50% and 89%, varying per skeleton but derived from createId() — the
+	// same sequence on the server and in the browser — rather than random, so the
+	// server markup is what the browser builds.
+	const n = Number(createId("sidebar-skeleton").split("-").pop());
+	const width = `${50 + ((n * 37) % 40)}%`;
 
 	const skeletonNodes: Node[] = [];
 	if (showIcon) {

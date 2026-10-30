@@ -161,45 +161,49 @@ export function Slider(
 
 	// Keep one thumb per value, then position range and thumbs — owned so a
 	// disposed slider stops writing into detached thumbs.
-	ownedEffect(el, () => {
-		const vals = values();
-		const count = Math.max(vals.length, 1);
-		while (thumbs.length < count) {
-			const thumb = createThumb(thumbs.length);
-			thumbs.push(thumb);
-			el.appendChild(thumb);
-		}
-		while (thumbs.length > count) {
-			thumbs.pop()?.remove();
-		}
-
-		// One value fills from `min`; several span from the lowest to the highest.
-		const start = vals.length > 1 ? percentOf(Math.min(...vals)) : 0;
-		const end = percentOf(
-			vals.length > 1 ? Math.max(...vals) : (vals[0] ?? min),
-		);
-		if (orientation === "horizontal") {
-			range.style.left = `${start}%`;
-			range.style.width = `${end - start}%`;
-		} else {
-			range.style.bottom = `${start}%`;
-			range.style.height = `${end - start}%`;
-		}
-
-		thumbs.forEach((thumb, i) => {
-			const val = vals[i] ?? min;
-			const percent = percentOf(val);
-			thumb.setAttribute("aria-valuenow", String(val));
-			thumb.style.position = "absolute";
-			if (orientation === "horizontal") {
-				thumb.style.left = `${percent}%`;
-				thumb.style.transform = "translateX(-50%)";
-			} else {
-				thumb.style.bottom = `${percent}%`;
-				thumb.style.transform = "translateY(50%)";
+	ownedEffect(
+		el,
+		() => {
+			const vals = values();
+			const count = Math.max(vals.length, 1);
+			while (thumbs.length < count) {
+				const thumb = createThumb(thumbs.length);
+				thumbs.push(thumb);
+				el.appendChild(thumb);
 			}
-		});
-	});
+			while (thumbs.length > count) {
+				thumbs.pop()?.remove();
+			}
+
+			// One value fills from `min`; several span from the lowest to the highest.
+			const start = vals.length > 1 ? percentOf(Math.min(...vals)) : 0;
+			const end = percentOf(
+				vals.length > 1 ? Math.max(...vals) : (vals[0] ?? min),
+			);
+			if (orientation === "horizontal") {
+				range.style.left = `${start}%`;
+				range.style.width = `${end - start}%`;
+			} else {
+				range.style.bottom = `${start}%`;
+				range.style.height = `${end - start}%`;
+			}
+
+			thumbs.forEach((thumb, i) => {
+				const val = vals[i] ?? min;
+				const percent = percentOf(val);
+				thumb.setAttribute("aria-valuenow", String(val));
+				thumb.style.position = "absolute";
+				if (orientation === "horizontal") {
+					thumb.style.left = `${percent}%`;
+					thumb.style.transform = "translateX(-50%)";
+				} else {
+					thumb.style.bottom = `${percent}%`;
+					thumb.style.transform = "translateY(50%)";
+				}
+			});
+		},
+		{ server: true },
+	);
 
 	return el as HTMLElement;
 }

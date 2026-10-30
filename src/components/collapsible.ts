@@ -88,9 +88,13 @@ export function CollapsibleTrigger(
 		if (collapsibleEl) {
 			const ctx = (collapsibleEl as ElementWithContext).__collapsible;
 			if (ctx) {
-				ownedEffect(el, () => {
-					el.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
-				});
+				ownedEffect(
+					el,
+					() => {
+						el.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -119,9 +123,16 @@ export function CollapsibleContent(
 			const ctx = (collapsibleEl as ElementWithContext).__collapsible;
 			if (ctx) {
 				show(() => ctx.isOpen(), wrapper);
-				ownedEffect(wrapper, () => {
-					wrapper.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
-				});
+				ownedEffect(
+					wrapper,
+					() => {
+						wrapper.setAttribute(
+							"data-state",
+							ctx.isOpen() ? "open" : "closed",
+						);
+					},
+					{ server: true },
+				);
 			}
 		}
 	});

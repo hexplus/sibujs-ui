@@ -358,11 +358,15 @@ export function RadioGroup(
 
 		// Selection changes are reactive; membership changes are not, so they
 		// arrive through the observer below.
-		scopedEffect(el, () => {
-			value();
-			applyRovingTabIndex();
-			validity.refresh();
-		});
+		scopedEffect(
+			el,
+			() => {
+				value();
+				applyRovingTabIndex();
+				validity.refresh();
+			},
+			{ server: true },
+		);
 
 		/**
 		 * Follow the owning form's reset.
@@ -395,13 +399,19 @@ export function RadioGroup(
 				if (owner.disposed()) return;
 				// The native bridges we manage live inside this subtree, so their own
 				// attribute writes must not feed back into reconciliation.
+				// The attribute check repeats the observer's filter: SibuJS's server
+				// DOM (4.14) reports every attribute change, `tabindex` included,
+				// which would make each reconciliation trigger the next.
 				const relevant = records.some(
 					(r) =>
-						!(r.target instanceof HTMLElement) ||
-						!r.target.hasAttribute("data-slot") ||
-						!String(r.target.getAttribute("data-slot")).endsWith(
-							"-form-bridge",
-						),
+						(r.type !== "attributes" ||
+							r.attributeName === "disabled" ||
+							r.attributeName === "data-value") &&
+						(!(r.target instanceof HTMLElement) ||
+							!r.target.hasAttribute("data-slot") ||
+							!String(r.target.getAttribute("data-slot")).endsWith(
+								"-form-bridge",
+							)),
 				);
 				if (!relevant) return;
 				reconcile();
@@ -503,20 +513,25 @@ export function RadioGroupItem(
 		const effectivelyDisabled = () =>
 			!!disabled || el.hasAttribute("disabled") || !!ctx.disabled;
 
-		const stopEffect = scopedEffect(el, () => {
-			const isSelected = ctx.value() === itemValue;
-			el.setAttribute("aria-checked", String(isSelected));
-			el.setAttribute("data-state", isSelected ? "checked" : "unchecked");
-			indicatorWrapper.replaceChildren();
-			if (isSelected) {
-				indicatorWrapper.appendChild(
-					CircleIcon({
-						class:
-							"absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 fill-primary",
-					}),
+		const stopEffect = scopedEffect(
+			el,
+			() => {
+				const isSelected = ctx.value() === itemValue;
+				el.setAttribute("aria-checked", String(isSelected));
+				el.setAttribute("data-state", isSelected ? "checked" : "unchecked");
+				indicatorWrapper.replaceChildren(
+					...(isSelected
+						? [
+								CircleIcon({
+									class:
+										"absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 fill-primary",
+								}) as Node,
+							]
+						: []),
 				);
-			}
-		});
+			},
+			{ server: true },
+		);
 
 		// Native radio bridge — the group name makes the browser enforce
 		// single-selection, required validation and reset for us.

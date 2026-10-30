@@ -29,17 +29,15 @@ export function ScrollArea(
 	// Viewport — scrollable container with native scrollbar hidden
 	const viewport = div({
 		"data-slot": "scroll-area-viewport",
+		// The WebKit scrollbar is hidden by a utility class rather than a
+		// generated <style> element: a server render never emits <style>, so
+		// the element was missing from server markup, and its random scope id
+		// differed between the server and the browser.
 		class:
-			"size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1",
+			"size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 [&::-webkit-scrollbar]:hidden",
 		style: "overflow:scroll;scrollbar-width:none",
 		nodes,
 	}) as HTMLElement;
-
-	// Also hide scrollbar in WebKit
-	const styleEl = document.createElement("style");
-	const scopeId = `sa-${Math.random().toString(36).slice(2, 8)}`;
-	styleEl.textContent = `[data-scope-id="${scopeId}"]::-webkit-scrollbar{display:none}`;
-	viewport.setAttribute("data-scope-id", scopeId);
 
 	// Vertical scrollbar
 	const vThumb = div({
@@ -90,7 +88,7 @@ export function ScrollArea(
 			class: cnReactive("relative", className),
 			...rest,
 		},
-		[styleEl, viewport, vBar, hBar, corner],
+		[viewport, vBar, hBar, corner],
 	) as HTMLElement;
 
 	// ── Scrollbar logic ──────────────────────────────────────────────────

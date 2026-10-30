@@ -1,7 +1,12 @@
 import { button as buttonTag, div, type NodeChildren, p } from "sibujs";
 import { bindControlled } from "../lib/controlled";
 import { createDismissableLayer } from "../lib/dismissable-layer";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -91,9 +96,13 @@ export function PopoverTrigger(
 		if (popoverEl) {
 			const ctx = (popoverEl as ElementWithContext).__popover;
 			if (ctx) {
-				ownedEffect(el, () => {
-					el.setAttribute("aria-expanded", String(ctx.isOpen()));
-				});
+				ownedEffect(
+					el,
+					() => {
+						el.setAttribute("aria-expanded", String(ctx.isOpen()));
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -162,27 +171,39 @@ export function PopoverContent(
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 		const escapeLayer = createDismissableLayer(() => ctx.close());
 
-		ownedEffect(content, () => {
-			const open = ctx.isOpen();
-			if (open) {
-				if (closeTimer) {
-					clearTimeout(closeTimer);
-					closeTimer = undefined;
+		// A server render takes only the state: nothing listens or waits.
+		const server = inServerRender();
+
+		ownedEffect(
+			content,
+			() => {
+				const open = ctx.isOpen();
+				if (server) {
+					content.style.display = open ? "" : "none";
+					content.setAttribute("data-state", open ? "open" : "closed");
+					return;
 				}
-				content.style.display = "";
-				content.setAttribute("data-state", "open");
-				document.addEventListener("mousedown", handleOutsideClick);
-				escapeLayer.activate();
-			} else {
-				content.setAttribute("data-state", "closed");
-				document.removeEventListener("mousedown", handleOutsideClick);
-				escapeLayer.deactivate();
-				closeTimer = setTimeout(() => {
-					content.style.display = "none";
-					closeTimer = undefined;
-				}, 150);
-			}
-		});
+				if (open) {
+					if (closeTimer) {
+						clearTimeout(closeTimer);
+						closeTimer = undefined;
+					}
+					content.style.display = "";
+					content.setAttribute("data-state", "open");
+					document.addEventListener("mousedown", handleOutsideClick);
+					escapeLayer.activate();
+				} else {
+					content.setAttribute("data-state", "closed");
+					document.removeEventListener("mousedown", handleOutsideClick);
+					escapeLayer.deactivate();
+					closeTimer = setTimeout(() => {
+						content.style.display = "none";
+						closeTimer = undefined;
+					}, 150);
+				}
+			},
+			{ server: true },
+		);
 
 		// Detach listeners if the element is disposed while still open
 		owner.add(() => {

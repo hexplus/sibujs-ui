@@ -9,7 +9,12 @@ import {
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
 import { bindControlled, bindGetterControlled } from "../lib/controlled";
 import { createDismissableLayer } from "../lib/dismissable-layer";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -137,9 +142,13 @@ export function MenubarTrigger(
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__menubarMenu;
 			if (ctx) {
-				ownedEffect(el, () => {
-					el.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
-				});
+				ownedEffect(
+					el,
+					() => {
+						el.setAttribute("data-state", ctx.isOpen() ? "open" : "closed");
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -212,18 +221,25 @@ export function MenubarContent(
 			const ctx = (menuEl as ElementWithContext).__menubarMenu;
 			if (ctx) {
 				const escapeLayer = createDismissableLayer(() => ctx.close());
-				ownedEffect(content, () => {
-					const open = ctx.isOpen();
-					content.style.display = open ? "" : "none";
-					content.setAttribute("data-state", open ? "open" : "closed");
-					if (open) {
-						document.addEventListener("mousedown", handleOutsideClick);
-						escapeLayer.activate();
-					} else {
-						document.removeEventListener("mousedown", handleOutsideClick);
-						escapeLayer.deactivate();
-					}
-				});
+				const server = inServerRender();
+				ownedEffect(
+					content,
+					() => {
+						const open = ctx.isOpen();
+						content.style.display = open ? "" : "none";
+						content.setAttribute("data-state", open ? "open" : "closed");
+						// A server render takes only the state.
+						if (server) return;
+						if (open) {
+							document.addEventListener("mousedown", handleOutsideClick);
+							escapeLayer.activate();
+						} else {
+							document.removeEventListener("mousedown", handleOutsideClick);
+							escapeLayer.deactivate();
+						}
+					},
+					{ server: true },
+				);
 				owner.add(() => {
 					document.removeEventListener("mousedown", handleOutsideClick);
 					escapeLayer.deactivate();
@@ -541,13 +557,19 @@ export function MenubarRadioItem(
 		if (groupEl) {
 			const ctx = (groupEl as ElementWithContext).__menubarRadioGroup;
 			if (ctx) {
-				ownedEffect(el, () => {
-					const checked = ctx.value() === value;
-					el.setAttribute("aria-checked", String(checked));
-					indicator.innerHTML = "";
-					if (checked)
-						indicator.appendChild(CircleIcon({ class: "size-2 fill-current" }));
-				});
+				ownedEffect(
+					el,
+					() => {
+						const checked = ctx.value() === value;
+						el.setAttribute("aria-checked", String(checked));
+						indicator.replaceChildren(
+							...(checked
+								? [CircleIcon({ class: "size-2 fill-current" }) as Node]
+								: []),
+						);
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -677,22 +699,30 @@ export function MenubarSubContent(
 			(content as ElementWithContext).__menubarRoot = rootMenu as HTMLElement;
 
 		// Portal to body. Cleanup is owned by the in-tree sub root, since a
-		// disposer on the portaled node would never run.
-		document.body.appendChild(content);
+		// disposer on the portaled node would never run. A server render keeps
+		// it in place and takes only the state.
+		const server = inServerRender();
+		if (!server) document.body.appendChild(content);
 
-		ownedEffect(subEl, () => {
-			const open = ctx.isOpen();
-			content.style.display = open ? "" : "none";
-			content.setAttribute("data-state", open ? "open" : "closed");
-			if (open) {
-				const trigger = subEl.querySelector("[data-slot=menubar-sub-trigger]");
-				if (trigger) {
-					const rect = trigger.getBoundingClientRect();
-					content.style.left = `${rect.right + 2}px`;
-					content.style.top = `${rect.top}px`;
+		ownedEffect(
+			subEl,
+			() => {
+				const open = ctx.isOpen();
+				content.style.display = open ? "" : "none";
+				content.setAttribute("data-state", open ? "open" : "closed");
+				if (open && !server) {
+					const trigger = subEl.querySelector(
+						"[data-slot=menubar-sub-trigger]",
+					);
+					if (trigger) {
+						const rect = trigger.getBoundingClientRect();
+						content.style.left = `${rect.right + 2}px`;
+						content.style.top = `${rect.top}px`;
+					}
 				}
-			}
-		});
+			},
+			{ server: true },
+		);
 
 		content.addEventListener("mouseenter", () => ctx.open());
 		content.addEventListener("mouseleave", () => ctx.close());

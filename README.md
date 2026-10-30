@@ -323,6 +323,34 @@ are skipped.
 A `name` (or `required`) is what opts a control into form participation; without
 either, no hidden input is created.
 
+### Server rendering
+
+With sibujs 4.14 or later, every component renders on the server —
+`renderToStringAsync`, `renderRoute` or the pre-renderer, on SibuJS's built-in
+server DOM or under jsdom / happy-dom — and the markup carries the state the
+browser starts from:
+
+- `data-state`, `aria-selected`, `aria-expanded`, `aria-checked` and visibility
+  match the first browser render: a closed `Select`, menu or `Popover` is
+  hidden, an open `Dialog` is shown, the active `Tabs` panel is the only one
+  visible. A controlled getter (`value: () => tab()`) decides it, not the
+  default.
+- Content the browser moves to `document.body` (`Dialog`, `DropdownMenu`,
+  menubar submenus, a portaled `Tooltip`) stays in place in the server markup.
+- `Checkbox`, `Switch`, `RadioGroup` and `Select` include their native form
+  inputs, so a server-rendered form submits before any JavaScript
+  runs.
+- Generated ids come from `createId()`: the same on every request and the same
+  the browser computes, so `hydrate(…, { strategy: "adopt" })` takes the markup
+  over without a mismatch.
+
+Not in the server markup: anything measured from layout (menu and popover
+positions, an `Accordion` panel's height variable, `ScrollArea` thumbs), and a
+chart's dark-mode colors, which arrive with its stylesheet in the browser (the
+server markup carries the light colors inline). With an older sibujs, no effect
+runs on the server, so the markup shows each component's construction-time
+state only.
+
 ## Accessibility
 
 Components ship ARIA roles, states and id wiring — `Dialog` and `AlertDialog`

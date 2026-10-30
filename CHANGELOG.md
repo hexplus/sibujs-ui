@@ -6,6 +6,67 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.10.0] — 2026-10-30
+
+### Changed — server markup matches the first browser render
+
+Rendered on a server (sibujs 4.14+), components used to emit the markup they
+had at construction: their state is wired after insertion, from effects, and a
+server render runs no ordinary effect. A closed `Select`, `Combobox`, menu or
+`Popover` rendered visible, an open `Dialog` hidden, `Tabs` and `Accordion`
+carried no `data-state`, check indicators and `Slider` thumbs were missing, and
+an adopting hydration rebuilt what it could not claim. Now:
+
+- The effects that only reflect state — `data-state`, `aria-*`, visibility,
+  indicators, labels, `Slider` thumbs — also run in a server render.
+  Listeners, timers, focus, measuring and scroll locks stay in the browser.
+  In the `lifecycle` registry item, `ownedEffect()` / `scopedEffect()` take
+  `{ server: true }` for this, and `inServerRender()` tells a component it is
+  being rendered on the server.
+- A controlled getter (`value: () => tab()`) decides the server markup, not
+  the default.
+- `Dialog`, `DropdownMenu` and its submenus, menubar submenus and a portaled
+  `Tooltip` keep their content in place on the server instead of moving it to
+  `<body>`, which is not part of the server output. The browser still moves it.
+- `Checkbox`, `Switch`, `RadioGroup` and `Select` render their native form
+  inputs in the server markup, with `name`, `value`, `checked` and
+  `required` as attributes, so a server-rendered form submits before
+  JavaScript runs. `InputOTP` carries its `maxlength` and value.
+- Ids come from `createId()` instead of counters shared by the whole process
+  (`Tabs`, `Accordion`, `Dialog`, `ChartContainer`) or `Math.random()`
+  (`NavigationMenu`): a server numbered them across requests, so a second
+  request's ids no longer matched the browser's. `SidebarMenuSkeleton`'s width
+  is derived the same way instead of being random.
+- `ScrollArea` hides the WebKit scrollbar with a utility class rather than a
+  generated `<style>` element, which a server render never emits.
+  `ChartContainer` puts its light colors inline in server markup for the same
+  reason; the browser uses its stylesheet, dark mode included.
+- On the server, `SidebarProvider` no longer reads `matchMedia` or listens for
+  its keyboard shortcut, even under jsdom or happy-dom.
+
+### Fixed — adopting hydration
+
+- A `Checkbox`, radio item, `Select` / `Combobox` item or menu radio item
+  rebuilds its indicator with a single `replaceChildren()` call, with the icon
+  built first. Clearing and then appending threw during an adopting hydration
+  ("The child can not be found in the parent"): the icon claimed the server's
+  node after the clearing had removed it.
+- `DropdownMenu` and `Slider` are taken over with no mismatch.
+- `RadioGroup`'s membership observer ignores attribute records outside its
+  filter (`disabled`, `data-value`). SibuJS's 4.14 server DOM reports every
+  attribute change, and the group's own `tabindex` writes made each
+  reconciliation trigger the next, so a server render never finished.
+
+### Tests
+
+`tests/regressions/server-markup.test.ts` renders on the built-in server DOM
+and checks the markup of each component above; against 1.9.2 every case
+fails. `tests/regressions/server-adoption.test.ts` takes server markup over
+with `hydrate(…, { strategy: "adopt" })` and expects no mismatch. Both are
+skipped against a sibujs without `renderToStringAsync` (before 4.14).
+
+---
+
 ## [1.9.2] — 2026-10-30
 
 ### Fixed — server rendering without a browser DOM

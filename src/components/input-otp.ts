@@ -1,7 +1,12 @@
 import { div, type NodeChildren, signal, span } from "sibujs";
 import { MinusIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -55,7 +60,9 @@ export function InputOTP(
 	hiddenInput.setAttribute("autocomplete", "one-time-code");
 	if (pattern) hiddenInput.setAttribute("pattern", pattern);
 	if (disabled) hiddenInput.disabled = true;
-	hiddenInput.maxLength = maxLength;
+	// The attribute, which `maxLength` reflects: a server DOM need not
+	// implement every reflecting property, and server markup carries attributes.
+	hiddenInput.setAttribute("maxlength", String(maxLength));
 	hiddenInput.style.cssText =
 		"position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:1;";
 	if (disabled) hiddenInput.style.cursor = "not-allowed";
@@ -116,11 +123,18 @@ export function InputOTP(
 	// The controlled-prop subscription dies with this element.
 	nodeOwner(container).add(stopControlled);
 
-	// The hidden input is what the user types into; keep it on the value.
-	ownedEffect(container, () => {
-		const val = currentValue();
-		if (hiddenInput.value !== val) hiddenInput.value = val;
-	});
+	// The hidden input is what the user types into; keep it on the value. A
+	// server render writes the attribute, which is what its markup carries.
+	const server = inServerRender();
+	ownedEffect(
+		container,
+		() => {
+			const val = currentValue();
+			if (hiddenInput.value !== val) hiddenInput.value = val;
+			if (server) hiddenInput.setAttribute("value", val);
+		},
+		{ server: true },
+	);
 
 	(container as ElementWithContext).__inputOtp = {
 		value: currentValue,
@@ -194,25 +208,29 @@ export function InputOTPSlot(
 		if (otpEl) {
 			const ctx = (otpEl as ElementWithContext).__inputOtp;
 			if (ctx) {
-				ownedEffect(slotEl, () => {
-					const val = ctx.value();
-					const focused = ctx.focusedIndex();
-					const hasFocus = ctx.isFocused();
-					const char = val[index] ?? "";
+				ownedEffect(
+					slotEl,
+					() => {
+						const val = ctx.value();
+						const focused = ctx.focusedIndex();
+						const hasFocus = ctx.isFocused();
+						const char = val[index] ?? "";
 
-					charDisplay.textContent = char;
+						charDisplay.textContent = char;
 
-					const isActive = hasFocus && focused === index;
-					const isFilled = char !== "";
+						const isActive = hasFocus && focused === index;
+						const isFilled = char !== "";
 
-					slotEl.setAttribute("data-active", String(isActive));
+						slotEl.setAttribute("data-active", String(isActive));
 
-					if (isActive && !isFilled) {
-						caret.style.display = "";
-					} else {
-						caret.style.display = "none";
-					}
-				});
+						if (isActive && !isFilled) {
+							caret.style.display = "";
+						} else {
+							caret.style.display = "none";
+						}
+					},
+					{ server: true },
+				);
 			}
 		}
 	});

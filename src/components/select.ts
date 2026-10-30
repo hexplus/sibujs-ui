@@ -10,7 +10,12 @@ import { bindControlled } from "../lib/controlled";
 import { createDismissableLayer } from "../lib/dismissable-layer";
 import { attachValueBridge } from "../lib/form-control";
 import { createItemLabelRegistry } from "../lib/item-labels";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -302,17 +307,25 @@ export function SelectTrigger(
 		const ctx = (selectEl as ElementWithContext).__select;
 		if (!ctx) return;
 
-		ownedEffect(el, () => {
-			el.setAttribute("aria-expanded", String(ctx.isOpen()));
-		});
+		ownedEffect(
+			el,
+			() => {
+				el.setAttribute("aria-expanded", String(ctx.isOpen()));
+			},
+			{ server: true },
+		);
 
 		const valueEl = ownValueEl;
 		if (!valueEl) return;
-		ownedEffect(el, () => {
-			renderSelectLabel(valueEl, el, ctx.selectedLabel(), () => {
-				valueEl.textContent = placeholder ?? "";
-			});
-		});
+		ownedEffect(
+			el,
+			() => {
+				renderSelectLabel(valueEl, el, ctx.selectedLabel(), () => {
+					valueEl.textContent = placeholder ?? "";
+				});
+			},
+			{ server: true },
+		);
 	});
 
 	return el;
@@ -398,18 +411,25 @@ export function SelectContent(
 
 		const escapeLayer = createDismissableLayer(() => ctx.close());
 
-		ownedEffect(content, () => {
-			const open = ctx.isOpen();
-			content.style.display = open ? "" : "none";
-			content.setAttribute("data-state", open ? "open" : "closed");
-			if (open) {
-				document.addEventListener("mousedown", handleOutsideClick);
-				escapeLayer.activate();
-			} else {
-				document.removeEventListener("mousedown", handleOutsideClick);
-				escapeLayer.deactivate();
-			}
-		});
+		const server = inServerRender();
+		ownedEffect(
+			content,
+			() => {
+				const open = ctx.isOpen();
+				content.style.display = open ? "" : "none";
+				content.setAttribute("data-state", open ? "open" : "closed");
+				// A server render takes only the state.
+				if (server) return;
+				if (open) {
+					document.addEventListener("mousedown", handleOutsideClick);
+					escapeLayer.activate();
+				} else {
+					document.removeEventListener("mousedown", handleOutsideClick);
+					escapeLayer.deactivate();
+				}
+			},
+			{ server: true },
+		);
 		owner.add(() => {
 			document.removeEventListener("mousedown", handleOutsideClick);
 			escapeLayer.deactivate();
@@ -518,13 +538,18 @@ export function SelectItem(
 
 		owner.add(ctx.registerItem(itemValue, labelEl));
 
-		ownedEffect(el, () => {
-			const isSelected = ctx.value() === itemValue;
-			el.setAttribute("aria-selected", String(isSelected));
-			el.setAttribute("data-state", isSelected ? "checked" : "unchecked");
-			indicator.innerHTML = "";
-			if (isSelected) indicator.appendChild(CheckIcon({ class: "size-4" }));
-		});
+		ownedEffect(
+			el,
+			() => {
+				const isSelected = ctx.value() === itemValue;
+				el.setAttribute("aria-selected", String(isSelected));
+				el.setAttribute("data-state", isSelected ? "checked" : "unchecked");
+				indicator.replaceChildren(
+					...(isSelected ? [CheckIcon({ class: "size-4" }) as Node] : []),
+				);
+			},
+			{ server: true },
+		);
 	});
 
 	return el as HTMLElement;
@@ -579,12 +604,16 @@ export function SelectValue(
 		const fallback =
 			placeholder ?? (trigger ? triggerPlaceholders.get(trigger) : undefined);
 
-		ownedEffect(el, () => {
-			renderSelectLabel(el, trigger, ctx.selectedLabel(), () => {
-				if (emptyChildren) el.replaceChildren(...emptyChildren);
-				else el.textContent = fallback ?? "";
-			});
-		});
+		ownedEffect(
+			el,
+			() => {
+				renderSelectLabel(el, trigger, ctx.selectedLabel(), () => {
+					if (emptyChildren) el.replaceChildren(...emptyChildren);
+					else el.textContent = fallback ?? "";
+				});
+			},
+			{ server: true },
+		);
 	});
 
 	return el;

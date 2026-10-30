@@ -183,15 +183,19 @@ export function ToggleGroupItem(
 		const ctx = (groupEl as ElementWithContext).__toggleGroup;
 		if (!ctx) return;
 
-		ownedEffect(el, () => {
-			const current = ctx.value();
-			const isOn =
-				ctx.type === "multiple"
-					? Array.isArray(current) && current.includes(itemValue)
-					: current === itemValue;
-			el.setAttribute("data-state", isOn ? "on" : "off");
-			el.setAttribute("aria-pressed", String(isOn));
-		});
+		ownedEffect(
+			el,
+			() => {
+				const current = ctx.value();
+				const isOn =
+					ctx.type === "multiple"
+						? Array.isArray(current) && current.includes(itemValue)
+						: current === itemValue;
+				el.setAttribute("data-state", isOn ? "on" : "off");
+				el.setAttribute("aria-pressed", String(isOn));
+			},
+			{ server: true },
+		);
 	});
 
 	return el;

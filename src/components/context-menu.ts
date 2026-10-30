@@ -2,7 +2,12 @@ import { div, type NodeChildren, signal, span } from "sibujs";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
 import { bindGetterControlled } from "../lib/controlled";
 import { createDismissableLayer } from "../lib/dismissable-layer";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -116,20 +121,27 @@ export function ContextMenuContent(
 			const ctx = (menuEl as ElementWithContext).__contextMenu;
 			if (ctx) {
 				const escapeLayer = createDismissableLayer(() => ctx.close());
-				ownedEffect(content, () => {
-					const open = ctx.isOpen();
-					content.style.display = open ? "" : "none";
-					content.setAttribute("data-state", open ? "open" : "closed");
-					if (open) {
-						content.style.left = `${ctx.posX()}px`;
-						content.style.top = `${ctx.posY()}px`;
-						document.addEventListener("mousedown", handleOutsideClick);
-						escapeLayer.activate();
-					} else {
-						document.removeEventListener("mousedown", handleOutsideClick);
-						escapeLayer.deactivate();
-					}
-				});
+				const server = inServerRender();
+				ownedEffect(
+					content,
+					() => {
+						const open = ctx.isOpen();
+						content.style.display = open ? "" : "none";
+						content.setAttribute("data-state", open ? "open" : "closed");
+						// A server render takes only the state.
+						if (server) return;
+						if (open) {
+							content.style.left = `${ctx.posX()}px`;
+							content.style.top = `${ctx.posY()}px`;
+							document.addEventListener("mousedown", handleOutsideClick);
+							escapeLayer.activate();
+						} else {
+							document.removeEventListener("mousedown", handleOutsideClick);
+							escapeLayer.deactivate();
+						}
+					},
+					{ server: true },
+				);
 				owner.add(() => {
 					document.removeEventListener("mousedown", handleOutsideClick);
 					escapeLayer.deactivate();
@@ -380,16 +392,19 @@ export function ContextMenuRadioItem(
 		if (groupEl) {
 			const ctx = (groupEl as ElementWithContext).__radioGroup;
 			if (ctx) {
-				ownedEffect(el, () => {
-					const isSelected = ctx.value() === val;
-					el.setAttribute("aria-checked", String(isSelected));
-					indicatorWrapper.innerHTML = "";
-					if (isSelected) {
-						indicatorWrapper.appendChild(
-							CircleIcon({ class: "size-2 fill-current" }),
+				ownedEffect(
+					el,
+					() => {
+						const isSelected = ctx.value() === val;
+						el.setAttribute("aria-checked", String(isSelected));
+						indicatorWrapper.replaceChildren(
+							...(isSelected
+								? [CircleIcon({ class: "size-2 fill-current" }) as Node]
+								: []),
 						);
-					}
-				});
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -542,11 +557,15 @@ export function ContextMenuSubContent(
 		if (subEl) {
 			const ctx = (subEl as ElementWithContext).__contextSub;
 			if (ctx) {
-				ownedEffect(content, () => {
-					const open = ctx.isOpen();
-					content.style.display = open ? "" : "none";
-					content.setAttribute("data-state", open ? "open" : "closed");
-				});
+				ownedEffect(
+					content,
+					() => {
+						const open = ctx.isOpen();
+						content.style.display = open ? "" : "none";
+						content.setAttribute("data-state", open ? "open" : "closed");
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
