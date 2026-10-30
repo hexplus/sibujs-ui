@@ -337,8 +337,8 @@ browser starts from:
   default.
 - Content the browser moves to `document.body` (`Dialog`, `DropdownMenu`,
   menubar submenus, a portaled `Tooltip`) stays in place in the server markup.
-- `Checkbox`, `Switch`, `RadioGroup`, `Select` and `Combobox` include their
-  native form inputs, so a server-rendered form submits before any JavaScript
+- `Checkbox`, `Switch`, `RadioGroup` and `Select` include their native form
+  inputs, so a server-rendered form submits before any JavaScript
   runs.
 - Generated ids come from `createId()`: the same on every request and the same
   the browser computes, so `hydrate(…, { strategy: "adopt" })` takes the markup

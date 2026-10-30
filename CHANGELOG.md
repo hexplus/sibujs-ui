@@ -28,8 +28,8 @@ an adopting hydration rebuilt what it could not claim. Now:
 - `Dialog`, `DropdownMenu` and its submenus, menubar submenus and a portaled
   `Tooltip` keep their content in place on the server instead of moving it to
   `<body>`, which is not part of the server output. The browser still moves it.
-- `Checkbox`, `Switch`, `RadioGroup`, `Select` and `Combobox` render their
-  native form inputs in the server markup, with `name`, `value`, `checked` and
+- `Checkbox`, `Switch`, `RadioGroup` and `Select` render their native form
+  inputs in the server markup, with `name`, `value`, `checked` and
   `required` as attributes, so a server-rendered form submits before
   JavaScript runs. `InputOTP` carries its `maxlength` and value.
 - Ids come from `createId()` instead of counters shared by the whole process
