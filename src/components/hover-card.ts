@@ -238,11 +238,15 @@ export function HoverCardContent(
 		// Adopt the stable id so the trigger's aria-describedby can resolve.
 		content.id = ctx.contentId;
 
-		ownedEffect(content, () => {
-			const open = ctx.isOpen();
-			content.style.display = open ? "" : "none";
-			content.setAttribute("data-state", open ? "open" : "closed");
-		});
+		ownedEffect(
+			content,
+			() => {
+				const open = ctx.isOpen();
+				content.style.display = open ? "" : "none";
+				content.setAttribute("data-state", open ? "open" : "closed");
+			},
+			{ server: true },
+		);
 	});
 
 	return content as HTMLElement;

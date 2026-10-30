@@ -1,5 +1,6 @@
 import {
 	button as buttonTag,
+	createId,
 	dispose,
 	div,
 	h2,
@@ -11,7 +12,12 @@ import { XIcon } from "../icons";
 import { bindAriaRefs } from "../lib/aria";
 import { bindControlled } from "../lib/controlled";
 import { createDismissableLayer } from "../lib/dismissable-layer";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { createScrollLock } from "../lib/scroll-lock";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
@@ -23,7 +29,6 @@ import {
 } from "./types";
 
 // Auto-incrementing ID for accessible linkage
-let dialogIdCounter = 0;
 
 export interface DialogProps extends BaseProps {
 	open?: boolean | (() => boolean);
@@ -144,7 +149,7 @@ export function DialogContent(
 	const props = normalizeArgs<DialogContentProps>(first, second);
 	const { class: className, showCloseButton = true, nodes, ...rest } = props;
 
-	const dialogId = `dlg-${++dialogIdCounter}`;
+	const dialogId = createId("dlg");
 	const titleId = `${dialogId}-title`;
 	const descId = `${dialogId}-desc`;
 
@@ -294,41 +299,55 @@ export function DialogContent(
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 		const escapeLayer = createDismissableLayer(closeFn);
+		// A server render takes only the state: the portal stays in the tree
+		// (shown in place when open), and nothing listens, locks or waits.
+		const server = inServerRender();
 
-		ownedEffect(anchor, () => {
-			const open = ctx.isOpen();
-			const state = open ? "open" : "closed";
+		ownedEffect(
+			anchor,
+			() => {
+				const open = ctx.isOpen();
+				const state = open ? "open" : "closed";
 
-			if (open) {
-				if (closeTimer) {
-					clearTimeout(closeTimer);
-					closeTimer = undefined;
+				if (server) {
+					portal.style.display = open ? "contents" : "none";
+					overlay.setAttribute("data-state", state);
+					content.setAttribute("data-state", state);
+					return;
 				}
-				// Appending (again) makes this the last portal in <body>, so the
-				// most recently opened dialog — a nested one included — paints on
-				// top of the others at the same z-index.
-				if (typeof document !== "undefined" && document.body) {
-					document.body.appendChild(portal);
+
+				if (open) {
+					if (closeTimer) {
+						clearTimeout(closeTimer);
+						closeTimer = undefined;
+					}
+					// Appending (again) makes this the last portal in <body>, so the
+					// most recently opened dialog — a nested one included — paints on
+					// top of the others at the same z-index.
+					if (typeof document !== "undefined" && document.body) {
+						document.body.appendChild(portal);
+					}
+					portal.style.display = "contents";
+					overlay.setAttribute("data-state", state);
+					content.setAttribute("data-state", state);
+					escapeLayer.activate();
+					scrollLock.acquire();
+				} else {
+					overlay.setAttribute("data-state", state);
+					content.setAttribute("data-state", state);
+					escapeLayer.deactivate();
+					scrollLock.release();
+					// The close animation plays where the dialog is shown; only then
+					// does the portal go back into the tree.
+					closeTimer = setTimeout(() => {
+						portal.style.display = "none";
+						returnPortal();
+						closeTimer = undefined;
+					}, 200);
 				}
-				portal.style.display = "contents";
-				overlay.setAttribute("data-state", state);
-				content.setAttribute("data-state", state);
-				escapeLayer.activate();
-				scrollLock.acquire();
-			} else {
-				overlay.setAttribute("data-state", state);
-				content.setAttribute("data-state", state);
-				escapeLayer.deactivate();
-				scrollLock.release();
-				// The close animation plays where the dialog is shown; only then
-				// does the portal go back into the tree.
-				closeTimer = setTimeout(() => {
-					portal.style.display = "none";
-					returnPortal();
-					closeTimer = undefined;
-				}, 200);
-			}
-		});
+			},
+			{ server: true },
+		);
 
 		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);

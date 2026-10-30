@@ -186,7 +186,7 @@ export function Calendar(
 		}
 
 		function renderItems(selected: string) {
-			listEl.innerHTML = "";
+			listEl.replaceChildren();
 			for (const item of items) {
 				const isActive = item.value === selected;
 				const option = div(

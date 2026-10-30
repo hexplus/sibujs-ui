@@ -8,7 +8,12 @@ import {
 } from "sibujs";
 import { bindAriaRefs } from "../lib/aria";
 import { bindControlled } from "../lib/controlled";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { createScrollLock } from "../lib/scroll-lock";
 import { cn, cnReactive } from "../lib/utils";
 import { Button, type ButtonProps } from "./button";
@@ -194,29 +199,43 @@ export function AlertDialogContent(
 
 		let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
-		ownedEffect(container, () => {
-			const open = ctx.isOpen();
-			const state = open ? "open" : "closed";
+		// A server render takes only the state: nothing listens, locks or waits.
+		const server = inServerRender();
 
-			if (open) {
-				if (closeTimer) {
-					clearTimeout(closeTimer);
-					closeTimer = undefined;
+		ownedEffect(
+			container,
+			() => {
+				const open = ctx.isOpen();
+				const state = open ? "open" : "closed";
+
+				if (server) {
+					container.style.display = open ? "contents" : "none";
+					overlay.setAttribute("data-state", state);
+					content.setAttribute("data-state", state);
+					return;
 				}
-				container.style.display = "contents";
-				overlay.setAttribute("data-state", state);
-				content.setAttribute("data-state", state);
-				scrollLock.acquire();
-			} else {
-				overlay.setAttribute("data-state", state);
-				content.setAttribute("data-state", state);
-				scrollLock.release();
-				closeTimer = setTimeout(() => {
-					container.style.display = "none";
-					closeTimer = undefined;
-				}, 200);
-			}
-		});
+
+				if (open) {
+					if (closeTimer) {
+						clearTimeout(closeTimer);
+						closeTimer = undefined;
+					}
+					container.style.display = "contents";
+					overlay.setAttribute("data-state", state);
+					content.setAttribute("data-state", state);
+					scrollLock.acquire();
+				} else {
+					overlay.setAttribute("data-state", state);
+					content.setAttribute("data-state", state);
+					scrollLock.release();
+					closeTimer = setTimeout(() => {
+						container.style.display = "none";
+						closeTimer = undefined;
+					}, 200);
+				}
+			},
+			{ server: true },
+		);
 
 		owner.add(() => {
 			if (closeTimer) clearTimeout(closeTimer);

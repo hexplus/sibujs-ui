@@ -9,7 +9,12 @@ import {
 import { CheckIcon, ChevronDownIcon, XIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
 import { createItemLabelRegistry } from "../lib/item-labels";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import { Button } from "./button";
 import {
@@ -322,13 +327,18 @@ export function ComboboxValue(
 		if (comboEl) {
 			const ctx = (comboEl as ElementWithContext).__combobox;
 			if (ctx) {
-				ownedEffect(el, () => {
-					const placeholder = el.getAttribute("data-placeholder") ?? "";
-					const labels = (ctx.selectedList() as string[]).map((v: string) =>
-						ctx.getItemLabel(v),
-					);
-					el.textContent = labels.length > 0 ? labels.join(", ") : placeholder;
-				});
+				ownedEffect(
+					el,
+					() => {
+						const placeholder = el.getAttribute("data-placeholder") ?? "";
+						const labels = (ctx.selectedList() as string[]).map((v: string) =>
+							ctx.getItemLabel(v),
+						);
+						el.textContent =
+							labels.length > 0 ? labels.join(", ") : placeholder;
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -514,24 +524,31 @@ export function ComboboxInput(
 		});
 
 		// Show selected value label in input when selection changes
-		ownedEffect(wrapper, () => {
-			const val = ctx.selectedValue();
-			const open = ctx.isOpen();
+		const server = inServerRender();
+		ownedEffect(
+			wrapper,
+			() => {
+				const val = ctx.selectedValue();
+				const open = ctx.isOpen();
 
-			// When closed, show the selected label (not the search query)
-			if (!open) {
-				if (ctx.multiple) {
-					// For multi-select, clear the input (chips show the values)
-					inputEl.value = "";
-				} else {
-					const strVal = typeof val === "string" ? val : "";
-					inputEl.value = strVal ? ctx.getItemLabel(strVal) : "";
+				// When closed, show the selected label (not the search query)
+				if (!open) {
+					if (ctx.multiple) {
+						// For multi-select, clear the input (chips show the values)
+						inputEl.value = "";
+					} else {
+						const strVal = typeof val === "string" ? val : "";
+						inputEl.value = strVal ? ctx.getItemLabel(strVal) : "";
+					}
+					// Server markup carries the attribute, not the live value.
+					if (server) inputEl.setAttribute("value", inputEl.value);
+					ctx.setQuery("");
 				}
-				ctx.setQuery("");
-			}
 
-			inputEl.setAttribute("aria-expanded", String(open));
-		});
+				inputEl.setAttribute("aria-expanded", String(open));
+			},
+			{ server: true },
+		);
 
 		// When opening, reset filter to show all items
 		let wasOpen = ctx.isOpen();
@@ -642,19 +659,25 @@ export function ComboboxContent(
 			}
 		};
 
-		ownedEffect(content, () => {
-			const open = ctx.isOpen();
-			content.style.display = open ? "" : "none";
-			content.setAttribute("data-state", open ? "open" : "closed");
-			if (open) {
-				content.setAttribute("data-open", "");
-				content.removeAttribute("data-closed");
-				positionContent();
-			} else {
-				content.setAttribute("data-closed", "");
-				content.removeAttribute("data-open");
-			}
-		});
+		const server = inServerRender();
+		ownedEffect(
+			content,
+			() => {
+				const open = ctx.isOpen();
+				content.style.display = open ? "" : "none";
+				content.setAttribute("data-state", open ? "open" : "closed");
+				if (open) {
+					content.setAttribute("data-open", "");
+					content.removeAttribute("data-closed");
+					// Measuring needs a layout, which a server render does not have.
+					if (!server) positionContent();
+				} else {
+					content.setAttribute("data-closed", "");
+					content.removeAttribute("data-open");
+				}
+			},
+			{ server: true },
+		);
 	});
 
 	return content;
@@ -753,18 +776,23 @@ export function ComboboxItem(
 			const ctx = (comboEl as ElementWithContext).__combobox;
 			if (ctx) {
 				owner.add(ctx.registerItem(value, el, indicator));
-				ownedEffect(el, () => {
-					const selected = ctx.isSelected(value);
-					el.setAttribute("aria-selected", String(selected));
-					indicator.innerHTML = "";
-					if (selected) {
-						indicator.appendChild(
-							CheckIcon({
-								class: "pointer-events-none size-4 pointer-coarse:size-5",
-							}) as unknown as Node,
+				ownedEffect(
+					el,
+					() => {
+						const selected = ctx.isSelected(value);
+						el.setAttribute("aria-selected", String(selected));
+						indicator.replaceChildren(
+							...(selected
+								? [
+										CheckIcon({
+											class: "pointer-events-none size-4 pointer-coarse:size-5",
+										}) as Node,
+									]
+								: []),
 						);
-					}
-				});
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -948,12 +976,19 @@ export function ComboboxChipsInput(
 					if (!ctx.isOpen()) ctx.open();
 				});
 				// Hide placeholder when chips are present
-				ownedEffect(inputEl, () => {
-					const hasValues = ctx.selectedList().length > 0;
-					(inputEl as HTMLInputElement).placeholder = hasValues
-						? ""
-						: (origPlaceholder ?? "");
-				});
+				ownedEffect(
+					inputEl,
+					() => {
+						const hasValues = ctx.selectedList().length > 0;
+						// The attribute, which `placeholder` reflects, so a server
+						// render's markup carries it too.
+						inputEl.setAttribute(
+							"placeholder",
+							hasValues ? "" : (origPlaceholder ?? ""),
+						);
+					},
+					{ server: true },
+				);
 			}
 		}
 	});

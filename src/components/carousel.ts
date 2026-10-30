@@ -290,9 +290,13 @@ export function CarouselPrevious(
 				el.classList.add("top-1/2", "-left-12", "-translate-y-1/2");
 			}
 			if (ctx) {
-				ownedEffect(el, () => {
-					(el as HTMLButtonElement).disabled = !ctx.canScrollPrev();
-				});
+				ownedEffect(
+					el,
+					() => {
+						(el as HTMLButtonElement).disabled = !ctx.canScrollPrev();
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -368,9 +372,13 @@ export function CarouselNext(
 				el.classList.add("top-1/2", "-right-12", "-translate-y-1/2");
 			}
 			if (ctx) {
-				ownedEffect(el, () => {
-					(el as HTMLButtonElement).disabled = !ctx.canScrollNext();
-				});
+				ownedEffect(
+					el,
+					() => {
+						(el as HTMLButtonElement).disabled = !ctx.canScrollNext();
+					},
+					{ server: true },
+				);
 			}
 		}
 	});

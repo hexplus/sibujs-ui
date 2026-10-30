@@ -1,4 +1,10 @@
-import { button as buttonTag, div, h3, type NodeChildren } from "sibujs";
+import {
+	button as buttonTag,
+	createId,
+	div,
+	h3,
+	type NodeChildren,
+} from "sibujs";
 import { ChevronDownIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
@@ -9,8 +15,6 @@ import {
 	normalizeArgs,
 	toChildren,
 } from "./types";
-
-let accordionIdCounter = 0;
 
 export interface AccordionProps extends BaseProps {
 	type?: "single" | "multiple";
@@ -133,7 +137,7 @@ export function AccordionItem(
 ): HTMLElement {
 	const props = normalizeArgs<AccordionItemProps>(first, second);
 	const { class: className, value, disabled, nodes, ...rest } = props;
-	const itemId = `acc-${++accordionIdCounter}`;
+	const itemId = createId("acc");
 
 	const el = div({
 		"data-slot": "accordion-item",
@@ -152,10 +156,14 @@ export function AccordionItem(
 		if (accordionEl) {
 			const ctx = (accordionEl as ElementWithContext).__accordion;
 			if (ctx) {
-				ownedEffect(el, () => {
-					const open = ctx.isOpen(value);
-					el.setAttribute("data-state", open ? "open" : "closed");
-				});
+				ownedEffect(
+					el,
+					() => {
+						const open = ctx.isOpen(value);
+						el.setAttribute("data-state", open ? "open" : "closed");
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -249,11 +257,15 @@ export function AccordionTrigger(
 				const ctx = (accordionEl as ElementWithContext).__accordion;
 				const itemValue = itemEl.getAttribute("data-value") ?? "";
 				if (ctx) {
-					ownedEffect(header, () => {
-						const open = ctx.isOpen(itemValue);
-						btn.setAttribute("data-state", open ? "open" : "closed");
-						btn.setAttribute("aria-expanded", String(open));
-					});
+					ownedEffect(
+						header,
+						() => {
+							const open = ctx.isOpen(itemValue);
+							btn.setAttribute("data-state", open ? "open" : "closed");
+							btn.setAttribute("aria-expanded", String(open));
+						},
+						{ server: true },
+					);
 				}
 			}
 		}

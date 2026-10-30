@@ -2,13 +2,19 @@ import { cva } from "class-variance-authority";
 import {
 	a as aTag,
 	button as buttonTag,
+	createId,
 	div,
 	type NodeChildren,
 	signal,
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
 import { createDismissableLayer } from "../lib/dismissable-layer";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -118,7 +124,7 @@ export function NavigationMenuItem(
 ): HTMLElement {
 	const props = normalizeArgs<NavigationMenuItemProps>(first, second);
 	const { class: className, value, nodes, ...rest } = props;
-	const itemId = value ?? `nav-item-${Math.random().toString(36).slice(2, 9)}`;
+	const itemId = value ?? createId("nav-item");
 
 	const el = div({
 		"data-slot": "navigation-menu-item",
@@ -177,12 +183,16 @@ export function NavigationMenuTrigger(
 			const ctx = (menuEl as ElementWithContext).__navMenu;
 			const itemId = (itemEl as ElementWithContext).__navItemId;
 			if (ctx && itemId) {
-				ownedEffect(el, () => {
-					el.setAttribute(
-						"data-state",
-						ctx.activeItem() === itemId ? "open" : "closed",
-					);
-				});
+				ownedEffect(
+					el,
+					() => {
+						el.setAttribute(
+							"data-state",
+							ctx.activeItem() === itemId ? "open" : "closed",
+						);
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -218,23 +228,34 @@ export function NavigationMenuContent(
 			const itemId = (itemEl as ElementWithContext).__navItemId;
 			if (ctx && itemId) {
 				let closeTimer: ReturnType<typeof setTimeout> | undefined;
-				ownedEffect(content, () => {
-					const isActive = ctx.activeItem() === itemId;
-					if (isActive) {
-						if (closeTimer) {
-							clearTimeout(closeTimer);
-							closeTimer = undefined;
+				const server = inServerRender();
+				ownedEffect(
+					content,
+					() => {
+						const isActive = ctx.activeItem() === itemId;
+						// A server render takes only the state: no close timer.
+						if (server) {
+							content.style.display = isActive ? "" : "none";
+							content.setAttribute("data-state", isActive ? "open" : "closed");
+							return;
 						}
-						content.style.display = "";
-						content.setAttribute("data-state", "open");
-					} else {
-						content.setAttribute("data-state", "closed");
-						closeTimer = setTimeout(() => {
-							content.style.display = "none";
-							closeTimer = undefined;
-						}, 200);
-					}
-				});
+						if (isActive) {
+							if (closeTimer) {
+								clearTimeout(closeTimer);
+								closeTimer = undefined;
+							}
+							content.style.display = "";
+							content.setAttribute("data-state", "open");
+						} else {
+							content.setAttribute("data-state", "closed");
+							closeTimer = setTimeout(() => {
+								content.style.display = "none";
+								closeTimer = undefined;
+							}, 200);
+						}
+					},
+					{ server: true },
+				);
 			}
 		}
 	});

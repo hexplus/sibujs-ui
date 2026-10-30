@@ -9,7 +9,12 @@ import {
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "../icons";
 import { bindControlled, bindGetterControlled } from "../lib/controlled";
 import { createDismissableLayer } from "../lib/dismissable-layer";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -119,9 +124,13 @@ export function DropdownMenuTrigger(
 		if (menuEl) {
 			const ctx = (menuEl as ElementWithContext).__dropdown;
 			if (ctx) {
-				ownedEffect(el, () => {
-					el.setAttribute("aria-expanded", String(ctx.isOpen()));
-				});
+				ownedEffect(
+					el,
+					() => {
+						el.setAttribute("aria-expanded", String(ctx.isOpen()));
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -189,68 +198,79 @@ export function DropdownMenuContent(
 		// owned by the in-tree menu root — a disposer on `content` would never
 		// be reached by dispose().
 		const anchor: HTMLElement = menuEl;
-		document.body.appendChild(content);
+		// A server render keeps the content in place (<body> is not part of
+		// its output) and takes only the state.
+		const server = inServerRender();
+		if (!server) document.body.appendChild(content);
 
 		const escapeLayer = createDismissableLayer(() => ctx.close());
 
-		ownedEffect(anchor, () => {
-			const open = ctx.isOpen();
-			content.setAttribute("data-state", open ? "open" : "closed");
-			if (open) {
-				content.style.display = "";
-				// Position relative to trigger
-				const trigger = menuEl?.querySelector(
-					"[data-slot=dropdown-menu-trigger]",
-				);
-				if (trigger) {
-					const rect = trigger.getBoundingClientRect();
-					const contentRect = content.getBoundingClientRect();
+		ownedEffect(
+			anchor,
+			() => {
+				const open = ctx.isOpen();
+				content.setAttribute("data-state", open ? "open" : "closed");
+				if (server) {
+					content.style.display = open ? "" : "none";
+					return;
+				}
+				if (open) {
+					content.style.display = "";
+					// Position relative to trigger
+					const trigger = menuEl?.querySelector(
+						"[data-slot=dropdown-menu-trigger]",
+					);
+					if (trigger) {
+						const rect = trigger.getBoundingClientRect();
+						const contentRect = content.getBoundingClientRect();
 
-					let top = 0;
-					let left = 0;
+						let top = 0;
+						let left = 0;
 
-					switch (side) {
-						case "bottom":
-							top = rect.bottom + sideOffset;
-							break;
-						case "top":
-							top = rect.top - sideOffset - contentRect.height;
-							break;
-						case "right":
-							left = rect.right + sideOffset;
-							top = rect.top;
-							break;
-						case "left":
-							left = rect.left - sideOffset - contentRect.width;
-							top = rect.top;
-							break;
-					}
-
-					if (side === "bottom" || side === "top") {
-						switch (align) {
-							case "start":
-								left = rect.left;
+						switch (side) {
+							case "bottom":
+								top = rect.bottom + sideOffset;
 								break;
-							case "center":
-								left = rect.left + (rect.width - contentRect.width) / 2;
+							case "top":
+								top = rect.top - sideOffset - contentRect.height;
 								break;
-							case "end":
-								left = rect.right - contentRect.width;
+							case "right":
+								left = rect.right + sideOffset;
+								top = rect.top;
+								break;
+							case "left":
+								left = rect.left - sideOffset - contentRect.width;
+								top = rect.top;
 								break;
 						}
-					}
 
-					content.style.top = `${top}px`;
-					content.style.left = `${left}px`;
+						if (side === "bottom" || side === "top") {
+							switch (align) {
+								case "start":
+									left = rect.left;
+									break;
+								case "center":
+									left = rect.left + (rect.width - contentRect.width) / 2;
+									break;
+								case "end":
+									left = rect.right - contentRect.width;
+									break;
+							}
+						}
+
+						content.style.top = `${top}px`;
+						content.style.left = `${left}px`;
+					}
+					document.addEventListener("mousedown", handleOutsideClick);
+					escapeLayer.activate();
+				} else {
+					content.style.display = "none";
+					document.removeEventListener("mousedown", handleOutsideClick);
+					escapeLayer.deactivate();
 				}
-				document.addEventListener("mousedown", handleOutsideClick);
-				escapeLayer.activate();
-			} else {
-				content.style.display = "none";
-				document.removeEventListener("mousedown", handleOutsideClick);
-				escapeLayer.deactivate();
-			}
-		});
+			},
+			{ server: true },
+		);
 
 		// `content` is portaled to <body>, so a disposer registered on it is
 		// never reached by dispose() (which only walks the owner's subtree).
@@ -582,16 +602,19 @@ export function DropdownMenuRadioItem(
 		if (groupEl) {
 			const ctx = (groupEl as ElementWithContext).__radioGroup;
 			if (ctx) {
-				ownedEffect(el, () => {
-					const isSelected = ctx.value() === val;
-					el.setAttribute("aria-checked", String(isSelected));
-					indicatorWrapper.innerHTML = "";
-					if (isSelected) {
-						indicatorWrapper.appendChild(
-							CircleIcon({ class: "size-2 fill-current" }),
+				ownedEffect(
+					el,
+					() => {
+						const isSelected = ctx.value() === val;
+						el.setAttribute("aria-checked", String(isSelected));
+						indicatorWrapper.replaceChildren(
+							...(isSelected
+								? [CircleIcon({ class: "size-2 fill-current" }) as Node]
+								: []),
 						);
-					}
-				});
+					},
+					{ server: true },
+				);
 			}
 		}
 	});
@@ -718,26 +741,32 @@ export function DropdownMenuSubContent(
 			(content as ElementWithContext).__dropdownRoot = rootMenu as HTMLElement;
 
 		// Move to body so it's not clipped by parent overflow. Cleanup is owned
-		// by the in-tree sub root, not the portaled node.
-		document.body.appendChild(content);
+		// by the in-tree sub root, not the portaled node. A server render keeps
+		// it in place and takes only the state.
+		const server = inServerRender();
+		if (!server) document.body.appendChild(content);
 
-		ownedEffect(subEl, () => {
-			const open = ctx.isOpen();
-			content.style.display = open ? "" : "none";
-			content.setAttribute("data-state", open ? "open" : "closed");
+		ownedEffect(
+			subEl,
+			() => {
+				const open = ctx.isOpen();
+				content.style.display = open ? "" : "none";
+				content.setAttribute("data-state", open ? "open" : "closed");
 
-			if (open) {
-				// Position relative to the sub-trigger
-				const trigger = subEl.querySelector(
-					"[data-slot=dropdown-menu-sub-trigger]",
-				);
-				if (trigger) {
-					const rect = trigger.getBoundingClientRect();
-					content.style.left = `${rect.right + 2}px`;
-					content.style.top = `${rect.top}px`;
+				if (open && !server) {
+					// Position relative to the sub-trigger
+					const trigger = subEl.querySelector(
+						"[data-slot=dropdown-menu-sub-trigger]",
+					);
+					if (trigger) {
+						const rect = trigger.getBoundingClientRect();
+						content.style.left = `${rect.right + 2}px`;
+						content.style.top = `${rect.top}px`;
+					}
 				}
-			}
-		});
+			},
+			{ server: true },
+		);
 
 		// Keep sub open when mouse enters the portaled content
 		content.addEventListener("mouseenter", () => {

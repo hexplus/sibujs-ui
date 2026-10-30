@@ -1,5 +1,6 @@
 import {
 	deferOwned,
+	inServerRender,
 	nodeOwner,
 	scopedEffect,
 	whenConnected,
@@ -82,9 +83,11 @@ export function attachCheckboxBridge(
 
 	const input = createBridgeInput("checkbox");
 	if (opts.name) input.name = opts.name;
-	// Native checkboxes submit "on" when no value attribute is present.
-	if (opts.value !== undefined) input.value = opts.value;
-	if (opts.required) input.required = true;
+	// Native checkboxes submit "on" when no value attribute is present. Set as
+	// the attribute — what a checkbox's `value` writes anyway — so server
+	// markup carries it.
+	if (opts.value !== undefined) input.setAttribute("value", opts.value);
+	if (opts.required) input.setAttribute("required", "");
 	if (opts.disabled) input.disabled = true;
 	// The `checked` content attribute (what `defaultChecked` reflects) is what
 	// form reset restores — it must carry the component's own default, not its
@@ -145,7 +148,7 @@ export function attachGroupValidityBridge(
 
 	const input = document.createElement("input");
 	input.type = "text";
-	input.required = true;
+	input.setAttribute("required", "");
 	// Deliberately no `name`: enforced by validation, absent from FormData.
 	input.setAttribute("data-slot", "radio-group-validity-bridge");
 	input.setAttribute("aria-hidden", "true");
@@ -162,14 +165,20 @@ export function attachGroupValidityBridge(
 	 * reconciliation pass that maintains its roving tab stop, so membership is
 	 * modelled once rather than twice.
 	 */
+	const server = inServerRender();
 	const refresh = () => {
 		if (nodeOwner(root).disposed()) return;
 		input.disabled = !!opts.disabled;
 		input.value = opts.selection();
+		// Server markup carries attributes, not the live value. Written only
+		// on a change: the input sits in the group's observed subtree.
+		if (server && input.getAttribute("value") !== input.value) {
+			input.setAttribute("value", input.value);
+		}
 	};
 
 	// Selection changes arrive reactively; membership changes via refresh().
-	scopedEffect(root, refresh);
+	scopedEffect(root, refresh, { server: true });
 
 	// Form reset is handled by the items' own state; nothing to do here beyond
 	// keeping the input beside its group.
@@ -238,17 +247,22 @@ export function attachValueBridge(
 	input.tabIndex = -1;
 	input.setAttribute("style", VISUALLY_HIDDEN);
 	if (opts.name) input.name = opts.name;
-	if (opts.required) input.required = true;
+	if (opts.required) input.setAttribute("required", "");
 	if (opts.disabled) input.disabled = true;
 	// The content attribute is what form reset restores.
 	input.defaultValue = opts.defaultValue;
 
+	const server = inServerRender();
 	const sync = () => {
 		const next = opts.value();
 		if (input.value !== next) input.value = next;
+		// Server markup carries attributes, not the live value.
+		if (server && input.getAttribute("value") !== next) {
+			input.setAttribute("value", next);
+		}
 	};
 
-	const stopMirror = scopedEffect(root, sync);
+	const stopMirror = scopedEffect(root, sync, { server: true });
 
 	// Revert edits, and hand focus to the real control.
 	const owner = nodeOwner(root);
@@ -325,8 +339,9 @@ export function attachRadioBridge(
 
 	const input = createBridgeInput("radio");
 	if (opts.name) input.name = opts.name;
-	input.value = opts.value;
-	if (opts.required) input.required = true;
+	// The attribute, as for the checkbox bridge.
+	input.setAttribute("value", opts.value);
+	if (opts.required) input.setAttribute("required", "");
 
 	const currentlyDisabled = () => opts.disabled?.() ?? false;
 	/**
@@ -393,9 +408,20 @@ function bindBridge(
 	// Mirror component state onto the native input. Scoped, so the subscription
 	// dies with the component *and* can be released early when the binding is
 	// replaced — a RadioGroupItem moving to a different group, for instance.
-	const stopMirror = scopedEffect(root, () => {
-		input.checked = checked();
-	});
+	const server = inServerRender();
+	const stopMirror = scopedEffect(
+		root,
+		() => {
+			input.checked = checked();
+			// Server markup carries the attribute, not the live checkedness.
+			// Written only on a change: the input sits in its group's observed
+			// subtree, and every write would wake the group's observer again.
+			if (server && input.hasAttribute("checked") !== input.checked) {
+				input.toggleAttribute("checked", input.checked);
+			}
+		},
+		{ server: true },
+	);
 
 	const stopPlacement = bindPlacement(root, input, () =>
 		onReset(input.checked),
@@ -422,6 +448,17 @@ export function bindPlacement(
 	onReset: () => void,
 ): () => void {
 	const owner = nodeOwner(root);
+
+	// A server render has no form to reset and no move to follow: put the
+	// input beside the control once the tree is built, so the server markup
+	// submits without JavaScript. The browser builds its own bridge on takeover.
+	if (inServerRender()) {
+		deferOwned(root, () => {
+			root.parentNode?.insertBefore(input, root.nextSibling);
+		});
+		return owner.addScoped(() => input.remove());
+	}
+
 	let released = false;
 
 	let parentObserver: MutationObserver | null = null;

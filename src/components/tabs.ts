@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { button as buttonTag, div, type NodeChildren } from "sibujs";
+import { button as buttonTag, createId, div, type NodeChildren } from "sibujs";
 import { bindControlled } from "../lib/controlled";
 import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
 import { cn, cnReactive } from "../lib/utils";
@@ -15,8 +15,6 @@ export interface TabsProps extends BaseProps {
 	onValueChange?: (value: string) => void;
 	orientation?: "horizontal" | "vertical";
 }
-
-let tabsIdCounter = 0;
 
 export function Tabs(
 	first?: TabsProps | NodeChildren,
@@ -49,7 +47,7 @@ export function Tabs(
 
 	nodeOwner(el).add(stopControlled);
 
-	const tabsId = `tabs-${++tabsIdCounter}`;
+	const tabsId = createId("tabs");
 
 	(el as ElementWithContext).__tabs = {
 		activeTab,
@@ -148,11 +146,15 @@ export function TabsTrigger(
 		el.id = `tab-${idPrefix}-${value}`;
 		el.setAttribute("aria-controls", `panel-${idPrefix}-${value}`);
 
-		ownedEffect(el, () => {
-			const isActive = ctx.activeTab() === value;
-			el.setAttribute("data-state", isActive ? "active" : "inactive");
-			el.setAttribute("aria-selected", String(isActive));
-		});
+		ownedEffect(
+			el,
+			() => {
+				const isActive = ctx.activeTab() === value;
+				el.setAttribute("data-state", isActive ? "active" : "inactive");
+				el.setAttribute("aria-selected", String(isActive));
+			},
+			{ server: true },
+		);
 	});
 
 	return el as HTMLElement;
@@ -189,11 +191,15 @@ export function TabsContent(
 		el.id = `panel-${idPrefix}-${value}`;
 		el.setAttribute("aria-labelledby", `tab-${idPrefix}-${value}`);
 
-		ownedEffect(el, () => {
-			const isActive = ctx.activeTab() === value;
-			el.style.display = isActive ? "" : "none";
-			el.setAttribute("data-state", isActive ? "active" : "inactive");
-		});
+		ownedEffect(
+			el,
+			() => {
+				const isActive = ctx.activeTab() === value;
+				el.style.display = isActive ? "" : "none";
+				el.setAttribute("data-state", isActive ? "active" : "inactive");
+			},
+			{ server: true },
+		);
 	});
 
 	return el as HTMLElement;

@@ -1,5 +1,5 @@
 import { effect, signal } from "sibujs";
-import { nodeOwner } from "./lifecycle";
+import { nodeOwner, RUN_ON_SERVER } from "./lifecycle";
 
 /**
  * Result of {@link bindControlled}.
@@ -77,9 +77,11 @@ export function bindControlled<T>(
 	let teardown: () => void = () => {};
 
 	if (typeof controlled === "function") {
+		// Also during a server render, so the markup shows the controlled value
+		// rather than the default (sibujs 4.14+; earlier versions ignore it).
 		const stop = effect(() => {
 			setValue((controlled as () => T)());
-		});
+		}, RUN_ON_SERVER);
 		let stopped = false;
 		teardown = () => {
 			if (stopped) return;

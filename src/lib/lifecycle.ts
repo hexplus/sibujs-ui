@@ -235,8 +235,48 @@ export function isDisposed(node: Node): boolean {
 export function ownedEffect(
 	owner: Node,
 	body: EffectBody | (() => void),
+	options?: OwnedEffectOptions,
 ): void {
-	scopedEffect(owner, body);
+	scopedEffect(owner, body, options);
+}
+
+/**
+ * `effect()` options that also run it during a server render. Typed through
+ * `unknown` because the peer range reaches back to sibujs releases whose
+ * `EffectOptions` has no `server` field (added in 4.14); those simply ignore it.
+ */
+export const RUN_ON_SERVER = { server: true } as unknown as Parameters<
+	typeof effect
+>[1];
+
+/** Options of {@link ownedEffect} / {@link scopedEffect}. */
+export interface OwnedEffectOptions {
+	/**
+	 * Also run during a server render, so the markup the server sends carries
+	 * the state this effect writes (`data-state`, `aria-*`, visibility). Only
+	 * for a body that writes attributes, styles or children: anything else —
+	 * listeners, timers, focus, measuring, scroll locks — must be skipped when
+	 * {@link inServerRender} is true. Needs sibujs 4.14 or later; on earlier
+	 * versions no effect runs on the server and this changes nothing.
+	 */
+	server?: boolean;
+}
+
+/**
+ * True while a server render (`renderToStringAsync`, `renderRoute`, the
+ * pre-renderer's server mode) is building this code.
+ *
+ * Detected by what defines one for this package: sibujs runs no ordinary
+ * effect there. A probe effect that does not run says so on every supported
+ * sibujs version, with no import that older versions lack. Call it once per
+ * component setup, not in a hot path.
+ */
+export function inServerRender(): boolean {
+	let ran = false;
+	effect(() => {
+		ran = true;
+	})();
+	return !ran;
 }
 
 /**
@@ -250,10 +290,11 @@ export function ownedEffect(
 export function scopedEffect(
 	owner: Node,
 	body: EffectBody | (() => void),
+	options?: OwnedEffectOptions,
 ): () => void {
 	const o = nodeOwner(owner);
 	if (o.disposed()) return () => {};
-	const stop = effect(body);
+	const stop = options?.server ? effect(body, RUN_ON_SERVER) : effect(body);
 	return o.addScoped(stop);
 }
 

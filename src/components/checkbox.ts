@@ -78,12 +78,18 @@ export function Checkbox(
 
 	// Update indicator content reactively — owned, so it stops on dispose
 	// instead of mutating detached DOM forever.
-	ownedEffect(el, () => {
-		indicator.replaceChildren();
-		if (isChecked()) {
-			indicator.appendChild(CheckIcon({ class: "size-3.5" }));
-		}
-	});
+	ownedEffect(
+		el,
+		() => {
+			// One replaceChildren() with the icon already built, rather than a
+			// clear and an append: during an adopting hydration the icon claims
+			// the server's, which must still be in place when the swap happens.
+			indicator.replaceChildren(
+				...(isChecked() ? [CheckIcon({ class: "size-3.5" }) as Node] : []),
+			);
+		},
+		{ server: true },
+	);
 
 	// Native bridge so the checkbox actually participates in its form.
 	attachCheckboxBridge(el, {
