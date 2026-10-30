@@ -86,9 +86,11 @@ export function attachCheckboxBridge(
 	if (opts.value !== undefined) input.value = opts.value;
 	if (opts.required) input.required = true;
 	if (opts.disabled) input.disabled = true;
-	// `defaultChecked` drives the content attribute, which is what form reset
-	// restores — it must reflect the component's own default, not its current state.
-	input.defaultChecked = opts.defaultChecked;
+	// The `checked` content attribute (what `defaultChecked` reflects) is what
+	// form reset restores — it must carry the component's own default, not its
+	// current state. Set as the attribute: a server DOM may not implement the
+	// `defaultChecked` setter, and the attribute is what server markup shows.
+	input.toggleAttribute("checked", opts.defaultChecked);
 	input.checked = opts.defaultChecked;
 
 	return bindBridge(root, input, opts.checked, opts.onReset);
@@ -338,7 +340,8 @@ export function attachRadioBridge(
 	const currentlyChecked = () => opts.selected() && !currentlyDisabled();
 
 	input.disabled = currentlyDisabled();
-	input.defaultChecked = opts.defaultSelected;
+	// The attribute `defaultChecked` reflects, set directly (see attachCheckboxBridge).
+	input.toggleAttribute("checked", opts.defaultSelected);
 	input.checked = opts.defaultSelected && !currentlyDisabled();
 
 	const detach = bindBridge(root, input, currentlyChecked, opts.onReset);

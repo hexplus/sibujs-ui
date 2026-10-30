@@ -131,8 +131,10 @@ export function NativeSelect(
 			const applyDefault = () => {
 				for (const opt of Array.from((selectEl as HTMLSelectElement).options)) {
 					const isDefault = opt.value === initial;
+					// The `selected` attribute is what `defaultSelected` reflects. Set
+					// directly, since a server DOM may not implement that setter.
 					if (opt.defaultSelected !== isDefault)
-						opt.defaultSelected = isDefault;
+						opt.toggleAttribute("selected", isDefault);
 				}
 				applyValue(initial);
 			};

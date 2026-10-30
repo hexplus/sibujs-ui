@@ -35,7 +35,7 @@ npm install sibujs-ui sibujs
 
 `sibujs-ui` declares **`sibujs >=3.2.0 <5.0.0`** as a peer dependency — earlier versions lack the `registerDisposer`, `createId`, `onMount`, and `tag(props, children)` APIs that the components rely on.
 
-CI runs the full test suite, type-check and build against sibujs `3.2.0`, `3.4.1` and `4.0.1` — the floor, middle and current top of that range — in a dedicated compatibility matrix that installs each version and fails if the requested version is not the one actually resolved. That matrix is the only thing this claim rests on; if a version is not listed there, it is not tested.
+CI runs the full test suite, type-check and build against sibujs `3.2.0`, `3.4.1` and `4.0.1` — the floor of that range, a 3.x midpoint and the first 4.x release — in a dedicated compatibility matrix that installs each version and fails if the requested version is not the one actually resolved, and against the version pinned in the lockfile (currently `4.14.1`) on every Node version it tests. Those are the only versions this claim rests on; if a version is not listed here, it is not tested.
 
 **Node:** `>=22.3.0` to *use* the package, matching SibuJS 4's own floor.
 

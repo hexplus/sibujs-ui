@@ -413,7 +413,9 @@ export function Calendar(
 		const totalDays = daysInMonth(year, month);
 		const firstDay = new Date(year, month, 1).getDay();
 
-		container.innerHTML = "";
+		// Not `innerHTML = ""`: a server DOM has no HTML parser, and this runs
+		// while the calendar is built, so also during a server render.
+		container.replaceChildren();
 
 		// Weekday headers
 		container.appendChild(
