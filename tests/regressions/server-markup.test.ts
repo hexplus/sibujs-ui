@@ -57,6 +57,7 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "../../src/index";
+import { closed, itemStates, open, renderWithLateValue } from "../helpers/accordion-settle";
 
 const hasServerDom = typeof ssr.renderToStringAsync === "function";
 
@@ -268,5 +269,21 @@ describe.skipIf(!hasServerDom)("server markup carries component state", () => {
 		expect(thumbs).toHaveLength(2);
 		expect(thumbs[0]).toContain('aria-valuenow="20"');
 		expect(tagWith(html, 'data-slot="slider-range"')).toContain("width: 40%");
+	});
+});
+
+// A controlled value can change while the render waits for async work. Item
+// and trigger states followed it, but AccordionContent set its state once and
+// updated it only from a browser effect, so the final HTML showed the earlier
+// panel and hid the selected one.
+describe.skipIf(!hasServerDom)("Accordion follows a controlled value that changes while the render settles", () => {
+	it.each([
+		{ name: "single, a → b", type: "single" as const, from: "a", to: "b", expected: [closed, open] },
+		{ name: "single, closed → a", type: "single" as const, from: "", to: "a", expected: [open, closed] },
+		{ name: "single, a → closed", type: "single" as const, from: "a", to: "", expected: [closed, closed] },
+		{ name: "multiple, [a] → [b]", type: "multiple" as const, from: ["a"], to: ["b"], expected: [closed, open] },
+		{ name: "multiple, [] → [a, b]", type: "multiple" as const, from: [], to: ["a", "b"], expected: [open, open] },
+	])("$name", async ({ type, from, to, expected }) => {
+		expect(itemStates(await renderWithLateValue(type, from, to))).toEqual(expected);
 	});
 });

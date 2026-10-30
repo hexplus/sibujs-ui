@@ -7,7 +7,12 @@ import {
 } from "sibujs";
 import { ChevronDownIcon } from "../icons";
 import { bindControlled } from "../lib/controlled";
-import { deferOwned, nodeOwner, ownedEffect } from "../lib/lifecycle";
+import {
+	deferOwned,
+	inServerRender,
+	nodeOwner,
+	ownedEffect,
+} from "../lib/lifecycle";
 import { cnReactive } from "../lib/utils";
 import {
 	type BaseProps,
@@ -309,6 +314,23 @@ export function AccordionContent(
 			outer.id = contentId;
 			outer.setAttribute("role", "region");
 			outer.setAttribute("aria-labelledby", triggerId);
+
+			// A server render follows the state alone, reactively, so a value
+			// that changes while the render settles reaches the panel as it
+			// reaches the item and the trigger. Everything below measures layout
+			// or animates, which a server render has neither of.
+			if (ctx && inServerRender()) {
+				const reflect = () => {
+					const open = ctx.isOpen(itemValue);
+					outer.setAttribute("data-state", open ? "open" : "closed");
+					outer.style.display = open ? "" : "none";
+				};
+				// Once now, as before: a sibujs older than 4.14 runs no effect on
+				// the server, and still gets the initial state.
+				reflect();
+				ownedEffect(outer, reflect, { server: true });
+				return;
+			}
 
 			if (ctx) {
 				// Keep track of dynamic content height when open (for window resizes).
