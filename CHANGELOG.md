@@ -6,6 +6,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.10.1] — 2026-11-19
+
+### Changed — built and tested against sibujs 4.15.3
+
+The development dependency moves to `sibujs ^4.15.3`, and the full suite,
+type-check and build pass on it. The supported range (`sibujs >=3.2.0 <5.0.0`)
+and the published components are unchanged. On sibujs 4.15.3, server markup
+also carries the state of native form controls an application renders beside
+these components: checked inputs, selected options and field values.
+
+---
+
 ## [1.10.0] — 2026-10-30
 
 ### Changed — server markup matches the first browser render
